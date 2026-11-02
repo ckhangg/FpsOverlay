@@ -39,6 +39,26 @@ public class FpsCalculatorTests
     }
 
     [Fact]
+    public void Stale_frames_become_null_when_nothing_presents_anymore()   // game treo / alt-tab, không còn ai vẽ
+    {
+        double clock = 100;
+        var c = new FpsCalculator(() => clock);
+        Feed(c, 1, 0, 1 / 60.0, 60);
+        clock += 1.0;   // 1 giây trôi qua, không có khung hình mới từ bất kỳ tiến trình nào
+        Assert.Null(c.GetFps(1));
+    }
+
+    [Fact]
+    public void Short_pipe_delay_does_not_blank_the_number()
+    {
+        double clock = 100;
+        var c = new FpsCalculator(() => clock);
+        Feed(c, 1, 0, 1 / 60.0, 60);
+        clock += 0.1;   // trễ nhỏ do PresentMon/ống dẫn dữ liệu
+        Assert.Equal(60, c.GetFps(1)!.Value, 1);
+    }
+
+    [Fact]
     public void Format_values()
     {
         Assert.Equal("--", FpsCalculator.Format(null));

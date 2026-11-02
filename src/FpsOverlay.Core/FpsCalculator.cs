@@ -1,19 +1,32 @@
+using System.Diagnostics;
 using System.Globalization;
 
 namespace FpsOverlay.Core;
 
 /// <summary>
 /// Tính FPS của từng tiến trình trên cửa sổ trượt <see cref="WindowSeconds"/> giây gần nhất.
-/// "Bây giờ" là thời điểm khung hình mới nhất PresentMon báo (mọi tiến trình), để cùng một hệ thời gian.
+/// "Bây giờ" là thời điểm khung hình mới nhất PresentMon báo (mọi tiến trình), cộng thời gian đã trôi qua
+/// kể từ lúc nhận khung hình đó, để con số không bị treo khi không còn tiến trình nào vẽ.
 /// An toàn khi <see cref="Add"/> gọi từ luồng đọc và <see cref="GetFps"/> từ luồng UI.
 /// </summary>
 public sealed class FpsCalculator
 {
     public const double WindowSeconds = 0.5;
 
+    /// <summary>Độ trễ cho phép của PresentMon và ống dẫn dữ liệu trước khi coi khung hình là cũ.</summary>
+    public const double LatencySlackSeconds = 0.25;
+
     readonly Queue<FrameSample> _frames = new();
     readonly object _lock = new();
+    readonly Func<double> _clock;
     double _latestTime = double.MinValue;
+    double _clockAtLatest;
+
+    /// <param name="clock">Đồng hồ tính bằng giây; mặc định là <see cref="Stopwatch"/>. Test truyền đồng hồ giả.</param>
+    public FpsCalculator(Func<double>? clock = null)
+    {
+        _clock = clock ?? (() => Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency);
+    }
 
     public void Add(FrameSample frame)
     {
@@ -21,6 +34,7 @@ public sealed class FpsCalculator
         {
             _frames.Enqueue(frame);
             _latestTime = Math.Max(_latestTime, frame.TimeSeconds);
+            _clockAtLatest = _clock();
 
             var cutoff = _latestTime - WindowSeconds;
             while (_frames.Count > 0 && _frames.Peek().TimeSeconds < cutoff)
@@ -48,6 +62,10 @@ public sealed class FpsCalculator
             }
 
             if (count < 2 || last <= first)
+                return null;
+
+            var now = _latestTime + (_clock() - _clockAtLatest);
+            if (last < now - WindowSeconds - LatencySlackSeconds)
                 return null;
             return (count - 1) / (last - first);
         }

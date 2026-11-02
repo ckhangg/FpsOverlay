@@ -10,8 +10,9 @@ namespace FpsOverlay;
 sealed class PresentMonRunner : IDisposable
 {
     const string ExeName = "PresentMon.exe";
+    const string SessionName = "FpsOverlay";
     const string Arguments =
-        "--output_stdout --no_console_stats --v1_metrics --stop_existing_session --session_name FpsOverlay";
+        "--output_stdout --no_console_stats --v1_metrics --stop_existing_session --session_name " + SessionName;
 
     readonly CancellationTokenSource _cts = new();
     readonly StringBuilder _stderr = new();
@@ -86,9 +87,29 @@ sealed class PresentMonRunner : IDisposable
         {
             try { _process.Kill(); } catch (InvalidOperationException) { }
         }
+        var exePath = _process?.StartInfo.FileName;
         _process?.Dispose();
+
+        // Kill bỏ qua bước dọn dẹp của PresentMon nên phiên đo ETW vẫn còn trong Windows; tắt nó đi.
+        if (exePath is not null)
+            StopSession(exePath);
 
         if (_job != IntPtr.Zero)
             NativeMethods.CloseHandle(_job);
+    }
+
+    static void StopSession(string exePath)
+    {
+        try
+        {
+            using var stopper = Process.Start(new ProcessStartInfo(exePath,
+                "--terminate_existing_session --session_name " + SessionName)
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            });
+            stopper?.WaitForExit(2000);
+        }
+        catch (Exception) { }   // đang thoát app; lần mở sau --stop_existing_session cũng sẽ dọn
     }
 }

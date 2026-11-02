@@ -11,9 +11,23 @@ public partial class App : Application
     OverlayWindow? _overlay;
     TrayIcon? _tray;
 
+    Mutex? _singleInstance;
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        // Hai bản chạy cùng lúc sẽ tranh nhau một phiên PresentMon và làm bản kia dừng.
+        _singleInstance = new Mutex(true, @"Local\FpsOverlay.SingleInstance", out var isFirst);
+        if (!isFirst)
+        {
+            MessageBox.Show("FPS Overlay đang chạy rồi (xem biểu tượng ở khay hệ thống).", "FPS Overlay",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+            _singleInstance.Dispose();
+            _singleInstance = null;
+            Shutdown();
+            return;
+        }
 
         _overlay = new OverlayWindow();
         _tray = new TrayIcon();
@@ -61,7 +75,10 @@ public partial class App : Application
     void Fail(string message)
     {
         CompositionTarget.Rendering -= OnRendering;
-        MessageBox.Show(message, "FPS Overlay", MessageBoxButton.OK, MessageBoxImage.Error);
+        _overlay?.Hide();   // không để con số cũ treo trên game
+        // DefaultDesktopOnly: hộp thoại nổi lên trên cả game borderless
+        MessageBox.Show(message, "FPS Overlay", MessageBoxButton.OK, MessageBoxImage.Error,
+            MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly);
         Shutdown();
     }
 
@@ -70,6 +87,8 @@ public partial class App : Application
         CompositionTarget.Rendering -= OnRendering;
         _tray?.Dispose();
         _runner?.Dispose();
+        _singleInstance?.ReleaseMutex();
+        _singleInstance?.Dispose();
         base.OnExit(e);
     }
 }
