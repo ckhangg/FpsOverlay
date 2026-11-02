@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/FpsOverlay.Core/FpsOverlay.Core.csproj" />
+    <Project Path="src/FpsOverlay/FpsOverlay.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/FpsOverlay.Core.Tests/FpsOverlay.Core.Tests.csproj" />
+  </Folder>
+</Solution>
