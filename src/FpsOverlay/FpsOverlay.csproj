@@ -21,6 +21,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Font nhúng vào assembly, dùng qua pack://application:,,,/Assets/Fonts/#Tên font -->
+    <Resource Include="Assets\Fonts\*.ttf" />
+    <!-- Giấy phép OFL phải đi kèm font khi phát hành -->
+    <None Include="Assets\Fonts\OFL-*.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="..\..\tools\PresentMon.exe" Link="PresentMon.exe" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

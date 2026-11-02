@@ -1,17 +1,24 @@
-﻿using System.Windows;
+﻿using System.Diagnostics;
+using System.Windows;
 using System.Windows.Media;
 using FpsOverlay.Core;
+using FpsOverlay.Core.Settings;
 
 namespace FpsOverlay;
 
 public partial class App : Application
 {
     readonly FpsCalculator _calculator = new();
+    readonly Stopwatch _previewClock = Stopwatch.StartNew();
+    SettingsService? _settings;
     PresentMonRunner? _runner;
     OverlayWindow? _overlay;
     TrayIcon? _tray;
 
     Mutex? _singleInstance;
+
+    /// <summary>Khi bật, overlay chạy số FPS mẫu thay vì FPS thật (cửa sổ cài đặt bật/tắt).</summary>
+    public bool IsPreviewing { get; set; }
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -29,7 +36,10 @@ public partial class App : Application
             return;
         }
 
+        _settings = new SettingsService(SettingsStore.DefaultPath);
         _overlay = new OverlayWindow();
+        _overlay.Apply(_settings.Current);
+        _settings.Changed += _overlay.Apply;
         _tray = new TrayIcon();
         _tray.ToggleRequested += ToggleOverlay;
         _tray.ExitRequested += Shutdown;
@@ -58,10 +68,14 @@ public partial class App : Application
     // Vẽ lại con số mỗi khung hình của WPF: cập nhật nhanh nhất có thể.
     void OnRendering(object? sender, EventArgs e)
     {
-        if (_overlay is not { IsVisible: true })
+        if (_overlay is not { IsVisible: true } || _settings is null)
             return;
-        var pid = ForegroundProcess.GetId();
-        _overlay.SetText(FpsCalculator.Format(pid is { } id ? _calculator.GetFps(id) : null));
+        double? fps;
+        if (IsPreviewing)
+            fps = PreviewFps.At(_previewClock.Elapsed.TotalSeconds);
+        else
+            fps = ForegroundProcess.GetId() is { } id ? _calculator.GetFps(id) : null;
+        _overlay.SetFps(fps, _settings.Current);
     }
 
     void ToggleOverlay()
@@ -87,6 +101,7 @@ public partial class App : Application
         CompositionTarget.Rendering -= OnRendering;
         _tray?.Dispose();
         _runner?.Dispose();
+        _settings?.Dispose();   // ghi nốt cài đặt còn đang hẹn
         _singleInstance?.ReleaseMutex();
         _singleInstance?.Dispose();
         base.OnExit(e);
