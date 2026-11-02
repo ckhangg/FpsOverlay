@@ -34,6 +34,7 @@ public partial class OverlayWindow : Window
         InitializeComponent();
         SourceInitialized += OnSourceInitialized;
         SizeChanged += (_, _) => UpdatePosition();
+        DpiChanged += (_, _) => UpdatePosition();
         Chrome.SizeChanged += (_, _) => UpdateChamfer();
         _topmostTimer.Tick += (_, _) => KeepOnTop();
         Apply(_settings);
@@ -158,8 +159,11 @@ public partial class OverlayWindow : Window
         var corner = _settings.Corner;
         bool right = corner is OverlayCorner.TopRight or OverlayCorner.BottomRight;
         bool bottom = corner is OverlayCorner.BottomLeft or OverlayCorner.BottomRight;
-        Left = right ? Math.Max(0, screenW - ScreenMargin - w) : ScreenMargin;
-        Top = bottom ? Math.Max(0, screenH - ScreenMargin - h) : ScreenMargin;
+        double left = right ? Math.Max(0, screenW - ScreenMargin - w) : ScreenMargin;
+        double top = bottom ? Math.Max(0, screenH - ScreenMargin - h) : ScreenMargin;
+        // Chỉ gán khi đổi, để gọi định kỳ không làm cửa sổ di chuyển thừa.
+        if (Left != left) Left = left;
+        if (Top != top) Top = top;
     }
 
     void OnSourceInitialized(object? sender, EventArgs e)
@@ -177,6 +181,7 @@ public partial class OverlayWindow : Window
     {
         if (_hwnd == IntPtr.Zero || !IsVisible)
             return;
+        UpdatePosition();   // theo kịp đổi độ phân giải / màn hình chính
         NativeMethods.SetWindowPos(_hwnd, NativeMethods.HWND_TOPMOST, 0, 0, 0, 0,
             NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE);
     }

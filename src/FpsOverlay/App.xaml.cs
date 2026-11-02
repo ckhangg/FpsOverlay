@@ -19,8 +19,8 @@ public partial class App : Application
 
     Mutex? _singleInstance;
 
-    /// <summary>Khi bật, overlay chạy số FPS mẫu thay vì FPS thật (bật trong lúc cửa sổ cài đặt mở).</summary>
-    public bool IsPreviewing { get; set; }
+    /// <summary>Overlay chạy số FPS mẫu thay vì FPS thật, chỉ khi cửa sổ cài đặt đang mở và là cửa sổ đang dùng.</summary>
+    public bool IsPreviewing => _settingsWindow is { IsActive: true };
 
     AppLanguage Language => _settings?.Current.Language ?? AppLanguage.Vietnamese;
 
@@ -108,12 +108,7 @@ public partial class App : Application
         }
 
         _settingsWindow = new SettingsWindow(_settings);
-        _settingsWindow.Closed += (_, _) =>
-        {
-            _settingsWindow = null;
-            IsPreviewing = false;   // về FPS thật
-        };
-        IsPreviewing = true;        // overlay chạy số mẫu để thấy đủ ba màu
+        _settingsWindow.Closed += (_, _) => _settingsWindow = null;   // đóng bằng cách nào cũng về FPS thật
         _settingsWindow.Show();
         _settingsWindow.Activate();
     }
