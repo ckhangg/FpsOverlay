@@ -34,6 +34,7 @@ Lý do người dùng tự viết app thay vì dùng Steam/Game Bar: **tuỳ ch�
 - **Lưu tự động** và giữ lại cho lần mở sau.
 - Menu khay thêm: **"Cài đặt..."** và menu con **"Góc hiển thị"** (4 góc, đánh dấu góc đang dùng) để đổi nhanh khi đang chơi.
 - **Icon khay riêng:** chữ "FPS" nhỏ, dễ nhận ra, thay icon mặc định của Windows.
+- **Hai ngôn ngữ: tiếng Việt và tiếng Anh** (người dùng yêu cầu). Chọn trong cài đặt; menu khay, cửa sổ cài đặt, tooltip và mọi thông báo lỗi đổi theo ngay lập tức, không cần khởi động lại. Nhãn trên overlay (FPS, sau này GPU, CPU, RAM) giống nhau ở cả hai ngôn ngữ.
 
 ## Không làm ở đợt này
 - Biểu đồ FPS/frametime (người dùng bỏ, có thể làm sau).
@@ -83,7 +84,8 @@ Người dùng ban đầu chọn WPF-UI, rồi chuyển sang WPF thuần khi ch�
 - **Khoảng của mốc màu FPS:** 10 đến 240, mốc đỏ luôn nhỏ hơn mốc xanh (kéo mốc này vượt mốc kia thì mốc kia bị đẩy theo).
 - **Lề overlay:** cách mép màn hình 8px theo cả bốn góc, tính trên toàn màn hình chính (không trừ thanh taskbar, vì game toàn màn hình che taskbar).
 - **Nơi lưu cài đặt:** `%AppData%\FpsOverlay\settings.json`.
-- **Mặc định khi cài đặt lần đầu:** phong cách Cyberpunk, góc trên trái, kích cỡ 100%, độ mờ nền 72%, đổi màu theo FPS bật.
+- **Mặc định khi cài đặt lần đầu:** phong cách Cyberpunk, góc trên trái, kích cỡ 100%, độ mờ nền 72%, đổi màu theo FPS bật, ngôn ngữ tiếng Việt.
+- **Ngôn ngữ là cài đặt chung**, nằm đầu mục "Giao diện" trong cửa sổ cài đặt; "Khôi phục mặc định" không đổi ngôn ngữ (để người dùng không bị đẩy sang ngôn ngữ mình không đọc được). Chuỗi chữ của hai ngôn ngữ nằm ở một chỗ, có test kiểm tra mỗi chuỗi đều có đủ bản Việt và Anh.
 - **Cửa sổ cài đặt:** chỉ mở một cửa sổ; bấm "Cài đặt..." khi đã mở thì đưa nó lên trước. Cửa sổ có thanh tiêu đề tự vẽ kiểu Cyberpunk, kéo được để di chuyển, nút `[ X ]` đóng (giống "Xong").
 - **Icon khay:** chữ "FPS" màu vàng neon trên nền đen.
 
