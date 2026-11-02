@@ -13,8 +13,11 @@ public sealed class FpsCalculator
 {
     public const double WindowSeconds = 0.5;
 
-    /// <summary>Độ trễ cho phép của PresentMon và ống dẫn dữ liệu trước khi coi khung hình là cũ.</summary>
-    public const double LatencySlackSeconds = 0.25;
+    /// <summary>
+    /// Độ trễ cho phép trước khi coi khung hình là cũ. Windows giao dữ liệu cho PresentMon theo đợt,
+    /// cách nhau tới ~1,07 giây (đo thực tế), nên giá trị này phải lớn hơn khoảng đó, nếu không con số sẽ chớp "--".
+    /// </summary>
+    public const double LatencySlackSeconds = 1.5;
 
     readonly Queue<FrameSample> _frames = new();
     readonly object _lock = new();

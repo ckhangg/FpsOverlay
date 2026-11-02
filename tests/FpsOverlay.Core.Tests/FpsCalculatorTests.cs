@@ -44,8 +44,19 @@ public class FpsCalculatorTests
         double clock = 100;
         var c = new FpsCalculator(() => clock);
         Feed(c, 1, 0, 1 / 60.0, 60);
-        clock += 1.0;   // 1 giây trôi qua, không có khung hình mới từ bất kỳ tiến trình nào
+        clock += 3.0;   // 3 giây trôi qua, không có khung hình mới từ bất kỳ tiến trình nào
         Assert.Null(c.GetFps(1));
+    }
+
+    [Fact]
+    public void Gap_between_PresentMon_batches_does_not_blank_the_number()
+    {
+        // Đo thực tế: PresentMon nhận dữ liệu từ Windows theo đợt, cách nhau tới ~1,07 giây.
+        double clock = 100;
+        var c = new FpsCalculator(() => clock);
+        Feed(c, 1, 0, 1 / 60.0, 60);
+        clock += 1.1;
+        Assert.Equal(60, c.GetFps(1)!.Value, 1);
     }
 
     [Fact]
