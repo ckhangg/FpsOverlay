@@ -30,6 +30,11 @@ static class NativeMethods
     [DllImport("user32.dll")]
     public static extern IntPtr GetForegroundWindow();
 
+    // Huỷ handle icon do Bitmap.GetHicon tạo (không huỷ thì rò handle GDI).
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool DestroyIcon(IntPtr hIcon);
+
     [DllImport("user32.dll")]
     public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
 

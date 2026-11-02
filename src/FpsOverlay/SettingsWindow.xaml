@@ -1,0 +1,122 @@
+<Window x:Class="FpsOverlay.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:s="clr-namespace:FpsOverlay.Core.Settings;assembly=FpsOverlay.Core"
+        Style="{StaticResource Cp.Window}"
+        Width="640"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterScreen">
+    <!-- Mọi chữ được đặt từ code theo ngôn ngữ (Loc); các thứ trong XAML chỉ là bố cục. -->
+    <Grid Margin="18,10,18,18">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="140" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="76" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- // GIAO DIỆN -->
+        <Label x:Name="AppearanceSection" Grid.Row="0" Grid.ColumnSpan="3" Style="{StaticResource Cp.Section}" />
+
+        <TextBlock x:Name="LanguageLabel" Grid.Row="1" Style="{StaticResource Cp.FieldLabel}" />
+        <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Orientation="Horizontal">
+            <!-- Tên ngôn ngữ không dịch -->
+            <RadioButton x:Name="LanguageVi" GroupName="Language" Style="{StaticResource Cp.Segment}" Content="Tiếng Việt"
+                         Tag="{x:Static s:AppLanguage.Vietnamese}" Checked="OnLanguageChecked" />
+            <RadioButton x:Name="LanguageEn" GroupName="Language" Style="{StaticResource Cp.Segment}" Content="English"
+                         Tag="{x:Static s:AppLanguage.English}" Checked="OnLanguageChecked" />
+        </StackPanel>
+
+        <TextBlock x:Name="StyleLabel" Grid.Row="2" Style="{StaticResource Cp.FieldLabel}" />
+        <StackPanel Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Orientation="Horizontal">
+            <RadioButton x:Name="StyleClassic" GroupName="Style" Style="{StaticResource Cp.Segment}"
+                         Tag="{x:Static s:OverlayStyle.Classic}" Checked="OnStyleChecked" />
+            <RadioButton x:Name="StyleCyberpunk" GroupName="Style" Style="{StaticResource Cp.Segment}"
+                         Tag="{x:Static s:OverlayStyle.Cyberpunk}" Checked="OnStyleChecked" />
+        </StackPanel>
+
+        <TextBlock x:Name="CornerLabel" Grid.Row="3" Style="{StaticResource Cp.FieldLabel}" />
+        <StackPanel Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" Orientation="Horizontal">
+            <RadioButton x:Name="CornerTopLeft" GroupName="Corner" Style="{StaticResource Cp.Segment}"
+                         Tag="{x:Static s:OverlayCorner.TopLeft}" Checked="OnCornerChecked" />
+            <RadioButton x:Name="CornerTopRight" GroupName="Corner" Style="{StaticResource Cp.Segment}"
+                         Tag="{x:Static s:OverlayCorner.TopRight}" Checked="OnCornerChecked" />
+            <RadioButton x:Name="CornerBottomLeft" GroupName="Corner" Style="{StaticResource Cp.Segment}"
+                         Tag="{x:Static s:OverlayCorner.BottomLeft}" Checked="OnCornerChecked" />
+            <RadioButton x:Name="CornerBottomRight" GroupName="Corner" Style="{StaticResource Cp.Segment}"
+                         Tag="{x:Static s:OverlayCorner.BottomRight}" Checked="OnCornerChecked" />
+        </StackPanel>
+
+        <TextBlock x:Name="ScaleLabel" Grid.Row="4" Style="{StaticResource Cp.FieldLabel}" />
+        <Slider x:Name="ScaleSlider" Grid.Row="4" Grid.Column="1" Style="{StaticResource Cp.Slider}"
+                Minimum="50" Maximum="300" TickFrequency="10" SmallChange="10" LargeChange="10"
+                ValueChanged="OnScaleChanged" />
+        <TextBlock x:Name="ScaleValue" Grid.Row="4" Grid.Column="2" Style="{StaticResource Cp.Value}" />
+
+        <TextBlock x:Name="OpacityLabel" Grid.Row="5" Style="{StaticResource Cp.FieldLabel}" />
+        <Slider x:Name="OpacitySlider" Grid.Row="5" Grid.Column="1" Style="{StaticResource Cp.Slider}"
+                Minimum="0" Maximum="100" TickFrequency="5" SmallChange="5" LargeChange="5"
+                ValueChanged="OnOpacityChanged" />
+        <TextBlock x:Name="OpacityValue" Grid.Row="5" Grid.Column="2" Style="{StaticResource Cp.Value}" />
+
+        <!-- // MÀU SẮC (của phong cách đang chọn) -->
+        <Label x:Name="ColorsSection" Grid.Row="6" Grid.ColumnSpan="3" Style="{StaticResource Cp.Section}" />
+
+        <TextBlock x:Name="LabelColorLabel" Grid.Row="7" Style="{StaticResource Cp.FieldLabel}" />
+        <StackPanel x:Name="LabelSwatches" Grid.Row="7" Grid.Column="1" Orientation="Horizontal" />
+        <TextBox x:Name="LabelHex" Grid.Row="7" Grid.Column="2" Style="{StaticResource Cp.HexBox}"
+                 TextChanged="OnHexChanged" LostKeyboardFocus="OnHexLostFocus" />
+
+        <TextBlock x:Name="ValueColorLabel" Grid.Row="8" Style="{StaticResource Cp.FieldLabel}" />
+        <StackPanel x:Name="ValueSwatches" Grid.Row="8" Grid.Column="1" Orientation="Horizontal" />
+        <TextBox x:Name="ValueHex" Grid.Row="8" Grid.Column="2" Style="{StaticResource Cp.HexBox}"
+                 TextChanged="OnHexChanged" LostKeyboardFocus="OnHexLostFocus" />
+
+        <TextBlock x:Name="FpsColorLabel" Grid.Row="9" Style="{StaticResource Cp.FieldLabel}" />
+        <StackPanel x:Name="FpsSwatches" Grid.Row="9" Grid.Column="1" Orientation="Horizontal" />
+        <TextBox x:Name="FpsHex" Grid.Row="9" Grid.Column="2" Style="{StaticResource Cp.HexBox}"
+                 TextChanged="OnHexChanged" LostKeyboardFocus="OnHexLostFocus" />
+
+        <!-- // MÀU THEO FPS -->
+        <Label x:Name="FpsColorSection" Grid.Row="10" Grid.ColumnSpan="3" Style="{StaticResource Cp.Section}" />
+
+        <TextBlock x:Name="ColorByFpsLabel" Grid.Row="11" Style="{StaticResource Cp.FieldLabel}" />
+        <ToggleButton x:Name="ColorByFpsSwitch" Grid.Row="11" Grid.Column="1" Style="{StaticResource Cp.Switch}"
+                      Checked="OnColorByFpsChanged" Unchecked="OnColorByFpsChanged" />
+
+        <!-- Mốc tốt luôn > mốc kém: khoảng thật của hai thanh là 11–240 và 10–239. -->
+        <TextBlock x:Name="GoodLabel" Grid.Row="12" Style="{StaticResource Cp.FieldLabel}" />
+        <Slider x:Name="GoodSlider" Grid.Row="12" Grid.Column="1" Style="{StaticResource Cp.Slider}"
+                Minimum="11" Maximum="240" TickFrequency="1" SmallChange="1" LargeChange="10"
+                ValueChanged="OnGoodChanged" />
+        <TextBlock x:Name="GoodValue" Grid.Row="12" Grid.Column="2" Style="{StaticResource Cp.Value}" />
+
+        <TextBlock x:Name="BadLabel" Grid.Row="13" Style="{StaticResource Cp.FieldLabel}" />
+        <Slider x:Name="BadSlider" Grid.Row="13" Grid.Column="1" Style="{StaticResource Cp.Slider}"
+                Minimum="10" Maximum="239" TickFrequency="1" SmallChange="1" LargeChange="10"
+                ValueChanged="OnBadChanged" />
+        <TextBlock x:Name="BadValue" Grid.Row="13" Grid.Column="2" Style="{StaticResource Cp.Value}" />
+
+        <DockPanel Grid.Row="14" Grid.ColumnSpan="3" Margin="0,14,0,0" LastChildFill="False">
+            <Button x:Name="ResetButton" DockPanel.Dock="Left" Style="{StaticResource Cp.GhostButton}" Click="OnResetClick" />
+            <Button x:Name="DoneButton" DockPanel.Dock="Right" Style="{StaticResource Cp.PrimaryButton}" IsCancel="True"
+                    Click="OnDoneClick" />
+        </DockPanel>
+    </Grid>
+</Window>

@@ -2,6 +2,7 @@
 using System.Windows;
 using System.Windows.Media;
 using FpsOverlay.Core;
+using FpsOverlay.Core.Localization;
 using FpsOverlay.Core.Settings;
 
 namespace FpsOverlay;
@@ -14,11 +15,14 @@ public partial class App : Application
     PresentMonRunner? _runner;
     OverlayWindow? _overlay;
     TrayIcon? _tray;
+    SettingsWindow? _settingsWindow;
 
     Mutex? _singleInstance;
 
-    /// <summary>Khi bật, overlay chạy số FPS mẫu thay vì FPS thật (cửa sổ cài đặt bật/tắt).</summary>
+    /// <summary>Khi bật, overlay chạy số FPS mẫu thay vì FPS thật (bật trong lúc cửa sổ cài đặt mở).</summary>
     public bool IsPreviewing { get; set; }
+
+    AppLanguage Language => _settings?.Current.Language ?? AppLanguage.Vietnamese;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -28,7 +32,9 @@ public partial class App : Application
         _singleInstance = new Mutex(true, @"Local\FpsOverlay.SingleInstance", out var isFirst);
         if (!isFirst)
         {
-            MessageBox.Show("FPS Overlay đang chạy rồi (xem biểu tượng ở khay hệ thống).", "FPS Overlay",
+            // Chỉ đọc ngôn ngữ, không mở SettingsService (bản này không được ghi file cài đặt).
+            var language = SettingsStore.Load(SettingsStore.DefaultPath).Language;
+            MessageBox.Show(Loc.Get(StringKey.AlreadyRunning, language), "FPS Overlay",
                 MessageBoxButton.OK, MessageBoxImage.Information);
             _singleInstance.Dispose();
             _singleInstance = null;
@@ -36,19 +42,23 @@ public partial class App : Application
             return;
         }
 
-        _settings = new SettingsService(SettingsStore.DefaultPath);
-        _overlay = new OverlayWindow();
-        _overlay.Apply(_settings.Current);
-        _settings.Changed += _overlay.Apply;
-        _tray = new TrayIcon();
-        _tray.ToggleRequested += ToggleOverlay;
-        _tray.ExitRequested += Shutdown;
+        var settings = _settings = new SettingsService(SettingsStore.DefaultPath);
+        var overlay = _overlay = new OverlayWindow();
+        overlay.Apply(settings.Current);
+        settings.Changed += overlay.Apply;
+        var tray = _tray = new TrayIcon();
+        tray.Apply(settings.Current, overlayVisible: true);
+        tray.ToggleRequested += ToggleOverlay;
+        tray.SettingsRequested += OpenSettings;
+        tray.CornerRequested += corner => settings.Update(s => s with { Corner = corner });
+        tray.ExitRequested += Shutdown;
+        // Đổi ngôn ngữ hay góc (kể cả từ cửa sổ cài đặt) thì menu khay đổi theo ngay.
+        settings.Changed += s => tray.Apply(s, overlay.IsVisible);
 
         _runner = new PresentMonRunner();
         _runner.Exited += stderr => Dispatcher.BeginInvoke(() => Fail(
-            "PresentMon đã dừng bất ngờ nên không đo được FPS.\n" +
-            "Hãy chắc rằng app đang chạy với quyền Administrator." +
-            (stderr.Length > 0 ? $"\n\nChi tiết:\n{stderr}" : "")));
+            Loc.Get(StringKey.PresentMonStopped, Language) +
+            (stderr.Length > 0 ? $"\n\n{Loc.Get(StringKey.Details, Language)}:\n{stderr}" : "")));
 
         try
         {
@@ -56,8 +66,7 @@ public partial class App : Application
         }
         catch (Exception ex)
         {
-            Fail($"Không khởi động được PresentMon.\n" +
-                 $"File PresentMon.exe phải nằm cùng thư mục với FpsOverlay.exe.\n\nChi tiết: {ex.Message}");
+            Fail($"{Loc.Get(StringKey.PresentMonStartFailed, Language)}\n\n{Loc.Get(StringKey.Details, Language)}: {ex.Message}");
             return;
         }
 
@@ -80,10 +89,33 @@ public partial class App : Application
 
     void ToggleOverlay()
     {
-        if (_overlay is null) return;
+        if (_overlay is null || _settings is null) return;
         if (_overlay.IsVisible) _overlay.Hide();
         else _overlay.Show();
-        _tray?.SetOverlayVisible(_overlay.IsVisible);
+        _tray?.Apply(_settings.Current, _overlay.IsVisible);
+    }
+
+    // Chỉ một cửa sổ cài đặt; mở lại thì đưa cửa sổ đang mở lên trước.
+    void OpenSettings()
+    {
+        if (_settings is null) return;
+        if (_settingsWindow is not null)
+        {
+            if (_settingsWindow.WindowState == WindowState.Minimized)
+                _settingsWindow.WindowState = WindowState.Normal;
+            _settingsWindow.Activate();
+            return;
+        }
+
+        _settingsWindow = new SettingsWindow(_settings);
+        _settingsWindow.Closed += (_, _) =>
+        {
+            _settingsWindow = null;
+            IsPreviewing = false;   // về FPS thật
+        };
+        IsPreviewing = true;        // overlay chạy số mẫu để thấy đủ ba màu
+        _settingsWindow.Show();
+        _settingsWindow.Activate();
     }
 
     void Fail(string message)
