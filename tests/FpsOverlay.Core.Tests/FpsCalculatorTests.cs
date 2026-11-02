@@ -1,0 +1,47 @@
+namespace FpsOverlay.Core.Tests;
+
+public class FpsCalculatorTests
+{
+    static void Feed(FpsCalculator c, int pid, double start, double interval, int count)
+    {
+        for (int i = 0; i < count; i++)
+            c.Add(new(pid, start + i * interval));
+    }
+
+    [Fact]
+    public void Steady_60fps()
+    {
+        var c = new FpsCalculator();
+        Feed(c, 1, 0, 1 / 60.0, 60);
+        Assert.Equal(60, c.GetFps(1)!.Value, 1);
+    }
+
+    [Fact]
+    public void Only_counts_requested_process()
+    {
+        var c = new FpsCalculator();
+        Feed(c, 1, 0, 1 / 60.0, 60);
+        Feed(c, 2, 0, 1 / 144.0, 144);
+        Assert.Equal(60, c.GetFps(1)!.Value, 1);
+        Assert.Equal(144, c.GetFps(2)!.Value, 1);
+    }
+
+    [Fact]
+    public void Unknown_process_is_null() => Assert.Null(new FpsCalculator().GetFps(99));
+
+    [Fact]
+    public void Process_that_stopped_presenting_becomes_null()   // Review Focus 4
+    {
+        var c = new FpsCalculator();
+        Feed(c, 1, 0, 1 / 60.0, 60);       // game tới t≈1.0
+        Feed(c, 2, 1.0, 1 / 60.0, 60);     // desktop/app khác tới t≈2.0
+        Assert.Null(c.GetFps(1));
+    }
+
+    [Fact]
+    public void Format_values()
+    {
+        Assert.Equal("--", FpsCalculator.Format(null));
+        Assert.Equal("144", FpsCalculator.Format(143.6));
+    }
+}
