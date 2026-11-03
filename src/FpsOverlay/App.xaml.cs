@@ -88,7 +88,7 @@ public partial class App : Application
         if (IsPreviewing)
             fps = PreviewFps.At(_previewClock.Elapsed.TotalSeconds);
         else
-            fps = ForegroundProcess.GetId() is { } id ? _calculator.GetFps(id) : null;
+            fps = _calculator.GetFps(ForegroundProcess.GetCandidates());
         _overlay.SetFps(fps, _settings.Current);
     }
 

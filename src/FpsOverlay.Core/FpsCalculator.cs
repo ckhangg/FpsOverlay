@@ -74,6 +74,15 @@ public sealed class FpsCalculator
         }
     }
 
+    /// <summary>FPS của tiến trình đầu tiên trong danh sách đang vẽ hình, hoặc null nếu không tiến trình nào vẽ.</summary>
+    public double? GetFps(IReadOnlyList<int> processIds)
+    {
+        for (int i = 0; i < processIds.Count; i++)
+            if (GetFps(processIds[i]) is { } fps)
+                return fps;
+        return null;
+    }
+
     public static string Format(double? fps)
         => fps is { } value ? value.ToString("0", CultureInfo.InvariantCulture) : "--";
 }

@@ -70,6 +70,27 @@ public class FpsCalculatorTests
     }
 
     [Fact]
+    public void Candidates_use_first_process_that_presents()
+    {
+        // Game Store cũ: cửa sổ phía trước thuộc ApplicationFrameHost (pid 1), game thật (pid 2) vẽ bên trong.
+        var c = new FpsCalculator();
+        Feed(c, 2, 0, 1 / 90.0, 90);
+        Assert.Equal(90, c.GetFps([1, 2])!.Value, 1);
+    }
+
+    [Fact]
+    public void Candidates_prefer_the_foreground_process()
+    {
+        var c = new FpsCalculator();
+        Feed(c, 1, 0, 1 / 60.0, 60);
+        Feed(c, 2, 0, 1 / 144.0, 144);
+        Assert.Equal(60, c.GetFps([1, 2])!.Value, 1);
+    }
+
+    [Fact]
+    public void No_candidates_is_null() => Assert.Null(new FpsCalculator().GetFps([]));
+
+    [Fact]
     public void Format_values()
     {
         Assert.Equal("--", FpsCalculator.Format(null));
