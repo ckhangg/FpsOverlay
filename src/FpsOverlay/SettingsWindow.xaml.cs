@@ -98,6 +98,8 @@ public partial class SettingsWindow : Window
             CornerTopRight.IsChecked = s.Corner == OverlayCorner.TopRight;
             CornerBottomLeft.IsChecked = s.Corner == OverlayCorner.BottomLeft;
             CornerBottomRight.IsChecked = s.Corner == OverlayCorner.BottomRight;
+            LayoutHorizontal.IsChecked = s.Layout == OverlayLayout.Horizontal;
+            LayoutVertical.IsChecked = s.Layout == OverlayLayout.Vertical;
 
             var scale = (int)Math.Round(s.Scale * 100);
             ScaleSlider.Value = scale;
@@ -227,6 +229,9 @@ public partial class SettingsWindow : Window
         CornerTopRight.Content = T(StringKey.CornerTopRight);
         CornerBottomLeft.Content = T(StringKey.CornerBottomLeft);
         CornerBottomRight.Content = T(StringKey.CornerBottomRight);
+        LayoutLabel.Text = T(StringKey.Layout);
+        LayoutHorizontal.Content = T(StringKey.LayoutHorizontal);
+        LayoutVertical.Content = T(StringKey.LayoutVertical);
         ScaleLabel.Text = T(StringKey.Scale);
         OpacityLabel.Text = T(StringKey.BackgroundOpacity);
 
@@ -323,6 +328,13 @@ public partial class SettingsWindow : Window
         if (_refreshing) return;
         var corner = (OverlayCorner)((FrameworkElement)sender).Tag;
         _service.Update(s => s.WithCorner(corner));
+    }
+
+    void OnLayoutChecked(object sender, RoutedEventArgs e)
+    {
+        if (_refreshing) return;
+        var layout = (OverlayLayout)((FrameworkElement)sender).Tag;
+        _service.Update(s => s with { Layout = layout });
     }
 
     void OnScaleChanged(object sender, RoutedPropertyChangedEventArgs<double> e)

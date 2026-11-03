@@ -24,8 +24,19 @@
             <Border.LayoutTransform>
                 <ScaleTransform x:Name="Zoom" ScaleX="1" ScaleY="1" />
             </Border.LayoutTransform>
-            <!-- Hàng ngang các mục nhãn + giá trị; các mục được dựng trong code (mục FPS rồi một mục cho mỗi StatRow). -->
-            <StackPanel x:Name="Items" Orientation="Horizontal" />
+            <Grid>
+                <!-- Bố cục ngang: hàng các mục nhãn + giá trị; các mục được dựng trong code (mục FPS rồi một mục cho mỗi StatRow). -->
+                <StackPanel x:Name="Items" Orientation="Horizontal" />
+                <!-- Bố cục dọc: bảng 3 cột (nhãn | ô First căn phải | ô Second), mỗi dòng một hàng; hàng được thêm trong code.
+                     Các ô là chính các đối tượng chữ của bố cục ngang, chuyển sang đây khi đổi bố cục. -->
+                <Grid x:Name="Table" Visibility="Collapsed">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                </Grid>
+            </Grid>
         </Border>
     </Grid>
 </Window>

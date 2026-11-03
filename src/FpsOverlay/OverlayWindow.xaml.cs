@@ -32,12 +32,12 @@ public partial class OverlayWindow : Window
 
     // Mục FPS: dấu nhắc (rỗng ở Cổ điển/Cyberpunk) + nhãn + khoảng cách + số. Số nằm trong InlineUIContainer để phát sáng được.
     // Phong cách có nhãn phát sáng thì dấu nhắc + nhãn chuyển vào _fpsLabelBox (cũng trong InlineUIContainer).
+    // Bố cục dọc: _fpsLabelBox (luôn dùng) và _fpsValue nằm ở hàng đầu của bảng (cột 0 và 1).
+    // Hai hộp này được tạo lại mỗi lần xếp lại (xem NewBox), không phải mỗi khung hình.
     readonly Run _prompt = new(""), _fpsLabel = new("FPS"), _fpsGap = new(" ");
-    readonly TextBlock _fpsValue = new() { Text = "--" };
+    TextBlock _fpsValue = null!, _fpsLabelBox = null!;
     readonly TextBlock _fpsItem = new() { VerticalAlignment = VerticalAlignment.Center };
-    readonly TextBlock _fpsLabelBox = new();
-    readonly InlineUIContainer _fpsLabelHost, _fpsValueHost;
-    bool? _fpsLabelBoxed;
+    bool? _fpsLabelBoxed, _fpsVertical;
 
     OverlaySettings _settings = OverlaySettings.Defaults;
     OverlayVisuals _visuals = OverlayTheme.Visuals(OverlaySettings.Defaults.Style);
@@ -59,29 +59,31 @@ public partial class OverlayWindow : Window
     /// Ở bố cục ngang tất cả là Run trong một TextBlock (chung đường chân chữ); ẩn mục là ẩn cả dấu ngăn.
     /// Phần nào phát sáng (nhãn kèm dấu ngăn, từng ô giá trị) thì Run của nó chuyển vào TextBlock riêng trong
     /// InlineUIContainer (vẫn theo đường chân chữ) để mang hiệu ứng đúng màu của chính nó.
+    /// Ở bố cục dọc nhãn, First, Second (luôn trong TextBlock riêng, kể cả khi không phát sáng) nằm ở ba ô
+    /// của một hàng trong bảng; không có dấu ngăn. Các Run là duy nhất; chỉ hộp chứa được tạo lại khi xếp lại (xem NewBox).
     /// </summary>
     sealed class RowView
     {
         public readonly StatRow Row;
         public readonly TextBlock Item = new() { VerticalAlignment = VerticalAlignment.Center };
         public readonly Run Sep = new(), Label, Gap = new(" "), First = new("--"), Gap2 = new(""), Second = new("");
-        readonly TextBlock _labelBox = new(), _firstBox = new(), _secondBox = new();
-        readonly InlineUIContainer _labelHost, _firstHost, _secondHost;
+        TextBlock _labelBox = null!, _firstBox = null!, _secondBox = null!;
+        readonly Grid _table;
+        readonly int _tableRow;
         readonly Func<Brush, Effect?> _glow;
-        bool? _glowLabel, _glowValues;
+        bool? _vertical, _glowLabel, _glowValues;
 
-        public RowView(StatRow row, Func<Brush, Effect?> glow)
+        public RowView(StatRow row, Grid table, int tableRow, Func<Brush, Effect?> glow)
         {
             Row = row;
+            _table = table;
+            _tableRow = tableRow;
             _glow = glow;
             Label = new Run(StatRows.Label(row));
-            _labelHost = Host(_labelBox);
-            _firstHost = Host(_firstBox);
-            _secondHost = Host(_secondBox);
-            Rebuild(glowLabel: false, glowValues: false);
+            Rebuild(vertical: false, glowLabel: false, glowValues: false);
         }
 
-        public void ApplyStyle(OverlayVisuals v, string separator, Brush labelBrush)
+        public void ApplyStyle(OverlayVisuals v, string separator, Brush labelBrush, bool vertical)
         {
             if (Sep.Text != separator) Sep.Text = separator;
             foreach (var r in new[] { Sep, Label, Gap, Gap2 })
@@ -100,38 +102,75 @@ public partial class OverlayWindow : Window
                 r.FontWeight = v.TextWeight;
                 r.Foreground = null;   // ép gán lại màu (và ánh sáng) ở lần SetStats kế tiếp
             }
+            // Dọc: đơn vị (MHz/W/RPM) ở ô Second dùng font và cỡ của nhãn phụ (màu nhãn do SetStats gán).
+            var unit = vertical && HasUnit(Row);
+            var secondFont = unit ? v.LabelFont : v.ValueFont;
+            var secondSize = unit ? v.StatLabelSize : v.StatValueSize;
+            Second.FontFamily = secondFont;
+            Second.FontSize = secondSize;
 
-            Rebuild(glowLabel: v.Glow is TextGlow.LabelsAndFps or TextGlow.All, glowValues: v.Glow == TextGlow.All);
+            Rebuild(vertical, glowLabel: v.Glow is TextGlow.LabelsAndFps or TextGlow.All, glowValues: v.Glow == TextGlow.All);
             SetBoxFont(_labelBox, v.LabelFont, v.StatLabelSize, v.TextWeight);
             SetBoxFont(_firstBox, v.ValueFont, v.StatValueSize, v.TextWeight);
-            SetBoxFont(_secondBox, v.ValueFont, v.StatValueSize, v.TextWeight);
+            SetBoxFont(_secondBox, secondFont, secondSize, v.TextWeight);
             _labelBox.Effect = _glowLabel == true ? _glow(labelBrush) : null;
             _firstBox.Effect = null;
             _secondBox.Effect = null;
+
+            if (vertical)
+            {
+                double label = Descent(v.LabelFont, v.StatLabelSize), value = Descent(v.ValueFont, v.StatValueSize);
+                var max = Math.Max(label, value);
+                _labelBox.Margin = new Thickness(0, 0, 0, max - label);
+                _firstBox.Margin = new Thickness(CellGap, 0, 0, max - value);
+                _secondBox.Margin = new Thickness(CellGap, 0, 0, max - (unit ? label : value));
+            }
         }
 
-        // Xếp lại các Run: thẳng trong Item, hoặc trong TextBlock riêng khi phần đó phát sáng. Chỉ chạy khi đổi phong cách.
-        void Rebuild(bool glowLabel, bool glowValues)
+        // Xếp lại: ngang thì các Run thẳng trong Item, hoặc trong TextBlock riêng khi phần đó phát sáng;
+        // dọc thì mỗi phần một TextBlock trong ô của bảng. Chỉ chạy khi đổi phong cách hoặc bố cục.
+        void Rebuild(bool vertical, bool glowLabel, bool glowValues)
         {
-            if (_glowLabel == glowLabel && _glowValues == glowValues)
+            if (_vertical == vertical && _glowLabel == glowLabel && _glowValues == glowValues)
                 return;
+            _vertical = vertical;
             _glowLabel = glowLabel;
             _glowValues = glowValues;
             Item.Inlines.Clear();
-            _labelBox.Inlines.Clear();
-            _firstBox.Inlines.Clear();
-            _secondBox.Inlines.Clear();
-            Place(Item.Inlines, _labelBox, _labelHost, glowLabel, Sep, Label);
+            foreach (var old in new[] { _labelBox, _firstBox, _secondBox })
+            {
+                if (old is null) continue;
+                old.Inlines.Clear();
+                _table.Children.Remove(old);
+            }
+            _labelBox = NewBox(_tableRow, 0);
+            _firstBox = NewBox(_tableRow, 1, HorizontalAlignment.Right);
+            _secondBox = NewBox(_tableRow, 2);
+            if (vertical)
+            {
+                _labelBox.Inlines.Add(Label);
+                _firstBox.Inlines.Add(First);
+                _secondBox.Inlines.Add(Second);
+                _table.Children.Add(_labelBox);
+                _table.Children.Add(_firstBox);
+                _table.Children.Add(_secondBox);
+                return;
+            }
+            Place(Item.Inlines, _labelBox, glowLabel, Sep, Label);
             Item.Inlines.Add(Gap);
-            Place(Item.Inlines, _firstBox, _firstHost, glowValues, First);
+            Place(Item.Inlines, _firstBox, glowValues, First);
             Item.Inlines.Add(Gap2);
-            Place(Item.Inlines, _secondBox, _secondHost, glowValues, Second);
+            Place(Item.Inlines, _secondBox, glowValues, Second);
         }
 
         public void SetVisible(bool visible)
         {
             var v = visible ? Visibility.Visible : Visibility.Collapsed;
-            if (Item.Visibility != v) Item.Visibility = v;
+            SetVisibility(Item, v);
+            if (_vertical != true) return;
+            SetVisibility(_labelBox, v);
+            SetVisibility(_firstBox, v);
+            if (!visible) SetVisibility(_secondBox, v);   // hiện thì SetValues quyết theo ô có chữ hay không
         }
 
         /// <summary>Hai ô giá trị; ô thứ hai rỗng thì bỏ luôn khoảng cách trước nó, không để khoảng trống thừa.</summary>
@@ -140,6 +179,9 @@ public partial class OverlayWindow : Window
             Set(First, _glowValues == true ? _firstBox : null, first, firstBrush);
             Set(Gap2, null, second.Length > 0 ? " " : "", null);
             Set(Second, _glowValues == true ? _secondBox : null, second, secondBrush);
+            // Dọc: ô Second rỗng thì ẩn luôn (cả lề trái), để cột 3 không thừa chỗ khi không dòng nào dùng.
+            if (_vertical == true)
+                SetVisibility(_secondBox, second.Length > 0 ? Visibility.Visible : Visibility.Collapsed);
         }
 
         // Ánh sáng (nếu ô phát sáng) đổi cùng lúc với màu chữ, lấy từ cache nên không cấp phát.
@@ -152,15 +194,42 @@ public partial class OverlayWindow : Window
         }
     }
 
+    /// <summary>Khoảng cách tối thiểu giữa các cột của bảng dọc (DIP, trước Scale).</summary>
+    const double CellGap = 10;
+
+    /// <summary>Dòng có đơn vị ở ô Second khi dọc (xem <see cref="StatRows.Values"/>).</summary>
+    static bool HasUnit(StatRow row) => row is StatRow.GpuClock or StatRow.GpuPower or StatRow.GpuFan;
+
+    // Hộp chữ mới cho một lần xếp lại, đã gắn sẵn ô (hàng, cột) của bảng dọc; căn đáy để Descent bù đường chân chữ.
+    // Không dùng lại hộp/InlineUIContainer cũ: TextBlock đo phần tử inline được gắn lại theo DesiredSize cũ của nó
+    // và không được báo khi phần tử đo lại (chưa có cha hình tới lúc sắp xếp), nên kích thước sai tới lần đo sau
+    // (chữ bị cắt khi đổi bố cục). Hộp mới chưa đo lần nào thì không mắc lỗi này. Chỉ tạo khi đổi phong cách/bố cục.
+    static TextBlock NewBox(int row, int column, HorizontalAlignment alignment = HorizontalAlignment.Left)
+    {
+        var box = new TextBlock { VerticalAlignment = VerticalAlignment.Bottom, HorizontalAlignment = alignment };
+        Grid.SetRow(box, row);
+        Grid.SetColumn(box, column);
+        return box;
+    }
+
     static InlineUIContainer Host(TextBlock box) => new(box) { BaselineAlignment = BaselineAlignment.Baseline };
 
-    // Đặt các Run vào target: thẳng, hoặc gói trong box (đã nằm trong host) khi cần mang hiệu ứng riêng.
-    static void Place(InlineCollection target, TextBlock box, InlineUIContainer host, bool boxed, params Run[] runs)
+    static void SetVisibility(UIElement element, Visibility visibility)
+    {
+        if (element.Visibility != visibility) element.Visibility = visibility;
+    }
+
+    // Khoảng từ đường chân chữ tới đáy dòng của TextBlock. Ô bảng căn đáy và cộng lề dưới bù phần chênh,
+    // để mọi ô trong một hàng chung đường chân chữ như bố cục ngang (Grid không tự căn theo đường chân chữ).
+    static double Descent(FontFamily family, double size) => Math.Max(0, size * (family.LineSpacing - family.Baseline));
+
+    // Đặt các Run vào target: thẳng, hoặc gói trong box (trong một InlineUIContainer mới) khi cần mang hiệu ứng riêng.
+    static void Place(InlineCollection target, TextBlock box, bool boxed, params Run[] runs)
     {
         if (boxed)
         {
             box.Inlines.AddRange(runs);
-            target.Add(host);
+            target.Add(Host(box));
         }
         else
             target.AddRange(runs);
@@ -184,12 +253,13 @@ public partial class OverlayWindow : Window
         _topmostTimer.Tick += (_, _) => KeepOnTop();
         _blinkTimer.Tick += (_, _) => OnBlinkTick();
 
-        _fpsLabelHost = Host(_fpsLabelBox);
-        _fpsValueHost = Host(_fpsValue);
-        RebuildFpsItem(boxLabel: false);
+        RebuildFpsItem(vertical: false, boxLabel: false);
         Items.Children.Add(_fpsItem);
+        // Bảng dọc: hàng 0 là FPS, rồi một hàng cho mỗi StatRow theo thứ tự hiển thị.
+        for (int i = 0; i <= StatRows.Order.Count; i++)
+            Table.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         Func<Brush, Effect?> glow = GlowFor;
-        _rows = StatRows.Order.Select(row => new RowView(row, glow)).ToArray();
+        _rows = StatRows.Order.Select((row, i) => new RowView(row, Table, i + 1, glow)).ToArray();
         foreach (var row in _rows)
             Items.Children.Add(row.Item);
         Apply(_settings);
@@ -215,16 +285,25 @@ public partial class OverlayWindow : Window
         }
         _fpsGap.FontFamily = v.LabelFont;
         _fpsGap.FontSize = v.FpsGapSize;
-        _fpsValue.FontFamily = v.ValueFont;
-        _fpsValue.FontSize = v.FpsValueSize;
-        _fpsValue.FontWeight = v.TextWeight;
         var glowLabels = v.Glow is TextGlow.LabelsAndFps or TextGlow.All;
-        RebuildFpsItem(glowLabels);
+        var vertical = settings.Layout == OverlayLayout.Vertical;
+        RebuildFpsItem(vertical, glowLabels);   // trước khi đặt font: có thể tạo hộp mới
+        SetBoxFont(_fpsValue, v.ValueFont, v.FpsValueSize, v.TextWeight);
         SetBoxFont(_fpsLabelBox, v.LabelFont, v.FpsLabelSize, v.TextWeight);
         _fpsLabelBox.Effect = glowLabels ? GlowFor(labelBrush) : null;
+        if (vertical)
+        {
+            // Cùng đường chân chữ giữa nhãn và số FPS (xem Descent).
+            double label = Descent(v.LabelFont, v.FpsLabelSize), value = Descent(v.ValueFont, v.FpsValueSize);
+            var max = Math.Max(label, value);
+            _fpsLabelBox.Margin = new Thickness(0, 0, 0, max - label);
+            _fpsValue.Margin = new Thickness(CellGap, 0, 0, max - value);
+        }
 
         foreach (var row in _rows)
-            row.ApplyStyle(v, spec.Separator, labelBrush);
+            row.ApplyStyle(v, spec.Separator, labelBrush, vertical);
+        SetVisibility(Items, vertical ? Visibility.Collapsed : Visibility.Visible);
+        SetVisibility(Table, vertical ? Visibility.Visible : Visibility.Collapsed);
 
         var background = OverlayTheme.ColorFromHex(spec.Background);
         background.A = (byte)Math.Round(settings.BackgroundOpacity * 255);
@@ -233,7 +312,9 @@ public partial class OverlayWindow : Window
         Chrome.BorderBrush = v.BorderBrush;
         Chrome.BorderThickness = v.BorderThickness;
         Chrome.Padding = v.Padding;
-        Items.Effect = v.Outline ? _outline : null;
+        // Viền tối quanh chữ chỉ trên khối đang hiện (một hiệu ứng, một chỗ dùng).
+        Items.Effect = v.Outline && !vertical ? _outline : null;
+        Table.Effect = v.Outline && vertical ? _outline : null;
         UpdateChamfer();
         UpdateFrameGlow(v, settings.Scale);
 
@@ -285,17 +366,36 @@ public partial class OverlayWindow : Window
         return effect;
     }
 
-    // Mục FPS: dấu nhắc + nhãn thẳng trong _fpsItem, hoặc gói trong _fpsLabelBox khi nhãn phát sáng.
-    void RebuildFpsItem(bool boxLabel)
+    // Mục FPS: dấu nhắc + nhãn thẳng trong _fpsItem, hoặc gói trong _fpsLabelBox khi nhãn phát sáng; số luôn trong
+    // InlineUIContainer. Dọc: _fpsLabelBox (luôn gói) và _fpsValue ở hàng đầu của bảng. Hộp mới mỗi lần (xem NewBox),
+    // số mang theo chữ đang hiện; màu và ánh sáng do SetFps gán lại. Chỉ chạy khi đổi phong cách hoặc bố cục.
+    void RebuildFpsItem(bool vertical, bool boxLabel)
     {
-        if (_fpsLabelBoxed == boxLabel)
+        if (_fpsVertical == vertical && _fpsLabelBoxed == boxLabel)
             return;
+        _fpsVertical = vertical;
         _fpsLabelBoxed = boxLabel;
         _fpsItem.Inlines.Clear();
-        _fpsLabelBox.Inlines.Clear();
-        Place(_fpsItem.Inlines, _fpsLabelBox, _fpsLabelHost, boxLabel, _prompt, _fpsLabel);
+        if (_fpsLabelBox is not null)
+        {
+            _fpsLabelBox.Inlines.Clear();
+            Table.Children.Remove(_fpsLabelBox);
+            Table.Children.Remove(_fpsValue);
+        }
+        _fpsLabelBox = NewBox(0, 0);
+        _fpsValue = NewBox(0, 1, HorizontalAlignment.Right);
+        _fpsValue.Text = _lastText;
+        if (vertical)
+        {
+            _fpsLabelBox.Inlines.Add(_prompt);
+            _fpsLabelBox.Inlines.Add(_fpsLabel);
+            Table.Children.Add(_fpsLabelBox);
+            Table.Children.Add(_fpsValue);
+            return;
+        }
+        Place(_fpsItem.Inlines, _fpsLabelBox, boxLabel, _prompt, _fpsLabel);
         _fpsItem.Inlines.Add(_fpsGap);
-        _fpsItem.Inlines.Add(_fpsValueHost);
+        _fpsItem.Inlines.Add(Host(_fpsValue));
     }
 
     // Viền phát sáng (Neon): GlowFrame trùng khung Chrome, nằm ngoài LayoutTransform nên tự nhân Scale;
@@ -369,6 +469,9 @@ public partial class OverlayWindow : Window
             settings = settings with { ShowGpuTemp = true, ShowCpuTemp = true };
         var normal = OverlayTheme.FromHex(settings.ColorsFor(style).Value);
         var hot = OverlayTheme.FromHex(StyleSpecs.For(style).Bad);
+        // Bố cục theo lần Apply gần nhất (các ô đã được xếp theo nó); đơn vị ở ô Second khi dọc dùng màu nhãn.
+        var layout = _settings.Layout;
+        var unitBrush = OverlayTheme.FromHex(settings.ColorsFor(style).Label);
 
         foreach (var view in _rows)
         {
@@ -377,8 +480,8 @@ public partial class OverlayWindow : Window
             view.SetVisible(visible);
             if (!visible) continue;
 
-            var (first, second) = StatRows.Values(row, onePercentLow, sensors, settings, OverlayLayout.Horizontal);
-            Brush firstBrush = normal, secondBrush = normal;
+            var (first, second) = StatRows.Values(row, onePercentLow, sensors, settings, layout);
+            Brush firstBrush = normal, secondBrush = layout == OverlayLayout.Vertical && HasUnit(row) ? unitBrush : normal;
             if (row == StatRow.OnePercentLow)
                 firstBrush = FpsBrush(onePercentLow, settings);   // 1% low tô màu theo cùng mốc với FPS
             // Ô mang nhiệt độ đổi sang màu "nóng" khi vượt ngưỡng.
