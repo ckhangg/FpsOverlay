@@ -57,6 +57,9 @@ public partial class OverlayWindow : Window
     // Chế độ di chuyển: cửa sổ phía trước và vị trí cửa sổ (px) lúc bắt đầu, để trả focus và để Esc quay về.
     bool _moving;
     IntPtr _moveForeground;
+    // Cửa sổ ngoài app (game) đứng trước gần nhất, ghi mỗi giây: mở menu khay thì cửa sổ phía trước là của app này,
+    // nên BeginMove lấy cửa sổ này để trả focus.
+    IntPtr _lastExternalForeground;
     NativeMethods.RECT _moveStart;
     // Nền gần như trong suốt (alpha 1) phủ khối khi di chuyển: cửa sổ layered chỉ nhận chuột ở điểm ảnh không trong suốt,
     // nên không có nó thì nền 0% chỉ bấm trúng được nét chữ.
@@ -654,6 +657,12 @@ public partial class OverlayWindow : Window
         var preview = PreviewWindow?.Invoke();
         if (preview is { } p && p != IntPtr.Zero)
             return p;
+        return ExternalForeground();
+    }
+
+    // Cửa sổ phía trước nếu nó không phải của app này và không phải desktop/shell; ngược lại Zero.
+    static IntPtr ExternalForeground()
+    {
         var fg = NativeMethods.GetForegroundWindow();
         if (fg == IntPtr.Zero || fg == NativeMethods.GetShellWindow())
             return IntPtr.Zero;
@@ -677,7 +686,8 @@ public partial class OverlayWindow : Window
     {
         if (_moving || _hwnd == IntPtr.Zero || !IsVisible || !NativeMethods.GetWindowRect(_hwnd, out _moveStart))
             return;
-        _moveForeground = NativeMethods.GetForegroundWindow();
+        var fg = ExternalForeground();
+        _moveForeground = fg != IntPtr.Zero ? fg : _lastExternalForeground;
         _moving = true;   // trước khi đổi gì: UpdatePosition ngừng tự đặt vị trí
         SetExStyle(NativeMethods.WS_EX_TRANSPARENT | NativeMethods.WS_EX_NOACTIVATE, on: false);
         IsHitTestVisible = true;
@@ -712,10 +722,10 @@ public partial class OverlayWindow : Window
                 NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE | NativeMethods.SWP_NOZORDER);
 
         // Trả focus cho cửa sổ trước đó (thường là game) trước khi lưu: lưu làm Apply → UpdatePosition chọn màn hình
-        // theo cửa sổ phía trước. Windows có thể từ chối, khi đó bỏ qua.
+        // theo cửa sổ phía trước. App này đang đứng trước nên được phép; cửa sổ đã đóng hoặc Windows từ chối thì bỏ qua.
         var previous = _moveForeground;
         _moveForeground = IntPtr.Zero;
-        if (previous != IntPtr.Zero && previous != _hwnd)
+        if (previous != IntPtr.Zero && NativeMethods.IsWindow(previous))
             NativeMethods.SetForegroundWindow(previous);
 
         MovingChanged?.Invoke(false);
@@ -798,6 +808,9 @@ public partial class OverlayWindow : Window
     {
         if (_hwnd == IntPtr.Zero || !IsVisible)
             return;
+        // Ghi cả khi đang xem trước cài đặt (TargetWindow khi đó không nhìn cửa sổ phía trước).
+        var fg = ExternalForeground();
+        if (fg != IntPtr.Zero) _lastExternalForeground = fg;
         UpdatePosition();   // theo kịp game chuyển màn hình / đổi độ phân giải
         NativeMethods.SetWindowPos(_hwnd, NativeMethods.HWND_TOPMOST, 0, 0, 0, 0,
             NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE);
