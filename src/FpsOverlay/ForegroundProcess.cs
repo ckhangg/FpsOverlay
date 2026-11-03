@@ -35,7 +35,27 @@ static class ForegroundProcess
             return Candidates;
         Candidates.Add((int)pid);
         NativeMethods.EnumChildWindows(hwnd, CollectChild, IntPtr.Zero);
+
+        // Khung ApplicationFrameHost tự vẽ (thanh tiêu đề, hiệu ứng) nên có FPS riêng: ưu tiên game bên trong nó.
+        if (Candidates.Count > 1 && IsFrameHost((int)pid))
+        {
+            Candidates.RemoveAt(0);
+            Candidates.Add((int)pid);
+        }
         return Candidates;
+    }
+
+    static bool IsFrameHost(int pid)
+    {
+        try
+        {
+            using var process = Process.GetProcessById(pid);
+            return string.Equals(process.ProcessName, "ApplicationFrameHost", StringComparison.OrdinalIgnoreCase);
+        }
+        catch (ArgumentException)   // tiến trình vừa thoát
+        {
+            return false;
+        }
     }
 
     static bool OnChildWindow(IntPtr child, IntPtr _)

@@ -31,6 +31,7 @@ sealed class TrayIcon : IDisposable
     /// <summary>Tham số là trạng thái muốn chuyển sang.</summary>
     public event Action<bool>? AutostartRequested;
     public event Action? ExitRequested;
+    public event Action? MenuOpening;
 
     public TrayIcon()
     {
@@ -44,6 +45,7 @@ sealed class TrayIcon : IDisposable
         _exitItem = new ToolStripMenuItem("", null, (_, _) => ExitRequested?.Invoke());
 
         var menu = new ContextMenuStrip();
+        menu.Opening += (_, _) => MenuOpening?.Invoke();
         menu.Items.Add(_toggleItem);
         menu.Items.Add(_settingsItem);
         menu.Items.Add(_cornerItem);

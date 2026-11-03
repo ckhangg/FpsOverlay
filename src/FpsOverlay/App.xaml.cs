@@ -17,6 +17,8 @@ public partial class App : Application
     OverlayWindow? _overlay;
     TrayIcon? _tray;
     SettingsWindow? _settingsWindow;
+    // Hộp báo lỗi đang mở mà bấm tiếp ở khay thì bỏ qua, không chạy schtasks và hiện hộp thứ hai.
+    bool _settingAutostart;
 
     Mutex? _singleInstance;
 
@@ -57,8 +59,9 @@ public partial class App : Application
         // Đổi ngôn ngữ hay góc (kể cả từ cửa sổ cài đặt) thì menu khay đổi theo ngay.
         settings.Changed += s => tray.Apply(s, overlay.IsVisible);
         _autostart.Changed += tray.SetAutostart;
-        _autostart.Refresh();
-        tray.SetAutostart(_autostart.IsEnabled);
+        // Đọc lại mỗi lần mở menu: tác vụ có thể bị xoá/sửa trong Task Scheduler lúc app đang chạy.
+        tray.MenuOpening += () => _ = _autostart.RefreshAsync();
+        _ = _autostart.RefreshAsync();
 
         _runner = new PresentMonRunner();
         _runner.Exited += stderr => Dispatcher.BeginInvoke(() => Fail(
@@ -112,6 +115,7 @@ public partial class App : Application
             return;
         }
 
+        _ = _autostart.RefreshAsync();
         _settingsWindow = new SettingsWindow(_settings, _autostart, SetAutostart);
         _settingsWindow.Closed += (_, _) => _settingsWindow = null;   // đóng bằng cách nào cũng về FPS thật
         _settingsWindow.Show();
@@ -120,11 +124,20 @@ public partial class App : Application
 
     void SetAutostart(bool enable)
     {
-        if (_autostart.TrySet(enable, out var error))
-            return;
-        var message = Loc.Get(StringKey.AutostartFailed, Language) +
-                      (error.Length > 0 ? $"\n\n{Loc.Get(StringKey.Details, Language)}: {error}" : "");
-        MessageBox.Show(message, "FPS Overlay", MessageBoxButton.OK, MessageBoxImage.Warning);
+        if (_settingAutostart) return;
+        _settingAutostart = true;
+        try
+        {
+            if (_autostart.TrySet(enable, out var error))
+                return;
+            var message = Loc.Get(StringKey.AutostartFailed, Language) +
+                          (error.Length > 0 ? $"\n\n{Loc.Get(StringKey.Details, Language)}: {error}" : "");
+            MessageBox.Show(message, "FPS Overlay", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        finally
+        {
+            _settingAutostart = false;
+        }
     }
 
     void Fail(string message)

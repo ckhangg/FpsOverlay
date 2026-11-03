@@ -8,7 +8,7 @@ namespace FpsOverlay;
 
 /// <summary>
 /// Bật/tắt khởi động cùng Windows bằng tác vụ Task Scheduler (qua schtasks.exe). Nguồn sự thật là chính tác vụ,
-/// không lưu trong file cài đặt: ai xoá tác vụ trong Task Scheduler thì ô tick cũng tự bỏ. Dùng trên luồng UI.
+/// không lưu trong file cài đặt: ai xoá tác vụ trong Task Scheduler thì ô tick cũng tự bỏ. Gọi từ luồng UI.
 /// </summary>
 sealed class AutostartService
 {
@@ -22,19 +22,12 @@ sealed class AutostartService
     public event Action<bool>? Changed;
 
     /// <summary>
-    /// Đọc trạng thái tác vụ. Nếu tác vụ trỏ tới exe ở chỗ khác (thư mục app bị chuyển đi) thì tạo lại cho đúng.
+    /// Đọc lại trạng thái tác vụ (ngoài luồng UI để overlay không khựng), vì người dùng có thể xoá tác vụ trong
+    /// Task Scheduler lúc app đang chạy. Nếu tác vụ trỏ tới exe ở chỗ khác (thư mục app bị chuyển đi) thì tạo lại cho đúng.
     /// </summary>
-    public void Refresh()
-    {
-        var (exitCode, output, _) = Run($"/Query /TN \"{AutostartTask.TaskName}\" /XML");
-        var enabled = exitCode == 0;
-        // Tạo lại lỗi thì tác vụ cũ vẫn còn, nên vẫn tính là đang bật.
-        if (enabled && !string.Equals(AutostartTask.ReadCommand(output), _exePath, StringComparison.OrdinalIgnoreCase))
-            TryCreate(out _);
-        SetEnabled(enabled);
-    }
+    public async Task RefreshAsync() => SetEnabled(await Task.Run(QueryAndRepair));
 
-    /// <summary>Bật hoặc tắt. Trả về false và lý do nếu schtasks báo lỗi; trạng thái vẫn đúng với thực tế.</summary>
+    /// <summary>Bật hoặc tắt. Trả về false và lý do nếu không làm được; <see cref="IsEnabled"/> luôn đúng với thực tế.</summary>
     public bool TrySet(bool enable, out string error)
     {
         bool ok;
@@ -46,12 +39,28 @@ sealed class AutostartService
             ok = exitCode == 0;
             error = stderr;
         }
-        if (ok)
-            SetEnabled(enable);
-        else
-            Refresh();
-        return ok;
+        if (!ok)
+        {
+            // schtasks báo lỗi nhưng thực tế đã đúng ý (vd. tác vụ bị xoá sẵn trong Task Scheduler): không coi là lỗi.
+            var exists = Exists();
+            SetEnabled(exists);
+            return exists == enable;
+        }
+        SetEnabled(enable);
+        return true;
     }
+
+    bool QueryAndRepair()
+    {
+        var (exitCode, output, _) = Run($"/Query /TN \"{AutostartTask.TaskName}\" /XML");
+        var exists = exitCode == 0;
+        // Tạo lại lỗi thì tác vụ cũ vẫn còn, nên vẫn tính là đang bật.
+        if (exists && !string.Equals(AutostartTask.ReadCommand(output), _exePath, StringComparison.OrdinalIgnoreCase))
+            TryCreate(out _);
+        return exists;
+    }
+
+    static bool Exists() => Run($"/Query /TN \"{AutostartTask.TaskName}\"").ExitCode == 0;
 
     bool TryCreate(out string error)
     {
@@ -59,8 +68,14 @@ sealed class AutostartService
         try
         {
             var user = WindowsIdentity.GetCurrent().Name;
-            // schtasks đọc file theo khai báo encoding trong XML (UTF-16).
-            File.WriteAllText(xmlPath, AutostartTask.BuildXml(_exePath, user), Encoding.Unicode);
+            // schtasks đọc file theo khai báo encoding trong XML (UTF-16, có BOM).
+            var bytes = Encoding.Unicode.GetPreamble()
+                .Concat(Encoding.Unicode.GetBytes(AutostartTask.BuildXml(_exePath, user))).ToArray();
+            // %TEMP% thì tiến trình thường cũng ghi được: giữ file mở, chỉ cho đọc, suốt lúc schtasks chạy để không ai
+            // tráo nội dung (tráo được là lệnh của họ chạy với quyền Admin mỗi lần đăng nhập). CreateNew: không dùng file có sẵn.
+            using var stream = new FileStream(xmlPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read);
+            stream.Write(bytes);
+            stream.Flush();
             var (exitCode, _, stderr) = Run($"/Create /TN \"{AutostartTask.TaskName}\" /XML \"{xmlPath}\" /F");
             error = stderr;
             return exitCode == 0;
@@ -72,7 +87,7 @@ sealed class AutostartService
         }
         finally
         {
-            try { File.Delete(xmlPath); } catch (Exception) { }
+            try { File.Delete(xmlPath); } catch (Exception) { }   // chạy sau khi stream đã đóng
         }
     }
 
