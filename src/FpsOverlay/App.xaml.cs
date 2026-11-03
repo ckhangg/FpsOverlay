@@ -11,6 +11,7 @@ namespace FpsOverlay;
 public partial class App : Application
 {
     readonly FpsCalculator _calculator = new();
+    readonly FrameTimeHistory _history = new();
     readonly Stopwatch _previewClock = Stopwatch.StartNew();
     readonly AutostartService _autostart = new();
     readonly Stopwatch _clock = Stopwatch.StartNew();
@@ -80,7 +81,7 @@ public partial class App : Application
 
         try
         {
-            _runner.Start(_calculator.Add);
+            _runner.Start(OnFrame);
         }
         catch (Exception ex)
         {
@@ -95,6 +96,13 @@ public partial class App : Application
 
         _overlay.Show();
         CompositionTarget.Rendering += OnRendering;
+    }
+
+    // Chạy trên luồng đọc PresentMon cho mỗi khung hình: đưa vào cả hai bộ tính.
+    void OnFrame(FrameSample frame)
+    {
+        _calculator.Add(frame);
+        _history.Add(frame);
     }
 
     // Mỗi giây kiểm tra PresentMon có đang gửi dữ liệu không; chỉ đụng vào khay khi trạng thái đổi.
