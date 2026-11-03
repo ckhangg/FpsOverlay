@@ -55,4 +55,19 @@ public class SessionLogTests
         Assert.Equal(Path.Combine(dir, "b.csv"), SessionLog.UniquePath(dir, "b", ".csv", taken.Contains));
         Assert.Equal(Path.Combine(dir, "a_3.csv"), SessionLog.UniquePath(dir, "a", ".csv", taken.Contains));
     }
-}
+
+    [Fact]
+    public void Summary_path_sits_next_to_csv()
+    {
+        Assert.Equal(Path.Combine("logs", "Lies_of_P__2026-11-03_20-15_2_summary.txt"),
+            SessionLog.SummaryPath(Path.Combine("logs", "Lies_of_P__2026-11-03_20-15_2.csv")));
+    }
+
+    [Fact]
+    public void Unique_path_can_also_avoid_existing_summary()
+    {
+        var dir = "logs";
+        var taken = new HashSet<string> { SessionLog.SummaryPath(Path.Combine(dir, "a.csv")) };
+        Assert.Equal(Path.Combine(dir, "a_2.csv"),
+            SessionLog.UniquePath(dir, "a", ".csv", p => taken.Contains(p) || taken.Contains(SessionLog.SummaryPath(p))));
+    }}

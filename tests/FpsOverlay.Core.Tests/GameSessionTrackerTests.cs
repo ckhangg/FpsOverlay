@@ -99,4 +99,15 @@ public class GameSessionTrackerTests
         Assert.Equal(2, changes[1].Session.ProcessId);
         Assert.Equal(2, t.Current!.ProcessId);
     }
-}
+
+    [Fact]
+    public void Grace_timeout_applies_while_another_game_is_still_counting()
+    {
+        var t = Started();   // lần cuối game 1 đủ điều kiện: giây 11
+        for (int s = 12; s <= 65; s++) Away(t, s);
+        for (int s = 66; s <= 71; s++) Assert.Empty(Tick(t, s, pid: 2, name: "other"));
+        var change = Assert.Single(Tick(t, 72, pid: 2, name: "other"));   // 72 - 11 > 60, game 2 mới đếm 6 giây
+        Assert.Equal(SessionChangeKind.Ended, change.Kind);
+        Assert.Equal(1, change.Session.ProcessId);
+        Assert.Null(t.Current);
+    }}

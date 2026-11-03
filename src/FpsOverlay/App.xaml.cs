@@ -103,8 +103,9 @@ public partial class App : Application
     // Chạy PresentMon mới (bộ tính FPS và lịch sử frametime làm mới theo). Trả về false nếu không chạy được (đã báo lỗi và thoát).
     bool StartPresentMon()
     {
-        _calculator = new FpsCalculator();
-        _history = new FrameTimeHistory();
+        // Mỗi runner ghi vào bộ riêng của nó (một closure mỗi lần chạy): runner cũ không thể đẩy khung vào bộ mới.
+        var calculator = new FpsCalculator();
+        var history = new FrameTimeHistory();
         var runner = new PresentMonRunner();
         // Dispose chủ động không phát Exited (runner tự bỏ qua khi đã Dispose), nên chỉ lần thoát bất ngờ mới tới đây.
         runner.Exited += stderr => Dispatcher.BeginInvoke(() => Fail(
@@ -113,7 +114,11 @@ public partial class App : Application
 
         try
         {
-            runner.Start(OnFrame);
+            runner.Start(frame =>
+            {
+                calculator.Add(frame);
+                history.Add(frame);
+            });
         }
         catch (Exception ex)
         {
@@ -123,6 +128,8 @@ public partial class App : Application
         }
 
         _runner = runner;
+        _calculator = calculator;
+        _history = history;
         _presentMonStartedAt = _clock.Elapsed.TotalSeconds;
         return true;
     }
@@ -158,13 +165,6 @@ public partial class App : Application
         if (_settings is null || _sensors is null) return;
         _logger.Tick(_clock.Elapsed.TotalSeconds, _settings.Current.LoggingEnabled && _runner is not null,
             _calculator, _history, ForegroundProcess.GetCandidates(), _sensors.Latest, Language);
-    }
-
-    // Chạy trên luồng đọc PresentMon cho mỗi khung hình: đưa vào cả hai bộ tính.
-    void OnFrame(FrameSample frame)
-    {
-        _calculator.Add(frame);
-        _history.Add(frame);
     }
 
     // Mỗi giây kiểm tra PresentMon có đang gửi dữ liệu không; chỉ đụng vào khay khi trạng thái đổi.

@@ -27,23 +27,26 @@ sealed class SessionLogger : IDisposable
     sealed class ActiveSession
     {
         public readonly GameSession Info;
-        public readonly string SummaryPath;
         public readonly SessionSummary Summary = new();
         public readonly Channel<string> Rows = Channel.CreateUnbounded<string>(new UnboundedChannelOptions { SingleReader = true });
+        // Nội dung file tóm tắt, dựng trên luồng UI khi buổi kết thúc rồi giao cho luồng nền ghi.
+        public readonly TaskCompletionSource<string> SummaryText = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public readonly Task Writer;
         public double Cursor = double.NegativeInfinity;   // mọi frametime chỉ được lấy đúng một lần
         public double LastTickAt;
         public double LastFrameAt;                        // lần cuối game còn vẽ: để tính thời lượng, bỏ đoạn chờ alt-tab
 
-        public ActiveSession(GameSession info, string csvPath, string summaryPath, double now)
+        public ActiveSession(GameSession info, string stem, double now)
         {
             Info = info;
-            SummaryPath = summaryPath;
             LastTickAt = LastFrameAt = now;
             var rows = Rows.Reader;
-            Writer = Task.Run(() => RunWriter(csvPath, rows));
+            var summaryText = SummaryText.Task;
+            Writer = Task.Run(() => RunWriter(stem, rows, summaryText));
         }
     }
+
+    readonly List<Task> _writers = [];   // luồng ghi chưa xong, để Dispose chờ
     GameSessionTracker _tracker = new();
     readonly List<double> _frameTimes = [];
     ActiveSession? _active;
@@ -88,12 +91,11 @@ sealed class SessionLogger : IDisposable
 
     void StartSession(GameSession session, FrameTimeHistory history, double now)
     {
-        var start = DateTime.Now;
-        var stem = SessionLog.FileStem(session.ProcessName, start);
-        var csvPath = SessionLog.UniquePath(LogDirectory, stem, ".csv", File.Exists);
-        // File tóm tắt dùng cùng tên (kể cả hậu tố _2...) với file CSV.
-        var summaryPath = Path.ChangeExtension(csvPath, ".txt");
-        var active = _active = new ActiveSession(session, csvPath, summaryPath, now);
+        // Chỉ ghép tên; chọn đường dẫn không trùng và mọi thao tác file làm ở luồng nền.
+        var stem = SessionLog.FileStem(session.ProcessName, DateTime.Now);
+        var active = _active = new ActiveSession(session, stem, now);
+        _writers.RemoveAll(t => t.IsCompleted);
+        _writers.Add(active.Writer);
 
         // Khung của 10 giây chờ trước khi buổi bắt đầu chưa tính vào buổi: lấy bỏ để con trỏ nhảy tới hiện tại.
         history.CopyFrameTimes(session.ProcessId, ref active.Cursor, _frameTimes);
@@ -117,35 +119,26 @@ sealed class SessionLogger : IDisposable
         a.Rows.Writer.TryWrite(SessionLog.FormatRow(DateTimeOffset.Now, fps, history.OnePercentLow(a.Info.ProcessId), sensors));
     }
 
-    // Đóng hàng đợi, chờ luồng nền ghi nốt và đóng file, rồi viết file tóm tắt.
+    // Đóng hàng đợi và giao nội dung tóm tắt cho luồng nền; không chờ, không đụng file ở luồng UI.
     void EndSession()
     {
         if (_active is not { } a) return;
         _active = null;
 
+        var duration = TimeSpan.FromSeconds(Math.Max(0, a.LastFrameAt - a.Info.StartedAt));
+        a.SummaryText.TrySetResult(a.Summary.Format(_language, duration));
         a.Rows.Writer.TryComplete();
-        try { a.Writer.Wait(TimeSpan.FromSeconds(5)); }
-        catch (Exception ex) { Trace.TraceWarning($"Luồng ghi log lỗi: {ex.Message}"); }
-
-        try
-        {
-            Directory.CreateDirectory(LogDirectory);
-            var duration = TimeSpan.FromSeconds(Math.Max(0, a.LastFrameAt - a.Info.StartedAt));
-            File.WriteAllText(a.SummaryPath, a.Summary.Format(_language, duration), new UTF8Encoding(false));
-        }
-        catch (Exception ex)
-        {
-            Trace.TraceWarning($"Không ghi được file tóm tắt: {ex.Message}");
-        }
     }
-
     // Chạy trên luồng nền. Gặp lỗi IO thì bỏ file này nhưng vẫn rút hết hàng đợi để không phình bộ nhớ.
-    static async Task RunWriter(string path, ChannelReader<string> rows)
+    static async Task RunWriter(string stem, ChannelReader<string> rows, Task<string> summaryText)
     {
+        string? path = null;
         StreamWriter? writer = null;
         try
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            Directory.CreateDirectory(LogDirectory);
+            // Không trùng cả file CSV lẫn file tóm tắt của buổi cũ.
+            path = SessionLog.UniquePath(LogDirectory, stem, ".csv", p => File.Exists(p) || File.Exists(SessionLog.SummaryPath(p)));
             writer = new StreamWriter(new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read), new UTF8Encoding(false));
             writer.WriteLine(SessionLog.Header);
             var sinceFlush = Stopwatch.StartNew();
@@ -159,17 +152,32 @@ sealed class SessionLogger : IDisposable
         }
         catch (Exception ex)
         {
-            Trace.TraceWarning($"Không ghi được log {path}: {ex.Message}");
+            Trace.TraceWarning($"Không ghi được log {stem}: {ex.Message}");
             try { await foreach (var _ in rows.ReadAllAsync()) { } } catch { }
         }
         finally
         {
             try { writer?.Dispose(); }   // xả nốt phần còn lại
-            catch (Exception ex) { Trace.TraceWarning($"Không đóng được log {path}: {ex.Message}"); }
+            catch (Exception ex) { Trace.TraceWarning($"Không đóng được log {stem}: {ex.Message}"); }
+        }
+
+        if (path is null) return;
+        try
+        {
+            File.WriteAllText(SessionLog.SummaryPath(path), await summaryText, new UTF8Encoding(false));
+        }
+        catch (Exception ex)
+        {
+            Trace.TraceWarning($"Không ghi được file tóm tắt {stem}: {ex.Message}");
         }
     }
-
-    public void Dispose() => EndSession();
+    /// <summary>Thoát app: kết thúc buổi đang ghi rồi chờ (có hạn) các luồng ghi xả file và viết tóm tắt.</summary>
+    public void Dispose()
+    {
+        EndSession();
+        try { Task.WaitAll(_writers.ToArray(), TimeSpan.FromSeconds(5)); }
+        catch (Exception ex) { Trace.TraceWarning($"Luồng ghi log lỗi: {ex.Message}"); }
+    }
 
     // ---------- Hệ điều hành ----------
 

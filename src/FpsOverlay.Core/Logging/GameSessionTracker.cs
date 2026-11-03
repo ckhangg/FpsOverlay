@@ -44,7 +44,7 @@ public sealed class GameSessionTracker
                 End();
             else if (qualifies && input.ProcessId == current.ProcessId)
                 _lastActive = input.Now;
-            else if (!qualifies && input.Now - _lastActive > EndAfterSeconds)
+            else if (input.Now - _lastActive > EndAfterSeconds)   // kể cả khi game khác đang đếm 10 giây mà chưa đủ
                 End();
         }
 

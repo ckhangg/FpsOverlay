@@ -40,4 +40,7 @@ public static class SessionLog
             path = Path.Combine(directory, $"{stem}_{n}{extension}");
         return path;
     }
-}
+
+    /// <summary>File tóm tắt nằm cạnh file CSV: <c>&lt;cùng tên&gt;_summary.txt</c>.</summary>
+    public static string SummaryPath(string csvPath) =>
+        Path.Combine(Path.GetDirectoryName(csvPath) ?? "", Path.GetFileNameWithoutExtension(csvPath) + "_summary.txt");}
