@@ -5,7 +5,7 @@ using Icon = System.Drawing.Icon;
 
 namespace FpsOverlay;
 
-/// <summary>Biểu tượng ở khay hệ thống: Ẩn/Hiện FPS, Cài đặt..., Góc hiển thị, Khởi động cùng Windows, Thoát.</summary>
+/// <summary>Biểu tượng ở khay hệ thống: Ẩn/Hiện FPS, Cài đặt..., Góc hiển thị, Di chuyển overlay, Khởi động cùng Windows, Thoát.</summary>
 sealed class TrayIcon : IDisposable
 {
     static readonly (OverlayCorner Corner, StringKey Key)[] Corners =
@@ -22,6 +22,7 @@ sealed class TrayIcon : IDisposable
     readonly ToolStripMenuItem _toggleItem;
     readonly ToolStripMenuItem _settingsItem;
     readonly ToolStripMenuItem _cornerItem;
+    readonly ToolStripMenuItem _moveItem;
     readonly ToolStripMenuItem _autostartItem;
     readonly ToolStripMenuItem _exitItem;
     readonly ToolStripMenuItem[] _cornerItems;
@@ -34,6 +35,8 @@ sealed class TrayIcon : IDisposable
     public event Action? ToggleRequested;
     public event Action? SettingsRequested;
     public event Action<OverlayCorner>? CornerRequested;
+    /// <summary>Bật/tắt chế độ di chuyển overlay (tắt = lưu vị trí).</summary>
+    public event Action? MoveRequested;
     /// <summary>Tham số là trạng thái muốn chuyển sang.</summary>
     public event Action<bool>? AutostartRequested;
     public event Action? ExitRequested;
@@ -48,6 +51,7 @@ sealed class TrayIcon : IDisposable
             .Select(c => new ToolStripMenuItem("", null, (_, _) => CornerRequested?.Invoke(c.Corner)))
             .ToArray();
         _cornerItem = new ToolStripMenuItem("", null, _cornerItems);
+        _moveItem = new ToolStripMenuItem("", null, (_, _) => MoveRequested?.Invoke());
         _autostartItem = new ToolStripMenuItem("", null, (sender, _) => AutostartRequested?.Invoke(!((ToolStripMenuItem)sender!).Checked));
         _exitItem = new ToolStripMenuItem("", null, (_, _) => ExitRequested?.Invoke());
 
@@ -57,6 +61,7 @@ sealed class TrayIcon : IDisposable
         menu.Items.Add(_toggleItem);
         menu.Items.Add(_settingsItem);
         menu.Items.Add(_cornerItem);
+        menu.Items.Add(_moveItem);
         menu.Items.Add(_autostartItem);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_exitItem);
@@ -79,6 +84,8 @@ sealed class TrayIcon : IDisposable
         _toggleItem.Text = Loc.Get(overlayVisible ? StringKey.TrayHide : StringKey.TrayShow, language);
         _settingsItem.Text = Loc.Get(StringKey.TraySettings, language);
         _cornerItem.Text = Loc.Get(StringKey.TrayCorner, language);
+        _moveItem.Text = Loc.Get(StringKey.TrayMove, language);
+        _moveItem.Enabled = overlayVisible;   // overlay ẩn thì không có gì để di chuyển
         _autostartItem.Text = Loc.Get(StringKey.TrayAutostart, language);
         ApplyAutostartLock();
         _exitItem.Text = Loc.Get(StringKey.TrayExit, language);
@@ -97,6 +104,9 @@ sealed class TrayIcon : IDisposable
         _warningItem.Visible = text is not null;
         _icon.Text = text ?? Loc.Get(StringKey.TrayTooltip, _language);
     }
+
+    /// <summary>Dấu tick ở mục Di chuyển overlay (đang ở chế độ di chuyển).</summary>
+    public void SetMoving(bool moving) => _moveItem.Checked = moving;
 
     /// <summary>Dấu tick ở mục Khởi động cùng Windows.</summary>
     public void SetAutostart(bool enabled) => _autostartItem.Checked = enabled;

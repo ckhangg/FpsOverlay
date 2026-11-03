@@ -102,6 +102,14 @@ public partial class App : Application
         tray.ToggleRequested += ToggleOverlay;
         tray.SettingsRequested += OpenSettings;
         tray.CornerRequested += corner => settings.Update(s => s.WithCorner(corner));
+        // Di chuyển overlay: mục khay bật/tắt (tắt = lưu); vị trí lưu là góc gần nhất + khoảng cách tới mép (DIP).
+        tray.MoveRequested += () =>
+        {
+            if (overlay.IsMoving) overlay.EndMove(save: true);
+            else overlay.BeginMove();
+        };
+        overlay.MovingChanged += tray.SetMoving;
+        overlay.PositionSaved += (corner, x, y) => settings.Update(s => s with { Corner = corner, OffsetX = x, OffsetY = y });
         tray.AutostartRequested += SetAutostart;
         tray.ExitRequested += Shutdown;
         // Đổi ngôn ngữ hay góc (kể cả từ cửa sổ cài đặt) thì menu khay đổi theo ngay.
@@ -394,6 +402,7 @@ public partial class App : Application
         CompositionTarget.Rendering -= OnRendering;
         if (_overlay.IsVisible)
         {
+            if (_overlay.IsMoving) _overlay.EndMove(save: true);   // ẩn giữa lúc di chuyển = lưu
             _overlay.Hide();
             _gpuAlarm.Reset();
             _cpuAlarm.Reset();
@@ -412,6 +421,7 @@ public partial class App : Application
     void OpenSettings()
     {
         if (_settings is null) return;
+        if (_overlay is { IsMoving: true }) _overlay.EndMove(save: true);   // mở cài đặt giữa lúc di chuyển = lưu
         if (_settingsWindow is not null)
         {
             if (_settingsWindow.WindowState == WindowState.Minimized)

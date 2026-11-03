@@ -38,5 +38,8 @@
                 </Grid>
             </Grid>
         </Border>
+        <!-- Viền đứt nét của chế độ di chuyển: vẽ đè lên khối (nét nằm trong mép), không đổi kích thước khối. -->
+        <Rectangle x:Name="MoveOutline" Visibility="Collapsed" IsHitTestVisible="False"
+                   Stroke="#E6FFFFFF" StrokeThickness="1" StrokeDashArray="4 3" />
     </Grid>
 </Window>

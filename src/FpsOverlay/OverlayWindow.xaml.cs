@@ -54,6 +54,23 @@ public partial class OverlayWindow : Window
     bool _blinkDim;
     long _testUntilTick;   // Environment.TickCount64 lúc hết lần thử cảnh báo; 0 = không thử
 
+    // Chế độ di chuyển: cửa sổ phía trước và vị trí cửa sổ (px) lúc bắt đầu, để trả focus và để Esc quay về.
+    bool _moving;
+    IntPtr _moveForeground;
+    NativeMethods.RECT _moveStart;
+    // Nền gần như trong suốt (alpha 1) phủ khối khi di chuyển: cửa sổ layered chỉ nhận chuột ở điểm ảnh không trong suốt,
+    // nên không có nó thì nền 0% chỉ bấm trúng được nét chữ.
+    static readonly Brush MoveHitBrush = Frozen(new SolidColorBrush(Color.FromArgb(1, 0, 0, 0)));
+
+    /// <summary>Đang ở chế độ di chuyển (kéo thả) overlay.</summary>
+    public bool IsMoving => _moving;
+
+    /// <summary>Lưu vị trí sau khi di chuyển: góc gần nhất và khoảng cách tới mép (DIP).</summary>
+    public event Action<OverlayCorner, double, double>? PositionSaved;
+
+    /// <summary>Vào (true) hoặc thoát (false) chế độ di chuyển.</summary>
+    public event Action<bool>? MovingChanged;
+
     /// <summary>
     /// Đối tượng chữ của một <see cref="StatRow"/>, tạo một lần: dấu ngăn + nhãn + ô First + ô Second.
     /// Ở bố cục ngang tất cả là Run trong một TextBlock (chung đường chân chữ); ẩn mục là ẩn cả dấu ngăn.
@@ -605,15 +622,14 @@ public partial class OverlayWindow : Window
     // Đặt cửa sổ vào góc đã chọn của màn hình đang có cửa sổ phía trước (game), cách mép theo OffsetX/OffsetY (không trừ taskbar).
     void UpdatePosition()
     {
-        if (_hwnd == IntPtr.Zero || !NativeMethods.GetWindowRect(_hwnd, out var self))
+        // Đang di chuyển thì người dùng đặt vị trí; không kéo cửa sổ về góc (kể cả khi đổi DPI giữa lúc kéo).
+        if (_moving || _hwnd == IntPtr.Zero || !NativeMethods.GetWindowRect(_hwnd, out var self))
             return;
         var monitor = NativeMethods.MonitorFromWindow(TargetWindow(), NativeMethods.MONITOR_DEFAULTTOPRIMARY);
         var info = new NativeMethods.MONITORINFO { cbSize = (uint)System.Runtime.InteropServices.Marshal.SizeOf<NativeMethods.MONITORINFO>() };
         if (!NativeMethods.GetMonitorInfo(monitor, ref info))
             return;
-        uint dpi = 96;
-        if (NativeMethods.GetDpiForMonitor(monitor, NativeMethods.MDT_EFFECTIVE_DPI, out var dpiX, out _) == 0 && dpiX > 0)
-            dpi = dpiX;
+        var dpi = MonitorDpi(monitor);
         var m = info.rcMonitor;
         // Đặt theo khung nhìn thấy: lề trong suốt của Root (ánh sáng viền) được trừ ra khỏi cửa sổ.
         int pad = (int)Math.Round(Root.Margin.Left * dpi / 96.0);
@@ -629,9 +645,12 @@ public partial class OverlayWindow : Window
             NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE | NativeMethods.SWP_NOZORDER);
     }
 
-    // Cửa sổ quyết định màn hình: cửa sổ cài đặt khi xem trước; cửa sổ phía trước; màn hình chính nếu đó là app này hoặc desktop/shell.
+    // Cửa sổ quyết định màn hình: chính overlay khi đang di chuyển (ở lại màn hình đang có nó); cửa sổ cài đặt khi xem trước;
+    // cửa sổ phía trước; màn hình chính nếu đó là app này hoặc desktop/shell.
     IntPtr TargetWindow()
     {
+        if (_moving)
+            return _hwnd;
         var preview = PreviewWindow?.Invoke();
         if (preview is { } p && p != IntPtr.Zero)
             return p;
@@ -644,6 +663,123 @@ public partial class OverlayWindow : Window
         var className = new System.Text.StringBuilder(64);
         NativeMethods.GetClassName(fg, className, className.Capacity);
         return className.ToString() is "Progman" or "WorkerW" ? IntPtr.Zero : fg;
+    }
+
+    // DPI hiệu dụng của màn hình; lỗi thì coi như 96.
+    static uint MonitorDpi(IntPtr monitor) =>
+        NativeMethods.GetDpiForMonitor(monitor, NativeMethods.MDT_EFFECTIVE_DPI, out var dpiX, out _) == 0 && dpiX > 0 ? dpiX : 96;
+
+    /// <summary>
+    /// Vào chế độ di chuyển: overlay nhận chuột và bàn phím (bỏ bấm xuyên và không-chiếm-focus), hiện viền đứt nét,
+    /// kéo bằng chuột trái. Enter hoặc bấm đúp lưu, Esc huỷ (xem <see cref="EndMove"/>).
+    /// </summary>
+    public void BeginMove()
+    {
+        if (_moving || _hwnd == IntPtr.Zero || !IsVisible || !NativeMethods.GetWindowRect(_hwnd, out _moveStart))
+            return;
+        _moveForeground = NativeMethods.GetForegroundWindow();
+        _moving = true;   // trước khi đổi gì: UpdatePosition ngừng tự đặt vị trí
+        SetExStyle(NativeMethods.WS_EX_TRANSPARENT | NativeMethods.WS_EX_NOACTIVATE, on: false);
+        IsHitTestVisible = true;
+        Focusable = true;   // để Enter/Esc tới được cửa sổ
+        Cursor = System.Windows.Input.Cursors.SizeAll;
+        Root.Background = MoveHitBrush;
+        MoveOutline.Visibility = Visibility.Visible;
+        Activate();
+        Focus();
+        MovingChanged?.Invoke(true);
+    }
+
+    /// <summary>
+    /// Thoát chế độ di chuyển. <paramref name="save"/> = true: lưu góc gần nhất và khoảng cách tới mép (phát <see cref="PositionSaved"/>);
+    /// false: về vị trí lúc bắt đầu. Mọi đường đều trả overlay về bấm xuyên, không chiếm focus và trả focus cho cửa sổ trước đó.
+    /// </summary>
+    public void EndMove(bool save)
+    {
+        if (!_moving)
+            return;
+        (OverlayCorner Corner, double X, double Y)? saved = save ? CurrentPlacement() : null;
+
+        _moving = false;
+        SetExStyle(NativeMethods.WS_EX_TRANSPARENT | NativeMethods.WS_EX_NOACTIVATE, on: true);
+        IsHitTestVisible = false;
+        Focusable = false;
+        Cursor = null;
+        Root.Background = null;
+        MoveOutline.Visibility = Visibility.Collapsed;
+        if (!save)
+            NativeMethods.SetWindowPos(_hwnd, IntPtr.Zero, _moveStart.Left, _moveStart.Top, 0, 0,
+                NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE | NativeMethods.SWP_NOZORDER);
+
+        // Trả focus cho cửa sổ trước đó (thường là game) trước khi lưu: lưu làm Apply → UpdatePosition chọn màn hình
+        // theo cửa sổ phía trước. Windows có thể từ chối, khi đó bỏ qua.
+        var previous = _moveForeground;
+        _moveForeground = IntPtr.Zero;
+        if (previous != IntPtr.Zero && previous != _hwnd)
+            NativeMethods.SetForegroundWindow(previous);
+
+        MovingChanged?.Invoke(false);
+        if (saved is { } p)
+            PositionSaved?.Invoke(p.Corner, p.X, p.Y);
+        UpdatePosition();
+    }
+
+    // Góc và khoảng cách (DIP) của khung nhìn thấy (cửa sổ trừ lề ánh sáng viền) trong màn hình chứa tâm cửa sổ.
+    // Đổi px → DIP theo DPI của chính màn hình đó, như UpdatePosition đổi ngược lại.
+    (OverlayCorner Corner, double X, double Y)? CurrentPlacement()
+    {
+        if (!NativeMethods.GetWindowRect(_hwnd, out var self))
+            return null;
+        int cx = (self.Left + self.Right) / 2, cy = (self.Top + self.Bottom) / 2;
+        var centre = new NativeMethods.RECT { Left = cx, Top = cy, Right = cx + 1, Bottom = cy + 1 };
+        var monitor = NativeMethods.MonitorFromRect(ref centre, NativeMethods.MONITOR_DEFAULTTONEAREST);
+        var info = new NativeMethods.MONITORINFO { cbSize = (uint)System.Runtime.InteropServices.Marshal.SizeOf<NativeMethods.MONITORINFO>() };
+        if (!NativeMethods.GetMonitorInfo(monitor, ref info))
+            return null;
+        var dpi = MonitorDpi(monitor);
+        int pad = (int)Math.Round(Root.Margin.Left * dpi / 96.0);
+        var m = info.rcMonitor;
+        var (corner, ox, oy) = OverlayPlacement.FromWindow(new PixelRect(m.Left, m.Top, m.Right, m.Bottom),
+            new PixelRect(self.Left + pad, self.Top + pad, self.Right - pad, self.Bottom - pad));
+        return (corner, ox * 96.0 / dpi, oy * 96.0 / dpi);
+    }
+
+    void SetExStyle(long flags, bool on)
+    {
+        var style = NativeMethods.GetWindowLongPtr(_hwnd, NativeMethods.GWL_EXSTYLE).ToInt64();
+        style = on ? style | flags : style & ~flags;
+        NativeMethods.SetWindowLongPtr(_hwnd, NativeMethods.GWL_EXSTYLE, new IntPtr(style));
+    }
+
+    // Chế độ di chuyển: bấm đúp lưu; bấm giữ thì kéo cả cửa sổ.
+    protected override void OnMouseLeftButtonDown(System.Windows.Input.MouseButtonEventArgs e)
+    {
+        base.OnMouseLeftButtonDown(e);
+        if (!_moving)
+            return;
+        e.Handled = true;
+        if (e.ClickCount >= 2)
+            EndMove(save: true);
+        else if (e.ButtonState == System.Windows.Input.MouseButtonState.Pressed)
+            DragMove();
+    }
+
+    // Chế độ di chuyển: Enter lưu, Esc huỷ.
+    protected override void OnKeyDown(System.Windows.Input.KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        if (!_moving)
+            return;
+        if (e.Key == System.Windows.Input.Key.Enter)
+        {
+            e.Handled = true;
+            EndMove(save: true);
+        }
+        else if (e.Key == System.Windows.Input.Key.Escape)
+        {
+            e.Handled = true;
+            EndMove(save: false);
+        }
     }
 
     void OnSourceInitialized(object? sender, EventArgs e)

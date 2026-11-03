@@ -4,7 +4,7 @@ namespace FpsOverlay.Core.Localization;
 
 public enum StringKey
 {
-    TrayTooltip, TrayHide, TrayShow, TraySettings, TrayCorner, TrayAutostart, TrayExit,
+    TrayTooltip, TrayHide, TrayShow, TraySettings, TrayCorner, TrayMove, TrayAutostart, TrayExit,
     CornerTopLeft, CornerTopRight, CornerBottomLeft, CornerBottomRight,
     SettingsTitle, SectionAppearance, SectionColors, SectionFpsColor,
     Language, Style, StyleClassic, StyleCyberpunk, StyleNeonPurple, StyleTerminalGreen, Corner, Layout, LayoutHorizontal, LayoutVertical, Scale, BackgroundOpacity,
@@ -31,6 +31,7 @@ public static class Loc
         [StringKey.TrayShow] = ("Hiện FPS", "Show FPS"),
         [StringKey.TraySettings] = ("Cài đặt...", "Settings..."),
         [StringKey.TrayCorner] = ("Góc hiển thị", "Position"),
+        [StringKey.TrayMove] = ("Di chuyển overlay", "Move overlay"),
         [StringKey.TrayAutostart] = ("Khởi động cùng Windows", "Start with Windows"),
         [StringKey.TrayExit] = ("Thoát", "Exit"),
         [StringKey.CornerTopLeft] = ("Trên trái", "Top left"),
