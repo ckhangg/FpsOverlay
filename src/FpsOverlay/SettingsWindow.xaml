@@ -89,13 +89,13 @@
         <TextBlock x:Name="CornerLabel" Grid.Row="3" Style="{StaticResource Cp.FieldLabel}" />
         <StackPanel Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" Orientation="Horizontal">
             <RadioButton x:Name="CornerTopLeft" GroupName="Corner" Style="{StaticResource Cp.Segment}"
-                         Tag="{x:Static s:OverlayCorner.TopLeft}" Checked="OnCornerChecked" />
+                         Tag="{x:Static s:OverlayCorner.TopLeft}" Checked="OnCornerChecked" Click="OnCornerChecked" />
             <RadioButton x:Name="CornerTopRight" GroupName="Corner" Style="{StaticResource Cp.Segment}"
-                         Tag="{x:Static s:OverlayCorner.TopRight}" Checked="OnCornerChecked" />
+                         Tag="{x:Static s:OverlayCorner.TopRight}" Checked="OnCornerChecked" Click="OnCornerChecked" />
             <RadioButton x:Name="CornerBottomLeft" GroupName="Corner" Style="{StaticResource Cp.Segment}"
-                         Tag="{x:Static s:OverlayCorner.BottomLeft}" Checked="OnCornerChecked" />
+                         Tag="{x:Static s:OverlayCorner.BottomLeft}" Checked="OnCornerChecked" Click="OnCornerChecked" />
             <RadioButton x:Name="CornerBottomRight" GroupName="Corner" Style="{StaticResource Cp.Segment}"
-                         Tag="{x:Static s:OverlayCorner.BottomRight}" Checked="OnCornerChecked" />
+                         Tag="{x:Static s:OverlayCorner.BottomRight}" Checked="OnCornerChecked" Click="OnCornerChecked" />
         </StackPanel>
 
         <TextBlock x:Name="LayoutLabel" Grid.Row="4" Style="{StaticResource Cp.FieldLabel}" />

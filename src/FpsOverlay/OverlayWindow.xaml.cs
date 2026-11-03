@@ -123,7 +123,7 @@ public partial class OverlayWindow : Window
                 r.Foreground = null;   // ép gán lại màu (và ánh sáng) ở lần SetStats kế tiếp
             }
             // Dọc: đơn vị (MHz/W/RPM) ở ô Second dùng font và cỡ của nhãn phụ (màu nhãn do SetStats gán).
-            var unit = vertical && HasUnit(Row);
+            var unit = vertical && StatRows.HasUnit(Row);
             var secondFont = unit ? v.LabelFont : v.ValueFont;
             var secondSize = unit ? v.StatLabelSize : v.StatValueSize;
             Second.FontFamily = secondFont;
@@ -135,7 +135,7 @@ public partial class OverlayWindow : Window
             SetBoxFont(_secondBox, secondFont, secondSize, v.TextWeight);
             _labelBox.Effect = _glowLabel == true ? _glow(labelBrush) : null;
             _firstBox.Effect = null;
-            _secondBox.Effect = null;
+            _secondBox.Effect = unit && _glowLabel == true && _glowValues != true ? _glow(labelBrush) : null;
 
             if (vertical)
             {
@@ -216,9 +216,6 @@ public partial class OverlayWindow : Window
 
     /// <summary>Khoảng cách tối thiểu giữa các cột của bảng dọc (DIP, trước Scale).</summary>
     const double CellGap = 10;
-
-    /// <summary>Dòng có đơn vị ở ô Second khi dọc (xem <see cref="StatRows.Values"/>).</summary>
-    static bool HasUnit(StatRow row) => row is StatRow.GpuClock or StatRow.GpuPower or StatRow.GpuFan;
 
     // Hộp chữ mới cho một lần xếp lại, đã gắn sẵn ô (hàng, cột) của bảng dọc; căn đáy để Descent bù đường chân chữ.
     // Không dùng lại hộp/InlineUIContainer cũ: TextBlock đo phần tử inline được gắn lại theo DesiredSize cũ của nó
@@ -501,7 +498,7 @@ public partial class OverlayWindow : Window
             if (!visible) continue;
 
             var (first, second) = StatRows.Values(row, onePercentLow, sensors, settings, layout);
-            Brush firstBrush = normal, secondBrush = layout == OverlayLayout.Vertical && HasUnit(row) ? unitBrush : normal;
+            Brush firstBrush = normal, secondBrush = layout == OverlayLayout.Vertical && StatRows.HasUnit(row) ? unitBrush : normal;
             if (row == StatRow.OnePercentLow)
                 firstBrush = FpsBrush(onePercentLow, settings);   // 1% low tô màu theo cùng mốc với FPS
             // Ô mang nhiệt độ đổi sang màu "nóng" khi vượt ngưỡng.

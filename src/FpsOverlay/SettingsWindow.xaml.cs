@@ -53,9 +53,9 @@ public partial class SettingsWindow : Window
         _installPawnIo = installPawnIo;
         _testAlert = testAlert;
         _pawnIoInstalled = PawnIoSetup.IsInstalled();
-        InitializeComponent();
+        InitializeComponent();   // _refreshing = true: giá trị mặc định trong XAML không ghi vào cài đặt
         // Màn hình thấp thì phần giữa cuộn, tiêu đề và hai nút dưới vẫn thấy.
-        MaxHeight = SystemParameters.WorkArea.Height;   // _refreshing = true: giá trị mặc định trong XAML không ghi vào cài đặt
+        MaxHeight = SystemParameters.WorkArea.Height;
         // Bản không cài không được tạo/sửa tác vụ: công tắc mờ đi, tooltip (đặt trong ApplyLanguage) giải thích lý do.
         AutostartSwitch.IsEnabled = autostart.CanManage;
         if (!autostart.CanManage) AutostartSwitch.Opacity = AutostartLabel.Opacity = 0.45;

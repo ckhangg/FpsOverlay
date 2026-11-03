@@ -78,6 +78,9 @@ public static class StatRows
     private static (string, string) WithUnit(string first, StatRow row, OverlayLayout layout) =>
         (first, layout == OverlayLayout.Vertical ? Unit(row) : "");
 
+    /// <summary>Hàng có đơn vị ở ô thứ hai trong bố cục dọc.</summary>
+    public static bool HasUnit(StatRow row) => Unit(row).Length > 0;
+
     private static string Unit(StatRow row) => row switch
     {
         StatRow.GpuClock => "MHz",

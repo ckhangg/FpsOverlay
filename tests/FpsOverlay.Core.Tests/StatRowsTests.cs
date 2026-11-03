@@ -7,6 +7,12 @@ public class StatRowsTests
     private static readonly SensorSnapshot Snap = new(66.6, 70.6, 30, 50, 9.2);
 
     [Fact]
+    public void HasUnit_is_true_only_for_clock_power_fan() =>
+        Assert.Equal(
+            new[] { StatRow.GpuClock, StatRow.GpuPower, StatRow.GpuFan },
+            Enum.GetValues<StatRow>().Where(StatRows.HasUnit).ToArray());
+
+    [Fact]
     public void Order_matches_spec() => Assert.Equal(
         [StatRow.OnePercentLow, StatRow.Gpu, StatRow.GpuMemory, StatRow.GpuClock, StatRow.GpuPower, StatRow.GpuFan, StatRow.Cpu, StatRow.Ram],
         StatRows.Order);

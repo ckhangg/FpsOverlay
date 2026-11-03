@@ -101,7 +101,11 @@ public partial class App : Application
         tray.Apply(settings.Current, overlayVisible: true);
         tray.ToggleRequested += ToggleOverlay;
         tray.SettingsRequested += OpenSettings;
-        tray.CornerRequested += corner => settings.Update(s => s.WithCorner(corner));
+        tray.CornerRequested += corner =>
+        {
+            if (overlay.IsMoving) overlay.EndMove(save: false);   // không để lần lưu vị trí kéo sau đè lên góc vừa chọn
+            settings.Update(s => s.WithCorner(corner));
+        };
         // Di chuyển overlay: mục khay bật/tắt (tắt = lưu); vị trí lưu là góc gần nhất + khoảng cách tới mép (DIP).
         tray.MoveRequested += () =>
         {
@@ -495,6 +499,7 @@ public partial class App : Application
         _statsTimer?.Stop();
         _logTimer?.Stop();
         CompositionTarget.Rendering -= OnRendering;
+        if (_overlay is { IsMoving: true }) _overlay.EndMove(save: true);
         _overlay?.Hide();   // không để con số cũ treo trên game
         // DefaultDesktopOnly: hộp thoại nổi lên trên cả game borderless
         MessageBox.Show(message, "FPS Overlay", MessageBoxButton.OK, MessageBoxImage.Error,
@@ -504,6 +509,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        if (_overlay is { IsMoving: true }) _overlay.EndMove(save: true);   // không mất vị trí vừa kéo
         _watchdog?.Stop();
         _statsTimer?.Stop();
         _logTimer?.Stop();

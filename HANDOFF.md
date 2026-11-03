@@ -11,10 +11,10 @@
 
 ## 2. Công nghệ và cấu trúc
 - C# / **.NET 10**, WPF (+ WinForms `NotifyIcon` cho khay), xUnit.
-- `src/FpsOverlay.Core`: logic thuần, có test (`tests/FpsOverlay.Core.Tests`, 255 test).
+- `src/FpsOverlay.Core`: logic thuần, có test (`tests/FpsOverlay.Core.Tests`, 256 test).
 - `src/FpsOverlay`: app WPF. Chạy với quyền **Administrator** (`app.manifest` requireAdministrator) vì PresentMon cần ETW.
 - Đo FPS: **PresentMon 2.6.0** (`tools/PresentMon.exe`), cửa sổ trượt 0,5 s, độ trễ cho phép 1,5 s (dữ liệu ETW về theo đợt ~1 s).
-- Cảm biến: **LibreHardwareMonitorLib 0.9.6** (GPU/CPU tải và nhiệt), RAM qua `GlobalMemoryStatusEx`. Nhiệt độ CPU cần driver **PawnIO** (người dùng tự đồng ý cài).
+- Cảm biến: **LibreHardwareMonitorLib 0.9.6** (GPU/CPU tải và nhiệt, VRAM, xung nhân, công suất, quạt GPU), RAM qua `GlobalMemoryStatusEx`. Nhiệt độ CPU cần driver **PawnIO** (người dùng tự đồng ý cài).
 - Font nhúng: Chakra Petch, JetBrains Mono (OFL).
 
 ## 3. Lịch sử các đợt (tất cả do người dùng chọn)
@@ -36,11 +36,11 @@ Hoãn theo ý người dùng: **biểu đồ FPS/frametime** (làm sau).
 - `docs/superpowers/plans/*.md` — kế hoạch tương ứng (đợt 3–4 có thêm Task 9b; đợt 5: `2026-11-03-gpu-alerts-themes-layout.md`)
 
 ## 5. Trạng thái hiện tại
-- **Đợt 5 (1.1.0) nằm trên nhánh `feat/gpu-alerts-themes-layout`, chưa merge vào master.** Code xong, `dotnet test`: 255/255 pass, `dotnet build src/FpsOverlay`: 0 cảnh báo, `dotnet publish` chạy được. Chưa kiểm tay (mục 9, phần đợt 5) và chưa chạy thật với quyền Admin.
+- **Đợt 5 (1.1.0) nằm trên nhánh `feat/gpu-alerts-themes-layout`, chưa merge vào master.** Code xong, `dotnet test`: 256/256 pass, `dotnet build src/FpsOverlay`: 0 cảnh báo, `dotnet publish` chạy được. Chưa kiểm tay (mục 9, phần đợt 5) và chưa chạy thật với quyền Admin.
 - Master (đợt 1–4): đã merge vào master (nhánh `feat/stats-install` đã xoá). `dotnet test` lúc đó: 196/196 pass.
-- Review: mỗi task có review riêng + review toàn nhánh + một đợt sửa sau review cuối, đã qua.
+- Review (đợt 1–4): mỗi task có review riêng + review toàn nhánh + một đợt sửa sau review cuối, đã qua.
 - **Chưa chạy thật với quyền Admin** (cài vào Program Files, PawnIO, đọc cảm biến thật, gỡ cài đặt). Cần làm danh sách kiểm tay ở mục 9 trước khi dùng thật.
-- Người dùng đã chọn merge trước khi kiểm tay; nếu kiểm tay phát hiện lỗi thì sửa trên một nhánh mới từ master.
+- Người dùng đã chọn merge trước khi kiểm tay (đợt 1–4); nếu kiểm tay phát hiện lỗi thì sửa trên một nhánh mới từ master.
 
 ## 6. Cách làm việc với app trên máy mới
 1. Cài **.NET 10 SDK** (x64).
@@ -159,4 +159,4 @@ Hoãn theo ý người dùng: **biểu đồ FPS/frametime** (làm sau).
 41. Terminal xanh: các đường quét (scanline) đều ở Windows scaling 125%/150% và Scale khác 100%.
 42. Terminal xanh với mọi hàng bật: CPU/GPU của app vẫn thấp.
 43. Đổi Neon ↔ kiểu khác: overlay không nhảy thấy được ở góc dưới/phải.
-44. Cửa sổ cài đặt trên màn hình thấp: cuộn được, nút Reset/Xong vẫn hiện.
+44. Cửa sổ cài đặt trên màn hình thấp: cuộn được, nút "Khôi phục mặc định" / "Xong" vẫn hiện.
