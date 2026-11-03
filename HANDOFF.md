@@ -65,7 +65,7 @@ Hoãn theo ý người dùng: **biểu đồ FPS/frametime** (làm sau).
 
 ## 8. Việc nên làm tiếp
 1. **Kiểm tay** theo mục 9 trên máy thật (hoặc máy ảo); lỗi tìm thấy sửa trên nhánh mới.
-2. Sửa nhỏ về bảo mật (một dòng): đặt `COMSPEC` = `System32\cmd.exe` cho tiến trình cmd tự xoá khi gỡ cài đặt (`Installer.cs`, chỗ chạy `SelfDeleteCommand`).
+2. ~~Sửa nhỏ về bảo mật: đặt `COMSPEC` = `System32\cmd.exe` cho tiến trình cmd tự xoá khi gỡ cài đặt~~ — đã làm trên nhánh `fix/uninstall-comspec` (chưa merge; kiểm tay mục 24–26 sau khi merge).
 3. Kiểm tra log khi `Documents` bị chuyển hướng/junction (hiện chỉ chặn một phần; tác động giới hạn ở việc tạo file mới, không ghi đè).
 4. Các lỗi nhỏ đã hoãn (không chặn việc dùng): GPU tích hợp bận hơn ở desktop nên nhiệt GPU hiện `--`; dòng ghi chú PawnIO nháy ~1 s lúc mở app; ẩn overlay khi tắt log có thể đứng giao diện vài giây; file `.pdb` trong `publish\`.
 5. Tính năng đã hoãn: **biểu đồ FPS/frametime**.

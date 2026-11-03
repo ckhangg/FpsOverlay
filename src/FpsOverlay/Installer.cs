@@ -253,6 +253,8 @@ static class Installer
             UseShellExecute = false,
             CreateNoWindow = true,
             WorkingDirectory = system,   // không đứng trong thư mục sắp xoá
+            // cmd đọc COMSPEC từ môi trường thừa hưởng; ghim về System32 để không chạy cmd lạ.
+            Environment = { ["COMSPEC"] = Path.Combine(system, "cmd.exe") },
         });
     }
 
