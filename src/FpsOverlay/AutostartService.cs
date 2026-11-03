@@ -67,7 +67,7 @@ sealed class AutostartService
     /// </summary>
     public void Retarget(string exePath)
     {
-        if (!string.Equals(Path.GetFullPath(exePath), Path.GetFullPath(Installer.InstalledExePath), StringComparison.OrdinalIgnoreCase))
+        if (!Installer.IsInstallPathValid || !string.Equals(Path.GetFullPath(exePath), Path.GetFullPath(Installer.InstalledExePath), StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException("Autostart may only point to the installed exe.", nameof(exePath));
         if (Exists() && !TryCreate(exePath, out var error))
             Trace.TraceWarning($"Không trỏ lại được tác vụ khởi động cùng Windows: {error}");

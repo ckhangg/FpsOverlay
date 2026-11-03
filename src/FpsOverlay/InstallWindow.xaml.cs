@@ -15,7 +15,7 @@ namespace FpsOverlay;
 public partial class InstallWindow : Window
 {
     readonly InstallAction _action;
-    readonly AppLanguage _savedLanguage;
+    // Chỉ đổi chữ của hộp thoại; không ghi file cài đặt (bước cài chỉ đọc cài đặt, ngôn ngữ app đổi trong app).
     AppLanguage _language;
     bool _busy;
     bool _refreshing = true;
@@ -24,11 +24,11 @@ public partial class InstallWindow : Window
     public bool Succeeded { get; private set; }
 
     /// <param name="action"><see cref="InstallAction.Install"/> hoặc <see cref="InstallAction.Update"/>.</param>
-    /// <param name="language">Ngôn ngữ trong cài đặt đã lưu; người dùng đổi được ngay trong hộp thoại.</param>
+    /// <param name="language">Ngôn ngữ trong cài đặt đã lưu; người dùng đổi được ngay trong hộp thoại (chỉ cho hộp thoại).</param>
     internal InstallWindow(InstallAction action, AppLanguage language)
     {
         _action = action;
-        _savedLanguage = _language = language;
+        _language = language;
         InitializeComponent();
         Icon = SettingsWindow.CreateWindowIcon();
         CommandBindings.Add(new CommandBinding(SystemCommands.CloseWindowCommand, (_, _) => Close()));
@@ -84,7 +84,6 @@ public partial class InstallWindow : Window
                 new AutostartService().Retarget(Installer.InstalledExePath);
             });
             await AfterInstallAsync();
-            SaveLanguage();
         }
         catch (Exception ex)
         {
@@ -101,21 +100,6 @@ public partial class InstallWindow : Window
 
     /// <summary>Các bước chạy sau khi đã chép xong (exe và PresentMon đã nằm trong thư mục cài). Hiện chưa có gì.</summary>
     Task AfterInstallAsync() => Task.CompletedTask;
-
-    // Ngôn ngữ chọn ở đây thành ngôn ngữ của app. Bản cài không chạy (đã kiểm tra mutex) nên không ai ghi file cùng lúc.
-    void SaveLanguage()
-    {
-        if (_language == _savedLanguage) return;
-        try
-        {
-            var settings = SettingsStore.Load(SettingsStore.DefaultPath);
-            SettingsStore.Save(SettingsStore.DefaultPath, settings with { Language = _language });
-        }
-        catch (Exception ex)   // đã cài xong: không ghi được ngôn ngữ thì thôi, không báo cài lỗi
-        {
-            System.Diagnostics.Trace.TraceWarning($"Không lưu được ngôn ngữ: {ex.Message}");
-        }
-    }
 
     void SetBusy(bool busy)
     {

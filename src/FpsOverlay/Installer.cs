@@ -18,23 +18,35 @@ static class Installer
     /// <summary>Tên mutex một bản chạy (App giữ nó suốt lúc chạy); dùng để biết bản cài có đang chạy không.</summary>
     public const string SingleInstanceMutexName = @"Local\FpsOverlay.SingleInstance";
 
-    const string DirectoryName = "FpsOverlay";
+    const string DirectoryName = InstallPaths.DirectoryName;
     const string ExeName = "FpsOverlay.exe";
     const string ShortcutName = "FPS Overlay.lnk";
     const string UninstallKeyPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\FpsOverlay";
 
     static readonly string ProgramFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
 
-    public static string InstallDirectory { get; } = Path.Combine(ProgramFiles, DirectoryName);
+    /// <summary>
+    /// Windows báo được thư mục Program Files tuyệt đối. Không thì không cài được: thư mục cài sẽ thành đường dẫn tương đối
+    /// (chỗ người dùng ghi được), nên coi như không có bản cài, không cho cài và không cho đụng tác vụ khởi động.
+    /// </summary>
+    public static bool IsInstallPathValid => ValidatedDirectory is not null;
 
-    public static string InstalledExePath { get; } = Path.Combine(InstallDirectory, ExeName);
+    // Kiểm một lần lúc khởi tạo (khai báo sau ProgramFiles: khởi tạo tĩnh chạy theo thứ tự trong file).
+    static readonly string? ValidatedDirectory =
+        InstallPaths.TryGetInstallDirectory(ProgramFiles, out var directory) ? directory : null;
+
+    /// <summary><c>C:\Program Files\FpsOverlay</c>; chuỗi rỗng khi <see cref="IsInstallPathValid"/> là false.</summary>
+    public static string InstallDirectory => ValidatedDirectory ?? "";
+
+    /// <summary>Exe trong thư mục cài; chuỗi rỗng khi <see cref="IsInstallPathValid"/> là false.</summary>
+    public static string InstalledExePath => IsInstallPathValid ? Path.Combine(InstallDirectory, ExeName) : "";
 
     static string RunningExePath { get; } = Environment.ProcessPath ?? Path.Combine(AppContext.BaseDirectory, ExeName);
 
     static string ShortcutPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonPrograms), ShortcutName);
 
     /// <summary>Exe đang chạy chính là bản trong thư mục cài (so đường dẫn, không phân biệt hoa thường).</summary>
-    public static bool IsRunningInstalled { get; } =
+    public static bool IsRunningInstalled { get; } = IsInstallPathValid &&
         string.Equals(Path.GetFullPath(RunningExePath), Path.GetFullPath(InstalledExePath), StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Phiên bản exe đang chạy (từ &lt;Version&gt; trong csproj).</summary>
@@ -70,10 +82,12 @@ static class Installer
     /// </summary>
     public static void Install()
     {
+        if (!IsInstallPathValid)
+            throw new InvalidOperationException($"Program Files folder is not an absolute path: \"{ProgramFiles}\"");
         Directory.CreateDirectory(InstallDirectory);
 
-        // Chép qua file tạm rồi đổi tên: lỗi giữa chừng không để lại exe cụt trong thư mục cài.
-        var temp = InstalledExePath + ".new";
+        // Chép qua file tạm (tên riêng mỗi lần) rồi đổi tên: lỗi giữa chừng không để lại exe cụt trong thư mục cài.
+        var temp = $"{InstalledExePath}.{Guid.NewGuid():N}.new";
         try
         {
             File.Copy(RunningExePath, temp, overwrite: true);
@@ -90,6 +104,19 @@ static class Installer
     }
 
     /// <summary>
+    /// Bản cài gọi mỗi lần khởi động: tạo lại lối tắt và mục gỡ cài đặt (ghi đè, làm bao nhiêu lần cũng được), để lần
+    /// cài trước dừng giữa chừng vẫn gỡ được từ Settings → Apps. Lỗi chỉ ghi vết, không chặn app.
+    /// </summary>
+    public static void RepairEntries()
+    {
+        if (!IsRunningInstalled) return;
+        try { CreateShortcut(); }
+        catch (Exception ex) { Trace.TraceWarning($"Không tạo được lối tắt Start Menu: {ex.Message}"); }
+        try { WriteUninstallEntry(); }
+        catch (Exception ex) { Trace.TraceWarning($"Không ghi được mục gỡ cài đặt: {ex.Message}"); }
+    }
+
+    /// <summary>
     /// Gỡ: xoá tác vụ khởi động cùng Windows, lối tắt, mục đăng ký và thư mục cài. Giữ cài đặt (%AppData%) và log.
     /// Làm hết các bước dù có bước lỗi; lỗi gom lại ném ở cuối. Exe đang chạy từ thư mục cài thì không tự xoá được:
     /// khởi chạy ẩn một cmd chờ app thoát rồi xoá thư mục — gọi ngay trước khi thoát.
@@ -97,10 +124,10 @@ static class Installer
     public static void Uninstall()
     {
         var errors = new List<string>();
-        void Step(Action action)
+        bool Step(Action action)
         {
-            try { action(); }
-            catch (Exception ex) { errors.Add(ex.Message); }
+            try { action(); return true; }
+            catch (Exception ex) { errors.Add(ex.Message); return false; }
         }
 
         Step(() =>
@@ -111,12 +138,13 @@ static class Installer
         {
             if (File.Exists(ShortcutPath)) File.Delete(ShortcutPath);
         });
-        Step(() =>
-        {
-            using var hklm = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
-            hklm.DeleteSubKeyTree(UninstallKeyPath, throwOnMissingSubKey: false);
-        });
-        Step(DeleteInstallDirectory);
+        // Mục gỡ cài đặt xoá sau cùng, và chỉ khi đã xoá (hoặc hẹn xoá) được thư mục: còn sót file thì vẫn gỡ lại được từ Settings → Apps.
+        if (Step(DeleteInstallDirectory))
+            Step(() =>
+            {
+                using var hklm = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
+                hklm.DeleteSubKeyTree(UninstallKeyPath, throwOnMissingSubKey: false);
+            });
 
         if (errors.Count > 0)
             throw new InvalidOperationException(string.Join("\n", errors));
@@ -143,6 +171,8 @@ static class Installer
     // Chặn mọi đường dẫn khác: chỉ đúng <Program Files>\FpsOverlay, tuyệt đối, không phải liên kết (junction/symlink).
     static string SafeInstallDirectory()
     {
+        if (!IsInstallPathValid)
+            throw new InvalidOperationException($"Program Files folder is not an absolute path: \"{ProgramFiles}\"");
         var full = Path.GetFullPath(InstallDirectory).TrimEnd(Path.DirectorySeparatorChar);
         var ok = ProgramFiles.Length > 0 &&
                  Path.IsPathFullyQualified(ProgramFiles) &&

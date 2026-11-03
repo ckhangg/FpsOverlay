@@ -106,6 +106,9 @@ public partial class App : Application
         tray.MenuOpening += () => _ = _autostart.RefreshAsync();
         _ = _autostart.RefreshAsync();
 
+        // Lần cài trước dừng giữa chừng (sau khi chép exe) thì bổ sung lối tắt và mục gỡ cài đặt.
+        Installer.RepairEntries();
+
         // Bản cài: bung vào thư mục cài (thiếu hoặc khác bản nhúng thì ghi lại). --no-install: vào thư mục chứa exe.
         // Thư mục chỉ đọc không được làm app chết im lặng.
         try
