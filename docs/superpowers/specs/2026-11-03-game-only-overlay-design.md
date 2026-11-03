@@ -34,6 +34,16 @@ Khi không chơi game, overlay vẫn nằm trên desktop. Lúc đó FPS là `--`
 - **Log không đổi.**
 - **Ẩn/hiện tự động không đổi chữ "Ẩn FPS"/"Hiện FPS" ở khay.** Chữ đó phản ánh lựa chọn bằng tay của người dùng.
 
+## Gọn cửa sổ cài đặt (người dùng đề xuất, đã đồng ý)
+- **Chọn thông số:** trong "// THÔNG SỐ", 10 công tắc thông số (1%, GPU %, GPU °C, VRAM, CLK, PWR, FAN, CPU %, CPU °C, RAM) được thay bằng:
+  - một nút **"Chọn thông số hiển thị ▾"** (en "Choose stats ▾"), cạnh nút có dòng tóm tắt "Đang hiện N/10" (en "Showing N/10");
+  - bấm nút thì **mở ngay bên dưới** một ô gồm 10 **checkbox**, xếp **2 cột**, theo nhóm: 1%; GPU (tải, nhiệt, VRAM, xung, công suất, quạt); CPU (tải, nhiệt); RAM;
+  - bấm lại thì thu gọn. Mỗi lần mở cửa sổ cài đặt, ô bắt đầu ở trạng thái **thu gọn**.
+- Tick hay bỏ tick có tác dụng ngay, như công tắc hiện nay. Tên thuộc tính cài đặt giữ nguyên.
+- Ghi chú PawnIO và nút "Cài PawnIO" vẫn hiện dưới nút khi chưa đọc được nhiệt độ CPU, **kể cả khi ô đang thu gọn**.
+- **Hai danh sách "Luôn hiện / Không bao giờ hiện"** dùng cùng kiểu: nút "Danh sách ứng dụng ▾" kèm tóm tắt số mục, bấm thì mở tại chỗ.
+- **Không dùng tab riêng hay cửa sổ bật lên**, để vẫn thấy overlay xem trước đổi khi tick.
+
 ## Không làm
 - Đoán game theo mức dùng GPU.
 - Nhận diện Epic, GOG, giả lập theo thư mục (người dùng tự thêm vào "Luôn hiện").
