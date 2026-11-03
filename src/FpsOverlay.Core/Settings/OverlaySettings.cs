@@ -47,6 +47,15 @@ public sealed record OverlaySettings
     public bool ShowCpuLoad { get; init; } = true;
     public bool ShowCpuTemp { get; init; } = true;
     public bool ShowRam { get; init; } = true;
+
+    /// <summary>Số ô thông số (mười công tắc trên) và số ô đang bật, cho dòng "Đang hiện N/10" trong cài đặt.</summary>
+    public const int StatCount = 10;
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public int VisibleStatCount =>
+        (ShowOnePercentLow ? 1 : 0) + (ShowGpuLoad ? 1 : 0) + (ShowGpuTemp ? 1 : 0) + (ShowGpuMemory ? 1 : 0) +
+        (ShowGpuClock ? 1 : 0) + (ShowGpuPower ? 1 : 0) + (ShowGpuFan ? 1 : 0) + (ShowCpuLoad ? 1 : 0) +
+        (ShowCpuTemp ? 1 : 0) + (ShowRam ? 1 : 0);
     // Cảnh báo nhiệt: ngưỡng (°C), số giây nóng liên tục trước khi báo, nháy overlay và phát tiếng.
     public int GpuHotThreshold { get; init; } = 85;
     public int CpuHotThreshold { get; init; } = 90;

@@ -54,12 +54,6 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <!-- // GIAO DIỆN -->
@@ -118,86 +112,92 @@
                 ValueChanged="OnOpacityChanged" />
         <TextBlock x:Name="OpacityValue" Grid.Row="6" Grid.Column="2" Style="{StaticResource Cp.Value}" />
 
+                <TextBlock x:Name="OnlyInGameLabel" Grid.Row="7" Style="{StaticResource Cp.FieldLabel}" />
+        <ToggleButton x:Name="OnlyInGameSwitch" Grid.Row="7" Grid.Column="1" Style="{StaticResource Cp.Switch}"
+                      Checked="OnOnlyInGameChanged" Unchecked="OnOnlyInGameChanged" />
+
+        <!-- Danh sách ứng dụng: thu gọn mặc định; các dòng được dựng lại từ code khi hai danh sách đổi. -->
+        <StackPanel Grid.Row="8" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,2,0,2">
+            <Button x:Name="AppListsButton" Style="{StaticResource Cp.GhostButton}" FontSize="12" Padding="12,3"
+                    Click="OnAppListsToggleClick" />
+            <TextBlock x:Name="AppListsSummary" Style="{StaticResource Cp.FieldLabel}" Margin="12,0,0,0" FontSize="11"
+                       Foreground="{StaticResource Cp.KnobOff}" />
+        </StackPanel>
+        <StackPanel x:Name="AppListsPanel" Grid.Row="9" Grid.ColumnSpan="3" Visibility="Collapsed" Margin="0,2,0,8" />
+
         <!-- // MÀU SẮC (của phong cách đang chọn) -->
-        <Label x:Name="ColorsSection" Grid.Row="7" Grid.ColumnSpan="3" Style="{StaticResource Cp.Section}" />
+        <Label x:Name="ColorsSection" Grid.Row="10" Grid.ColumnSpan="3" Style="{StaticResource Cp.Section}" />
 
-        <TextBlock x:Name="LabelColorLabel" Grid.Row="8" Style="{StaticResource Cp.FieldLabel}" />
-        <StackPanel x:Name="LabelSwatches" Grid.Row="8" Grid.Column="1" Orientation="Horizontal" />
-        <TextBox x:Name="LabelHex" Grid.Row="8" Grid.Column="2" Style="{StaticResource Cp.HexBox}"
+        <TextBlock x:Name="LabelColorLabel" Grid.Row="11" Style="{StaticResource Cp.FieldLabel}" />
+        <StackPanel x:Name="LabelSwatches" Grid.Row="11" Grid.Column="1" Orientation="Horizontal" />
+        <TextBox x:Name="LabelHex" Grid.Row="11" Grid.Column="2" Style="{StaticResource Cp.HexBox}"
                  TextChanged="OnHexChanged" LostKeyboardFocus="OnHexLostFocus" />
 
-        <TextBlock x:Name="ValueColorLabel" Grid.Row="9" Style="{StaticResource Cp.FieldLabel}" />
-        <StackPanel x:Name="ValueSwatches" Grid.Row="9" Grid.Column="1" Orientation="Horizontal" />
-        <TextBox x:Name="ValueHex" Grid.Row="9" Grid.Column="2" Style="{StaticResource Cp.HexBox}"
+        <TextBlock x:Name="ValueColorLabel" Grid.Row="12" Style="{StaticResource Cp.FieldLabel}" />
+        <StackPanel x:Name="ValueSwatches" Grid.Row="12" Grid.Column="1" Orientation="Horizontal" />
+        <TextBox x:Name="ValueHex" Grid.Row="12" Grid.Column="2" Style="{StaticResource Cp.HexBox}"
                  TextChanged="OnHexChanged" LostKeyboardFocus="OnHexLostFocus" />
 
-        <TextBlock x:Name="FpsColorLabel" Grid.Row="10" Style="{StaticResource Cp.FieldLabel}" />
-        <StackPanel x:Name="FpsSwatches" Grid.Row="10" Grid.Column="1" Orientation="Horizontal" />
-        <TextBox x:Name="FpsHex" Grid.Row="10" Grid.Column="2" Style="{StaticResource Cp.HexBox}"
+        <TextBlock x:Name="FpsColorLabel" Grid.Row="13" Style="{StaticResource Cp.FieldLabel}" />
+        <StackPanel x:Name="FpsSwatches" Grid.Row="13" Grid.Column="1" Orientation="Horizontal" />
+        <TextBox x:Name="FpsHex" Grid.Row="13" Grid.Column="2" Style="{StaticResource Cp.HexBox}"
                  TextChanged="OnHexChanged" LostKeyboardFocus="OnHexLostFocus" />
 
         <!-- // MÀU THEO FPS -->
-        <Label x:Name="FpsColorSection" Grid.Row="11" Grid.ColumnSpan="3" Style="{StaticResource Cp.Section}" />
+        <Label x:Name="FpsColorSection" Grid.Row="14" Grid.ColumnSpan="3" Style="{StaticResource Cp.Section}" />
 
-        <TextBlock x:Name="ColorByFpsLabel" Grid.Row="12" Style="{StaticResource Cp.FieldLabel}" />
-        <ToggleButton x:Name="ColorByFpsSwitch" Grid.Row="12" Grid.Column="1" Style="{StaticResource Cp.Switch}"
+        <TextBlock x:Name="ColorByFpsLabel" Grid.Row="15" Style="{StaticResource Cp.FieldLabel}" />
+        <ToggleButton x:Name="ColorByFpsSwitch" Grid.Row="15" Grid.Column="1" Style="{StaticResource Cp.Switch}"
                       Checked="OnColorByFpsChanged" Unchecked="OnColorByFpsChanged" />
 
         <!-- Mốc tốt luôn > mốc kém: khoảng thật của hai thanh là 11–240 và 10–239. -->
-        <TextBlock x:Name="GoodLabel" Grid.Row="13" Style="{StaticResource Cp.FieldLabel}" />
-        <Slider x:Name="GoodSlider" Grid.Row="13" Grid.Column="1" Style="{StaticResource Cp.Slider}"
+        <TextBlock x:Name="GoodLabel" Grid.Row="16" Style="{StaticResource Cp.FieldLabel}" />
+        <Slider x:Name="GoodSlider" Grid.Row="16" Grid.Column="1" Style="{StaticResource Cp.Slider}"
                 Minimum="11" Maximum="240" TickFrequency="1" SmallChange="1" LargeChange="10"
                 ValueChanged="OnGoodChanged" />
-        <TextBlock x:Name="GoodValue" Grid.Row="13" Grid.Column="2" Style="{StaticResource Cp.Value}" />
+        <TextBlock x:Name="GoodValue" Grid.Row="16" Grid.Column="2" Style="{StaticResource Cp.Value}" />
 
-        <TextBlock x:Name="BadLabel" Grid.Row="14" Style="{StaticResource Cp.FieldLabel}" />
-        <Slider x:Name="BadSlider" Grid.Row="14" Grid.Column="1" Style="{StaticResource Cp.Slider}"
+        <TextBlock x:Name="BadLabel" Grid.Row="17" Style="{StaticResource Cp.FieldLabel}" />
+        <Slider x:Name="BadSlider" Grid.Row="17" Grid.Column="1" Style="{StaticResource Cp.Slider}"
                 Minimum="10" Maximum="239" TickFrequency="1" SmallChange="1" LargeChange="10"
                 ValueChanged="OnBadChanged" />
-        <TextBlock x:Name="BadValue" Grid.Row="14" Grid.Column="2" Style="{StaticResource Cp.Value}" />
+        <TextBlock x:Name="BadValue" Grid.Row="17" Grid.Column="2" Style="{StaticResource Cp.Value}" />
 
         <!-- // THÔNG SỐ -->
-        <Label x:Name="StatsSection" Grid.Row="15" Grid.ColumnSpan="3" Style="{StaticResource Cp.Section}" />
+        <Label x:Name="StatsSection" Grid.Row="18" Grid.ColumnSpan="3" Style="{StaticResource Cp.Section}" />
 
-        <TextBlock x:Name="OnePercentLabel" Grid.Row="16" Style="{StaticResource Cp.FieldLabel}" />
-        <ToggleButton x:Name="OnePercentSwitch" Grid.Row="16" Grid.Column="1" Style="{StaticResource Cp.Switch}"
-                      Checked="OnStatChanged" Unchecked="OnStatChanged" />
+        <StackPanel Grid.Row="19" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,2,0,2">
+            <Button x:Name="StatsButton" Style="{StaticResource Cp.GhostButton}" FontSize="12" Padding="12,3"
+                    Click="OnStatsToggleClick" />
+            <TextBlock x:Name="StatsSummary" Style="{StaticResource Cp.FieldLabel}" Margin="12,0,0,0" FontSize="11"
+                       Foreground="{StaticResource Cp.KnobOff}" />
+        </StackPanel>
 
-        <TextBlock x:Name="GpuLoadLabel" Grid.Row="17" Style="{StaticResource Cp.FieldLabel}" />
-        <ToggleButton x:Name="GpuLoadSwitch" Grid.Row="17" Grid.Column="1" Style="{StaticResource Cp.Switch}"
-                      Checked="OnStatChanged" Unchecked="OnStatChanged" />
+        <!-- Mười ô chọn thông số, hai cột theo nhóm (trái: FPS/GPU, phải: GPU thêm/CPU/RAM); thu gọn mặc định. -->
+        <Grid x:Name="StatsPanel" Grid.Row="20" Grid.ColumnSpan="3" Visibility="Collapsed" Margin="0,2,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <CheckBox x:Name="OnePercentCheck" Style="{StaticResource Cp.Check}" Checked="OnStatChanged" Unchecked="OnStatChanged" />
+                <CheckBox x:Name="GpuLoadCheck" Style="{StaticResource Cp.Check}" Checked="OnStatChanged" Unchecked="OnStatChanged" />
+                <CheckBox x:Name="GpuTempCheck" Style="{StaticResource Cp.Check}" Checked="OnStatChanged" Unchecked="OnStatChanged" />
+                <CheckBox x:Name="GpuMemoryCheck" Style="{StaticResource Cp.Check}" Checked="OnStatChanged" Unchecked="OnStatChanged" />
+                <CheckBox x:Name="GpuClockCheck" Style="{StaticResource Cp.Check}" Checked="OnStatChanged" Unchecked="OnStatChanged" />
+            </StackPanel>
+            <StackPanel Grid.Column="1">
+                <CheckBox x:Name="GpuPowerCheck" Style="{StaticResource Cp.Check}" Checked="OnStatChanged" Unchecked="OnStatChanged" />
+                <CheckBox x:Name="GpuFanCheck" Style="{StaticResource Cp.Check}" Checked="OnStatChanged" Unchecked="OnStatChanged" />
+                <CheckBox x:Name="CpuLoadCheck" Style="{StaticResource Cp.Check}" Checked="OnStatChanged" Unchecked="OnStatChanged" />
+                <CheckBox x:Name="CpuTempCheck" Style="{StaticResource Cp.Check}" Checked="OnStatChanged" Unchecked="OnStatChanged" />
+                <CheckBox x:Name="RamCheck" Style="{StaticResource Cp.Check}" Checked="OnStatChanged" Unchecked="OnStatChanged" />
+            </StackPanel>
+        </Grid>
 
-        <TextBlock x:Name="GpuTempLabel" Grid.Row="18" Style="{StaticResource Cp.FieldLabel}" />
-        <ToggleButton x:Name="GpuTempSwitch" Grid.Row="18" Grid.Column="1" Style="{StaticResource Cp.Switch}"
-                      Checked="OnStatChanged" Unchecked="OnStatChanged" />
-
-        <TextBlock x:Name="GpuMemoryLabel" Grid.Row="19" Style="{StaticResource Cp.FieldLabel}" />
-        <ToggleButton x:Name="GpuMemorySwitch" Grid.Row="19" Grid.Column="1" Style="{StaticResource Cp.Switch}"
-                      Checked="OnStatChanged" Unchecked="OnStatChanged" />
-
-        <TextBlock x:Name="GpuClockLabel" Grid.Row="20" Style="{StaticResource Cp.FieldLabel}" />
-        <ToggleButton x:Name="GpuClockSwitch" Grid.Row="20" Grid.Column="1" Style="{StaticResource Cp.Switch}"
-                      Checked="OnStatChanged" Unchecked="OnStatChanged" />
-
-        <TextBlock x:Name="GpuPowerLabel" Grid.Row="21" Style="{StaticResource Cp.FieldLabel}" />
-        <ToggleButton x:Name="GpuPowerSwitch" Grid.Row="21" Grid.Column="1" Style="{StaticResource Cp.Switch}"
-                      Checked="OnStatChanged" Unchecked="OnStatChanged" />
-
-        <TextBlock x:Name="GpuFanLabel" Grid.Row="22" Style="{StaticResource Cp.FieldLabel}" />
-        <ToggleButton x:Name="GpuFanSwitch" Grid.Row="22" Grid.Column="1" Style="{StaticResource Cp.Switch}"
-                      Checked="OnStatChanged" Unchecked="OnStatChanged" />
-
-        <TextBlock x:Name="CpuLoadLabel" Grid.Row="23" Style="{StaticResource Cp.FieldLabel}" />
-        <ToggleButton x:Name="CpuLoadSwitch" Grid.Row="23" Grid.Column="1" Style="{StaticResource Cp.Switch}"
-                      Checked="OnStatChanged" Unchecked="OnStatChanged" />
-
-        <TextBlock x:Name="CpuTempLabel" Grid.Row="24" Style="{StaticResource Cp.FieldLabel}" />
-        <ToggleButton x:Name="CpuTempSwitch" Grid.Row="24" Grid.Column="1" Style="{StaticResource Cp.Switch}"
-                      Checked="OnStatChanged" Unchecked="OnStatChanged" />
-
-        <!-- Chỉ hiện khi chưa đọc được nhiệt độ CPU (thiếu PawnIO); nút cài chỉ hiện khi PawnIO chưa cài. -->
-        <StackPanel x:Name="PawnIoPanel" Grid.Row="25" Grid.Column="1" Grid.ColumnSpan="2" Visibility="Collapsed"
-                    Margin="0,-4,0,6">
+        <!-- Chỉ hiện khi chưa đọc được nhiệt độ CPU (thiếu PawnIO); nút cài chỉ hiện khi PawnIO chưa cài. Nằm ngoài ô thu gọn. -->
+        <StackPanel x:Name="PawnIoPanel" Grid.Row="21" Grid.Column="1" Grid.ColumnSpan="2" Visibility="Collapsed"
+                    Margin="0,0,0,6">
             <TextBlock x:Name="PawnIoNote" Style="{StaticResource Cp.FieldLabel}" Margin="0,0,0,4" FontSize="11"
                        TextWrapping="Wrap" Foreground="{StaticResource Cp.KnobOff}" />
             <Button x:Name="PawnIoInstallButton" HorizontalAlignment="Left" Style="{StaticResource Cp.GhostButton}"
@@ -206,53 +206,51 @@
                        FontFamily="{StaticResource Cp.Mono}" FontSize="11" Foreground="{StaticResource Cp.Cyan}" />
         </StackPanel>
 
-        <TextBlock x:Name="RamLabel" Grid.Row="26" Style="{StaticResource Cp.FieldLabel}" />
-        <ToggleButton x:Name="RamSwitch" Grid.Row="26" Grid.Column="1" Style="{StaticResource Cp.Switch}"
-                      Checked="OnStatChanged" Unchecked="OnStatChanged" />
-        <!-- // CẢNH BÁO -->
-        <Label x:Name="AlertsSection" Grid.Row="27" Grid.ColumnSpan="3" Style="{StaticResource Cp.Section}" />
 
-        <TextBlock x:Name="GpuHotLabel" Grid.Row="28" Style="{StaticResource Cp.FieldLabel}" />
-        <Slider x:Name="GpuHotSlider" Grid.Row="28" Grid.Column="1" Style="{StaticResource Cp.Slider}"
+        <!-- // CẢNH BÁO -->
+        <Label x:Name="AlertsSection" Grid.Row="22" Grid.ColumnSpan="3" Style="{StaticResource Cp.Section}" />
+
+        <TextBlock x:Name="GpuHotLabel" Grid.Row="23" Style="{StaticResource Cp.FieldLabel}" />
+        <Slider x:Name="GpuHotSlider" Grid.Row="23" Grid.Column="1" Style="{StaticResource Cp.Slider}"
                 Minimum="50" Maximum="110" TickFrequency="1" SmallChange="1" LargeChange="5"
                 ValueChanged="OnGpuHotChanged" />
-        <TextBlock x:Name="GpuHotValue" Grid.Row="28" Grid.Column="2" Style="{StaticResource Cp.Value}" />
+        <TextBlock x:Name="GpuHotValue" Grid.Row="23" Grid.Column="2" Style="{StaticResource Cp.Value}" />
 
-        <TextBlock x:Name="CpuHotLabel" Grid.Row="29" Style="{StaticResource Cp.FieldLabel}" />
-        <Slider x:Name="CpuHotSlider" Grid.Row="29" Grid.Column="1" Style="{StaticResource Cp.Slider}"
+        <TextBlock x:Name="CpuHotLabel" Grid.Row="24" Style="{StaticResource Cp.FieldLabel}" />
+        <Slider x:Name="CpuHotSlider" Grid.Row="24" Grid.Column="1" Style="{StaticResource Cp.Slider}"
                 Minimum="50" Maximum="110" TickFrequency="1" SmallChange="1" LargeChange="5"
                 ValueChanged="OnCpuHotChanged" />
-        <TextBlock x:Name="CpuHotValue" Grid.Row="29" Grid.Column="2" Style="{StaticResource Cp.Value}" />
+        <TextBlock x:Name="CpuHotValue" Grid.Row="24" Grid.Column="2" Style="{StaticResource Cp.Value}" />
 
-        <TextBlock x:Name="HotSecondsLabel" Grid.Row="30" Style="{StaticResource Cp.FieldLabel}" />
-        <Slider x:Name="HotSecondsSlider" Grid.Row="30" Grid.Column="1" Style="{StaticResource Cp.Slider}"
+        <TextBlock x:Name="HotSecondsLabel" Grid.Row="25" Style="{StaticResource Cp.FieldLabel}" />
+        <Slider x:Name="HotSecondsSlider" Grid.Row="25" Grid.Column="1" Style="{StaticResource Cp.Slider}"
                 Minimum="0" Maximum="60" TickFrequency="1" SmallChange="1" LargeChange="5"
                 ValueChanged="OnHotSecondsChanged" />
-        <TextBlock x:Name="HotSecondsValue" Grid.Row="30" Grid.Column="2" Style="{StaticResource Cp.Value}" />
+        <TextBlock x:Name="HotSecondsValue" Grid.Row="25" Grid.Column="2" Style="{StaticResource Cp.Value}" />
 
-        <TextBlock x:Name="HotBlinkLabel" Grid.Row="31" Style="{StaticResource Cp.FieldLabel}" />
-        <ToggleButton x:Name="HotBlinkSwitch" Grid.Row="31" Grid.Column="1" Style="{StaticResource Cp.Switch}"
+        <TextBlock x:Name="HotBlinkLabel" Grid.Row="26" Style="{StaticResource Cp.FieldLabel}" />
+        <ToggleButton x:Name="HotBlinkSwitch" Grid.Row="26" Grid.Column="1" Style="{StaticResource Cp.Switch}"
                       Checked="OnHotAlertToggled" Unchecked="OnHotAlertToggled" />
 
-        <TextBlock x:Name="HotSoundLabel" Grid.Row="32" Style="{StaticResource Cp.FieldLabel}" />
-        <ToggleButton x:Name="HotSoundSwitch" Grid.Row="32" Grid.Column="1" Style="{StaticResource Cp.Switch}"
+        <TextBlock x:Name="HotSoundLabel" Grid.Row="27" Style="{StaticResource Cp.FieldLabel}" />
+        <ToggleButton x:Name="HotSoundSwitch" Grid.Row="27" Grid.Column="1" Style="{StaticResource Cp.Switch}"
                       Checked="OnHotAlertToggled" Unchecked="OnHotAlertToggled" />
 
-        <Button x:Name="TestAlertButton" Grid.Row="33" Grid.ColumnSpan="3" HorizontalAlignment="Left" Margin="0,4,0,0"
+        <Button x:Name="TestAlertButton" Grid.Row="28" Grid.ColumnSpan="3" HorizontalAlignment="Left" Margin="0,4,0,0"
                 Style="{StaticResource Cp.GhostButton}" Click="OnTestAlertClick" />
 
         <!-- // HỆ THỐNG -->
-        <Label x:Name="SystemSection" Grid.Row="34" Grid.ColumnSpan="3" Style="{StaticResource Cp.Section}" />
+        <Label x:Name="SystemSection" Grid.Row="29" Grid.ColumnSpan="3" Style="{StaticResource Cp.Section}" />
 
-        <TextBlock x:Name="AutostartLabel" Grid.Row="35" Style="{StaticResource Cp.FieldLabel}" />
-        <ToggleButton x:Name="AutostartSwitch" Grid.Row="35" Grid.Column="1" Style="{StaticResource Cp.Switch}"
+        <TextBlock x:Name="AutostartLabel" Grid.Row="30" Style="{StaticResource Cp.FieldLabel}" />
+        <ToggleButton x:Name="AutostartSwitch" Grid.Row="30" Grid.Column="1" Style="{StaticResource Cp.Switch}"
                       Checked="OnAutostartChanged" Unchecked="OnAutostartChanged" />
 
-        <TextBlock x:Name="LogLabel" Grid.Row="36" Style="{StaticResource Cp.FieldLabel}" />
-        <ToggleButton x:Name="LogSwitch" Grid.Row="36" Grid.Column="1" Style="{StaticResource Cp.Switch}"
+        <TextBlock x:Name="LogLabel" Grid.Row="31" Style="{StaticResource Cp.FieldLabel}" />
+        <ToggleButton x:Name="LogSwitch" Grid.Row="31" Grid.Column="1" Style="{StaticResource Cp.Switch}"
                       Checked="OnLogChanged" Unchecked="OnLogChanged" />
 
-        <Button x:Name="OpenLogButton" Grid.Row="37" Grid.ColumnSpan="3" HorizontalAlignment="Left" Margin="0,4,0,0"
+        <Button x:Name="OpenLogButton" Grid.Row="32" Grid.ColumnSpan="3" HorizontalAlignment="Left" Margin="0,4,0,0"
                 Style="{StaticResource Cp.GhostButton}" Click="OnOpenLogFolderClick" />
 
     </Grid>

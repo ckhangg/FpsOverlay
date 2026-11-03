@@ -6,6 +6,25 @@ namespace FpsOverlay.Core.Tests;
 public class OverlaySettingsTests
 {
     [Fact]
+    public void Visible_stat_count_counts_ten_switches()
+    {
+        Assert.Equal(10, OverlaySettings.StatCount);
+        Assert.Equal(6, OverlaySettings.Defaults.VisibleStatCount);   // 4 số GPU thêm tắt mặc định
+        var all = OverlaySettings.Defaults with
+        {
+            ShowOnePercentLow = true, ShowGpuLoad = true, ShowGpuTemp = true, ShowGpuMemory = true, ShowGpuClock = true,
+            ShowGpuPower = true, ShowGpuFan = true, ShowCpuLoad = true, ShowCpuTemp = true, ShowRam = true,
+        };
+        Assert.Equal(10, all.VisibleStatCount);
+        var none = OverlaySettings.Defaults with
+        {
+            ShowOnePercentLow = false, ShowGpuLoad = false, ShowGpuTemp = false, ShowGpuMemory = false, ShowGpuClock = false,
+            ShowGpuPower = false, ShowGpuFan = false, ShowCpuLoad = false, ShowCpuTemp = false, ShowRam = false,
+        };
+        Assert.Equal(0, none.VisibleStatCount);
+    }
+
+    [Fact]
     public void Defaults_match_spec()
     {
         var d = OverlaySettings.Defaults;

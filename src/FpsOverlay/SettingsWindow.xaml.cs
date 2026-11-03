@@ -4,7 +4,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using FpsOverlay.Core.GameOnly;
 using FpsOverlay.Core.Localization;
 using FpsOverlay.Core.PawnIo;
 using FpsOverlay.Core.Settings;
@@ -34,6 +36,11 @@ public partial class SettingsWindow : Window
     PawnIoResult? _pawnIoResult;   // kết quả lần cài gần nhất trong cửa sổ này (hiện dưới nút)
     readonly TextBox[] _hexBoxes;
     OverlayStyle? _swatchStyle;
+
+    int _statCount;   // số ô đang bật, để dựng lại dòng "Đang hiện N/10" khi đổi ngôn ngữ
+    // Hai danh sách exe: chỉ dựng lại khi nội dung đổi (so bằng giá trị).
+    AppNames? _shownAlways, _shownNever;
+    AppLanguage? _appListsLanguage;
 
     // Đang đẩy giá trị từ cài đặt vào control: sự kiện của control không được gọi Update ngược lại.
     bool _refreshing = true;
@@ -110,17 +117,21 @@ public partial class SettingsWindow : Window
 
             RefreshColors(s);
 
-            OnePercentSwitch.IsChecked = s.ShowOnePercentLow;
-            GpuLoadSwitch.IsChecked = s.ShowGpuLoad;
-            GpuTempSwitch.IsChecked = s.ShowGpuTemp;
-            GpuMemorySwitch.IsChecked = s.ShowGpuMemory;
-            GpuClockSwitch.IsChecked = s.ShowGpuClock;
-            GpuPowerSwitch.IsChecked = s.ShowGpuPower;
-            GpuFanSwitch.IsChecked = s.ShowGpuFan;
-            CpuLoadSwitch.IsChecked = s.ShowCpuLoad;
-            CpuTempSwitch.IsChecked = s.ShowCpuTemp;
-            RamSwitch.IsChecked = s.ShowRam;
+            OnePercentCheck.IsChecked = s.ShowOnePercentLow;
+            GpuLoadCheck.IsChecked = s.ShowGpuLoad;
+            GpuTempCheck.IsChecked = s.ShowGpuTemp;
+            GpuMemoryCheck.IsChecked = s.ShowGpuMemory;
+            GpuClockCheck.IsChecked = s.ShowGpuClock;
+            GpuPowerCheck.IsChecked = s.ShowGpuPower;
+            GpuFanCheck.IsChecked = s.ShowGpuFan;
+            CpuLoadCheck.IsChecked = s.ShowCpuLoad;
+            CpuTempCheck.IsChecked = s.ShowCpuTemp;
+            RamCheck.IsChecked = s.ShowRam;
             RefreshSensorNote();
+            _statCount = s.VisibleStatCount;
+            RefreshStatsSummary();
+            OnlyInGameSwitch.IsChecked = s.ShowOnlyInGame;
+            RefreshAppLists(s);
 
             GpuHotSlider.Value = s.GpuHotThreshold;
             GpuHotValue.Text = $"{s.GpuHotThreshold}°";
@@ -244,19 +255,24 @@ public partial class SettingsWindow : Window
         BadLabel.Text = T(StringKey.BadThreshold);
 
         StatsSection.Content = T(StringKey.SectionStats);
-        OnePercentLabel.Text = T(StringKey.StatOnePercentLow);
-        GpuLoadLabel.Text = T(StringKey.StatGpuLoad);
-        GpuTempLabel.Text = T(StringKey.StatGpuTemp);
-        GpuMemoryLabel.Text = T(StringKey.StatGpuMemory);
-        GpuClockLabel.Text = T(StringKey.StatGpuClock);
-        GpuPowerLabel.Text = T(StringKey.StatGpuPower);
-        GpuFanLabel.Text = T(StringKey.StatGpuFan);
-        CpuLoadLabel.Text = T(StringKey.StatCpuLoad);
-        CpuTempLabel.Text = T(StringKey.StatCpuTemp);
-        RamLabel.Text = T(StringKey.StatRam);
+        OnePercentCheck.Content = T(StringKey.StatOnePercentLow);
+        GpuLoadCheck.Content = T(StringKey.StatGpuLoad);
+        GpuTempCheck.Content = T(StringKey.StatGpuTemp);
+        GpuMemoryCheck.Content = T(StringKey.StatGpuMemory);
+        GpuClockCheck.Content = T(StringKey.StatGpuClock);
+        GpuPowerCheck.Content = T(StringKey.StatGpuPower);
+        GpuFanCheck.Content = T(StringKey.StatGpuFan);
+        CpuLoadCheck.Content = T(StringKey.StatCpuLoad);
+        CpuTempCheck.Content = T(StringKey.StatCpuTemp);
+        RamCheck.Content = T(StringKey.StatRam);
+        StatsButton.Content = $"{T(StringKey.ChooseStats)} {Arrow(StatsPanel)}";
         PawnIoNote.Text = T(StringKey.PawnIoNeeded);
         PawnIoInstallButton.Content = T(StringKey.PawnIoInstallButton);
         RefreshPawnIoStatus(language);
+
+        OnlyInGameLabel.Text = T(StringKey.OnlyInGame);
+        AppListsButton.Content = $"{T(StringKey.AppLists)} {Arrow(AppListsPanel)}";
+        RefreshStatsSummary(language);
 
         AlertsSection.Content = T(StringKey.SectionAlerts);
         GpuHotLabel.Text = T(StringKey.GpuHotThreshold);
@@ -305,6 +321,89 @@ public partial class SettingsWindow : Window
             box.Text = current;
             box.Tag = null;
         }
+    }
+
+    // ---------- Ô thu gọn: thông số và danh sách ứng dụng ----------
+
+    static string Arrow(UIElement panel) => panel.Visibility == Visibility.Visible ? "▴" : "▾";
+
+    void OnStatsToggleClick(object sender, RoutedEventArgs e)
+    {
+        StatsPanel.Visibility = StatsPanel.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
+        StatsButton.Content = $"{Loc.Get(StringKey.ChooseStats, _service.Current.Language)} {Arrow(StatsPanel)}";
+    }
+
+    void OnAppListsToggleClick(object sender, RoutedEventArgs e)
+    {
+        AppListsPanel.Visibility = AppListsPanel.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
+        AppListsButton.Content = $"{Loc.Get(StringKey.AppLists, _service.Current.Language)} {Arrow(AppListsPanel)}";
+    }
+
+    void RefreshStatsSummary(AppLanguage? language = null) =>
+        StatsSummary.Text = string.Format(Loc.Get(StringKey.StatsSummary, language ?? _service.Current.Language),
+            _statCount, OverlaySettings.StatCount);
+
+    // Tóm tắt + các dòng "tên exe  [Xoá]" của hai danh sách; dựng lại khi danh sách đổi hoặc đổi ngôn ngữ.
+    void RefreshAppLists(OverlaySettings s)
+    {
+        var language = s.Language;
+        AppListsSummary.Text = string.Format(Loc.Get(StringKey.AppListsSummary, language), s.AlwaysShowApps.Count, s.NeverShowApps.Count);
+        if (Equals(_shownAlways, s.AlwaysShowApps) && Equals(_shownNever, s.NeverShowApps) && _appListsLanguage == language) return;
+        _shownAlways = s.AlwaysShowApps;
+        _shownNever = s.NeverShowApps;
+        _appListsLanguage = language;
+        AppListsPanel.Children.Clear();
+        AddAppGroup(Loc.Get(StringKey.AlwaysShowList, language), s.AlwaysShowApps, language);
+        AddAppGroup(Loc.Get(StringKey.NeverShowList, language), s.NeverShowApps, language);
+    }
+
+    void AddAppGroup(string title, AppNames apps, AppLanguage language)
+    {
+        AppListsPanel.Children.Add(new TextBlock
+        {
+            Text = title, Style = (Style)FindResource("Cp.FieldLabel"), Margin = new Thickness(0, 4, 0, 2),
+        });
+        if (apps.Count == 0)
+        {
+            AppListsPanel.Children.Add(new TextBlock
+            {
+                Text = Loc.Get(StringKey.AppListEmpty, language), Style = (Style)FindResource("Cp.FieldLabel"),
+                Foreground = (Brush)FindResource("Cp.KnobOff"), FontSize = 11, Margin = new Thickness(8, 0, 0, 0),
+            });
+            return;
+        }
+        foreach (var exe in apps)
+        {
+            var row = new DockPanel { Margin = new Thickness(8, 1, 0, 1), LastChildFill = true };
+            var remove = new Button
+            {
+                Content = Loc.Get(StringKey.RemoveApp, language), Style = (Style)FindResource("Cp.GhostButton"),
+                FontSize = 11, Padding = new Thickness(8, 1, 8, 1), Tag = exe,
+            };
+            remove.Click += OnRemoveAppClick;
+            DockPanel.SetDock(remove, Dock.Right);
+            row.Children.Add(remove);
+            row.Children.Add(new TextBlock
+            {
+                Text = exe, FontFamily = (FontFamily)FindResource("Cp.Mono"), FontSize = 12,
+                Foreground = (Brush)FindResource("Cp.Text"), VerticalAlignment = VerticalAlignment.Center,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+            });
+            AppListsPanel.Children.Add(row);
+        }
+    }
+
+    void OnRemoveAppClick(object sender, RoutedEventArgs e)
+    {
+        var exe = (string)((FrameworkElement)sender).Tag;
+        _service.Update(s => s.WithoutApp(exe));
+    }
+
+    void OnOnlyInGameChanged(object sender, RoutedEventArgs e)
+    {
+        if (_refreshing) return;
+        var on = OnlyInGameSwitch.IsChecked == true;
+        _service.Update(s => s with { ShowOnlyInGame = on });
     }
 
     // ---------- Control → cài đặt ----------
@@ -361,11 +460,11 @@ public partial class SettingsWindow : Window
     void OnStatChanged(object sender, RoutedEventArgs e)
     {
         if (_refreshing) return;
-        bool one = OnePercentSwitch.IsChecked == true, gpuLoad = GpuLoadSwitch.IsChecked == true,
-             gpuTemp = GpuTempSwitch.IsChecked == true, cpuLoad = CpuLoadSwitch.IsChecked == true,
-             cpuTemp = CpuTempSwitch.IsChecked == true, ram = RamSwitch.IsChecked == true,
-             gpuMemory = GpuMemorySwitch.IsChecked == true, gpuClock = GpuClockSwitch.IsChecked == true,
-             gpuPower = GpuPowerSwitch.IsChecked == true, gpuFan = GpuFanSwitch.IsChecked == true;
+        bool one = OnePercentCheck.IsChecked == true, gpuLoad = GpuLoadCheck.IsChecked == true,
+             gpuTemp = GpuTempCheck.IsChecked == true, cpuLoad = CpuLoadCheck.IsChecked == true,
+             cpuTemp = CpuTempCheck.IsChecked == true, ram = RamCheck.IsChecked == true,
+             gpuMemory = GpuMemoryCheck.IsChecked == true, gpuClock = GpuClockCheck.IsChecked == true,
+             gpuPower = GpuPowerCheck.IsChecked == true, gpuFan = GpuFanCheck.IsChecked == true;
         _service.Update(s => s with
         {
             ShowOnePercentLow = one, ShowGpuLoad = gpuLoad, ShowGpuTemp = gpuTemp,

@@ -350,6 +350,40 @@
         </Setter>
     </Style>
 
+    <!-- ===== Ô tick (CheckBox): cùng màu với công tắc ===== -->
+    <Style x:Key="Cp.Check" TargetType="CheckBox">
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource Cp.FocusVisual}" />
+        <Setter Property="FontFamily" Value="{StaticResource Cp.Font}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="{StaticResource Cp.Text}" />
+        <Setter Property="Margin" Value="0,3" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <StackPanel Orientation="Horizontal" Background="Transparent">
+                        <th:ChamferBorder x:Name="Bd" Width="16" Height="16" Background="{StaticResource Cp.Track}"
+                                          BorderBrush="{StaticResource Cp.Track}" BorderThickness="1" BottomRight="4"
+                                          VerticalAlignment="Center">
+                            <Path x:Name="Mark" Data="M3,8 L6.5,11.5 L13,4.5" Stroke="Black" StrokeThickness="2"
+                                  Visibility="Collapsed" />
+                        </th:ChamferBorder>
+                        <ContentPresenter Margin="8,0,0,0" VerticalAlignment="Center" RecognizesAccessKey="True" />
+                    </StackPanel>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Cp.Yellow}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource Cp.Yellow}" />
+                            <Setter TargetName="Mark" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- ===== Ô nhập mã hex: Tag="invalid" thì viền đỏ ===== -->
     <Style x:Key="Cp.HexBox" TargetType="TextBox">
         <Setter Property="FontFamily" Value="{StaticResource Cp.Mono}" />
