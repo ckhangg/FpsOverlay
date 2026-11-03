@@ -58,7 +58,10 @@ public partial class App : Application
         }
 
         var settings = _settings = new SettingsService(SettingsStore.DefaultPath);
-        var overlay = _overlay = new OverlayWindow();
+        var overlay = _overlay = new OverlayWindow
+        {
+            PreviewWindow = () => IsPreviewing ? new System.Windows.Interop.WindowInteropHelper(_settingsWindow!).Handle : null,
+        };
         overlay.Apply(settings.Current);
         settings.Changed += overlay.Apply;
         settings.Changed += _ => UpdateStats();   // bật/tắt mục thì hiện ngay, không chờ nhịp một giây

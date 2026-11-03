@@ -13,7 +13,7 @@ namespace FpsOverlay;
 /// <summary>Cửa sổ trong suốt hiện số FPS: luôn trên cùng, chuột bấm xuyên qua, không chiếm focus.</summary>
 public partial class OverlayWindow : Window
 {
-    /// <summary>Khoảng cách tới mép màn hình chính (DIP), ở cả bốn góc.</summary>
+    /// <summary>Khoảng cách tới mép màn hình (DIP), ở cả bốn góc.</summary>
     const double ScreenMargin = 8;
     const double ValueFontSize = 24;
     const double LabelFontSize = 18;
@@ -24,6 +24,10 @@ public partial class OverlayWindow : Window
 
     readonly DispatcherTimer _topmostTimer = new() { Interval = TimeSpan.FromSeconds(1) };
     IntPtr _hwnd;
+    (int X, int Y)? _lastPos;
+
+    /// <summary>App đặt: trả handle cửa sổ cài đặt khi đang xem trước (overlay theo màn hình đó), ngược lại null/Zero.</summary>
+    public Func<IntPtr?>? PreviewWindow { get; set; }
 
     // Viền tối quanh chữ (Cổ điển) và ánh sáng quanh số FPS (Cyberpunk); chỉ dùng một trong hai.
     readonly DropShadowEffect _classicOutline = new() { Color = Colors.Black, ShadowDepth = 0, BlurRadius = 3, Opacity = 1 };
@@ -263,19 +267,44 @@ public partial class OverlayWindow : Window
         Chrome.Clip = geometry;
     }
 
-    // Đặt cửa sổ vào góc đã chọn của màn hình chính, cách mép 8 DIP (không trừ taskbar).
+    // Đặt cửa sổ vào góc đã chọn của màn hình đang có cửa sổ phía trước (game), cách mép 8 DIP (không trừ taskbar).
     void UpdatePosition()
     {
-        double w = ActualWidth, h = ActualHeight;
-        double screenW = SystemParameters.PrimaryScreenWidth, screenH = SystemParameters.PrimaryScreenHeight;
-        var corner = _settings.Corner;
-        bool right = corner is OverlayCorner.TopRight or OverlayCorner.BottomRight;
-        bool bottom = corner is OverlayCorner.BottomLeft or OverlayCorner.BottomRight;
-        double left = right ? Math.Max(0, screenW - ScreenMargin - w) : ScreenMargin;
-        double top = bottom ? Math.Max(0, screenH - ScreenMargin - h) : ScreenMargin;
-        // Chỉ gán khi đổi, để gọi định kỳ không làm cửa sổ di chuyển thừa.
-        if (Left != left) Left = left;
-        if (Top != top) Top = top;
+        if (_hwnd == IntPtr.Zero || !NativeMethods.GetWindowRect(_hwnd, out var self))
+            return;
+        var monitor = NativeMethods.MonitorFromWindow(TargetWindow(), NativeMethods.MONITOR_DEFAULTTOPRIMARY);
+        var info = new NativeMethods.MONITORINFO { cbSize = (uint)System.Runtime.InteropServices.Marshal.SizeOf<NativeMethods.MONITORINFO>() };
+        if (!NativeMethods.GetMonitorInfo(monitor, ref info))
+            return;
+        uint dpi = 96;
+        if (NativeMethods.GetDpiForMonitor(monitor, NativeMethods.MDT_EFFECTIVE_DPI, out var dpiX, out _) == 0 && dpiX > 0)
+            dpi = dpiX;
+        var m = info.rcMonitor;
+        var (x, y) = OverlayPlacement.Compute(new PixelRect(m.Left, m.Top, m.Right, m.Bottom),
+            self.Right - self.Left, self.Bottom - self.Top, _settings.Corner, (int)Math.Round(ScreenMargin * dpi / 96.0));
+        // Chỉ đặt khi đổi, để gọi định kỳ không làm cửa sổ di chuyển thừa (và không vòng lặp với DpiChanged).
+        if (_lastPos == (x, y))
+            return;
+        _lastPos = (x, y);
+        NativeMethods.SetWindowPos(_hwnd, IntPtr.Zero, x, y, 0, 0,
+            NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE | NativeMethods.SWP_NOZORDER);
+    }
+
+    // Cửa sổ quyết định màn hình: cửa sổ cài đặt khi xem trước; cửa sổ phía trước; màn hình chính nếu đó là app này hoặc desktop/shell.
+    IntPtr TargetWindow()
+    {
+        var preview = PreviewWindow?.Invoke();
+        if (preview is { } p && p != IntPtr.Zero)
+            return p;
+        var fg = NativeMethods.GetForegroundWindow();
+        if (fg == IntPtr.Zero || fg == NativeMethods.GetShellWindow())
+            return IntPtr.Zero;
+        NativeMethods.GetWindowThreadProcessId(fg, out var pid);
+        if (pid == (uint)Environment.ProcessId)
+            return IntPtr.Zero;
+        var className = new System.Text.StringBuilder(64);
+        NativeMethods.GetClassName(fg, className, className.Capacity);
+        return className.ToString() is "Progman" or "WorkerW" ? IntPtr.Zero : fg;
     }
 
     void OnSourceInitialized(object? sender, EventArgs e)
@@ -286,6 +315,7 @@ public partial class OverlayWindow : Window
                  NativeMethods.WS_EX_TOOLWINDOW | NativeMethods.WS_EX_NOACTIVATE;
         NativeMethods.SetWindowLongPtr(_hwnd, NativeMethods.GWL_EXSTYLE, new IntPtr(style));
         _topmostTimer.Start();
+        UpdatePosition();
     }
 
     // Game borderless đôi khi đè lên cửa sổ topmost; đặt lại định kỳ.
@@ -293,7 +323,7 @@ public partial class OverlayWindow : Window
     {
         if (_hwnd == IntPtr.Zero || !IsVisible)
             return;
-        UpdatePosition();   // theo kịp đổi độ phân giải / màn hình chính
+        UpdatePosition();   // theo kịp game chuyển màn hình / đổi độ phân giải
         NativeMethods.SetWindowPos(_hwnd, NativeMethods.HWND_TOPMOST, 0, 0, 0, 0,
             NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE);
     }
