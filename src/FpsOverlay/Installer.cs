@@ -151,14 +151,19 @@ static class Installer
             throw new InvalidOperationException(string.Join("\n", errors));
     }
 
-    /// <summary>Chạy bản đã cài (nó cần Admin; bản này đã là Admin nên không hiện UAC lần nữa).</summary>
-    public static void LaunchInstalled()
+    /// <summary>
+    /// Chạy bản đã cài (nó cần Admin; bản này đã là Admin nên không hiện UAC lần nữa). <paramref name="arguments"/>: tham số
+    /// truyền cho bản cài (vd. <see cref="PawnIoSetup.OfferedArgument"/>).
+    /// </summary>
+    public static void LaunchInstalled(params string[] arguments)
     {
-        using var _ = Process.Start(new ProcessStartInfo(InstalledExePath)
+        var start = new ProcessStartInfo(InstalledExePath)
         {
             UseShellExecute = true,
             WorkingDirectory = InstallDirectory,
-        });
+            Arguments = string.Join(' ', arguments),   // chỉ là cờ cố định kiểu --abc, không có dấu cách
+        };
+        using var _ = Process.Start(start);
     }
 
     public static string FileHash(string path)

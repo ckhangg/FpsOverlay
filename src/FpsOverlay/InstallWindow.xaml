@@ -37,7 +37,15 @@
         </Grid>
 
         <!-- Chỗ cho tuỳ chọn thêm của bước cài (vd. ô tick cài PawnIO); trống thì không chiếm chỗ. -->
-        <StackPanel x:Name="OptionsPanel" Margin="0,4,0,0" />
+        <StackPanel x:Name="OptionsPanel" Margin="0,4,0,0">
+            <!-- Chỉ hiện khi chưa có PawnIO và chưa từng hỏi; mặc định tắt. -->
+            <DockPanel x:Name="PawnIoOption" Visibility="Collapsed" Margin="0,4,0,0">
+                <ToggleButton x:Name="PawnIoSwitch" DockPanel.Dock="Left" Style="{StaticResource Cp.Switch}"
+                              VerticalAlignment="Center" Margin="0,0,12,0" />
+                <TextBlock x:Name="PawnIoLabel" TextWrapping="Wrap" VerticalAlignment="Center" Cursor="Hand"
+                           MouseLeftButtonUp="OnPawnIoLabelClick" />
+            </DockPanel>
+        </StackPanel>
 
         <TextBlock x:Name="StatusText" Margin="0,8,0,0" Visibility="Collapsed"
                    FontFamily="{StaticResource Cp.Mono}" FontSize="12" Foreground="{StaticResource Cp.Cyan}" />

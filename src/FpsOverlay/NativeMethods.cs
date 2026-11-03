@@ -155,4 +155,62 @@ static class NativeMethods
     // DPI hiệu dụng của một màn hình (Windows 8.1+)
     [DllImport("shcore.dll")]
     public static extern int GetDpiForMonitor(IntPtr hMonitor, int dpiType, out uint dpiX, out uint dpiY);
+
+    // Kiểm chữ ký Authenticode (wintrust.dll): dùng cho bộ cài PawnIO tải về
+    public static readonly Guid WINTRUST_ACTION_GENERIC_VERIFY_V2 = new("00AAC56B-CD44-11d0-8CC2-00C04FC295EE");
+    public const uint WTD_UI_NONE = 2;
+    public const uint WTD_REVOKE_WHOLECHAIN = 1;
+    public const uint WTD_CHOICE_FILE = 1;
+    public const uint WTD_STATEACTION_VERIFY = 1;
+    public const uint WTD_STATEACTION_CLOSE = 2;
+    public const uint WTD_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT = 0x00000080;
+    public const uint WTD_DISABLE_MD2_MD4 = 0x00002000;
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct WINTRUST_FILE_INFO
+    {
+        public uint cbStruct;
+        public IntPtr pcwszFilePath;   // LPCWSTR
+        public IntPtr hFile;
+        public IntPtr pgKnownSubject;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct WINTRUST_DATA
+    {
+        public uint cbStruct;
+        public IntPtr pPolicyCallbackData;
+        public IntPtr pSIPClientData;
+        public uint dwUIChoice;
+        public uint fdwRevocationChecks;
+        public uint dwUnionChoice;
+        public IntPtr pFile;           // WINTRUST_FILE_INFO*
+        public uint dwStateAction;
+        public IntPtr hWVTStateData;
+        public IntPtr pwszURLReference;
+        public uint dwProvFlags;
+        public uint dwUIContext;
+        public IntPtr pSignatureSettings;
+    }
+
+    // Đầu của CRYPT_PROVIDER_SGNR (wintrust.h): FILETIME căn 4 byte nên khai báo bằng hai uint, không dùng long.
+    [StructLayout(LayoutKind.Sequential)]
+    public struct CRYPT_PROVIDER_SGNR_HEAD
+    {
+        public uint cbStruct;
+        public uint sftVerifyAsOfLow;
+        public uint sftVerifyAsOfHigh;
+        public uint csCertChain;
+        public IntPtr pasCertChain;    // CRYPT_PROVIDER_CERT*; phần tử 0 là chứng chỉ của người ký
+    }
+
+    [DllImport("wintrust.dll")]
+    public static extern int WinVerifyTrust(IntPtr hwnd, ref Guid pgActionID, ref WINTRUST_DATA pWVTData);
+
+    [DllImport("wintrust.dll")]
+    public static extern IntPtr WTHelperProvDataFromStateData(IntPtr hStateData);
+
+    [DllImport("wintrust.dll")]
+    public static extern IntPtr WTHelperGetProvSignerFromChain(IntPtr pProvData, uint idxSigner,
+        [MarshalAs(UnmanagedType.Bool)] bool fCounterSigner, uint idxCounterSigner);
 }

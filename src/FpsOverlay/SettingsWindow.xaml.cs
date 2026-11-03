@@ -6,6 +6,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media.Imaging;
 using FpsOverlay.Core.Localization;
+using FpsOverlay.Core.PawnIo;
 using FpsOverlay.Core.Settings;
 
 namespace FpsOverlay;
@@ -30,7 +31,12 @@ public partial class SettingsWindow : Window
     readonly AutostartService _autostart;
     readonly Action<bool> _setAutostart;
     readonly Func<bool> _cpuTempAvailable;
+    readonly Func<Task<PawnIoResult>> _installPawnIo;
     readonly RadioButton[][] _swatches = new RadioButton[Rows][];
+    // Đọc registry lúc mở cửa sổ và sau mỗi lần cài, không đọc mỗi giây.
+    bool _pawnIoInstalled;
+    bool _pawnIoBusy;
+    PawnIoResult? _pawnIoResult;   // kết quả lần cài gần nhất trong cửa sổ này (hiện dưới nút)
     readonly TextBox[] _hexBoxes;
     OverlayStyle? _swatchStyle;
 
@@ -39,12 +45,17 @@ public partial class SettingsWindow : Window
 
     /// <param name="setAutostart">Bật/tắt khởi động cùng Windows (App lo báo lỗi); kết quả về qua <see cref="AutostartService.Changed"/>.</param>
     /// <param name="cpuTempAvailable">Đọc được nhiệt độ CPU chưa; chưa thì hiện ghi chú cần PawnIO dưới công tắc.</param>
-    internal SettingsWindow(SettingsService service, AutostartService autostart, Action<bool> setAutostart, Func<bool> cpuTempAvailable)
+    /// <param name="installPawnIo">Tải + kiểm chữ ký + cài PawnIO (App lo đọc lại cảm biến; đang cài thì trả về lần đang chạy).</param>
+    /// <param name="pawnIoInstalling">App đang cài PawnIO (vd. bắt đầu từ cửa sổ trước đã đóng).</param>
+    internal SettingsWindow(SettingsService service, AutostartService autostart, Action<bool> setAutostart, Func<bool> cpuTempAvailable,
+        Func<Task<PawnIoResult>> installPawnIo, bool pawnIoInstalling)
     {
         _service = service;
         _autostart = autostart;
         _setAutostart = setAutostart;
         _cpuTempAvailable = cpuTempAvailable;
+        _installPawnIo = installPawnIo;
+        _pawnIoInstalled = PawnIoSetup.IsInstalled();
         InitializeComponent();   // _refreshing = true: giá trị mặc định trong XAML không ghi vào cài đặt
         // Bản không cài không được tạo/sửa tác vụ: công tắc mờ đi, tooltip (đặt trong ApplyLanguage) giải thích lý do.
         AutostartSwitch.IsEnabled = autostart.CanManage;
@@ -59,6 +70,7 @@ public partial class SettingsWindow : Window
         service.Changed += Refresh;
         RefreshAutostart(autostart.IsEnabled);
         autostart.Changed += RefreshAutostart;
+        if (pawnIoInstalling) _ = RunPawnIoInstallAsync();   // nhận lại lần cài đang chạy để hiện tiến trình/kết quả
     }
 
     protected override void OnClosed(EventArgs e)
@@ -121,7 +133,50 @@ public partial class SettingsWindow : Window
     internal void RefreshSensorNote()
     {
         var visibility = _cpuTempAvailable() ? Visibility.Collapsed : Visibility.Visible;
-        if (PawnIoNote.Visibility != visibility) PawnIoNote.Visibility = visibility;
+        if (PawnIoPanel.Visibility != visibility) PawnIoPanel.Visibility = visibility;
+        // Nút cài: chỉ khi PawnIO chưa cài (đang cài thì vẫn hiện nhưng mờ).
+        var button = _pawnIoInstalled && !_pawnIoBusy ? Visibility.Collapsed : Visibility.Visible;
+        if (PawnIoInstallButton.Visibility != button) PawnIoInstallButton.Visibility = button;
+        if (PawnIoInstallButton.IsEnabled == _pawnIoBusy) PawnIoInstallButton.IsEnabled = !_pawnIoBusy;
+        var status = _pawnIoBusy || _pawnIoResult is not null ? Visibility.Visible : Visibility.Collapsed;
+        if (PawnIoStatus.Visibility != status) PawnIoStatus.Visibility = status;
+    }
+
+    void RefreshPawnIoStatus(AppLanguage language)
+    {
+        PawnIoStatus.Text = _pawnIoBusy ? Loc.Get(StringKey.PawnIoWorking, language)
+            : _pawnIoResult is { } result ? Loc.Get(PawnIoResults.MessageKey(result), language)
+            : "";
+    }
+
+    void OnInstallPawnIoClick(object sender, RoutedEventArgs e)
+    {
+        if (_pawnIoBusy) return;
+        _ = RunPawnIoInstallAsync();
+    }
+
+    // Chạy (hoặc nhận lại) lần cài của App ngoài luồng UI; cửa sổ chỉ hiện tiến trình và kết quả.
+    async Task RunPawnIoInstallAsync()
+    {
+        _pawnIoBusy = true;
+        _pawnIoResult = null;
+        RefreshPawnIoStatus(_service.Current.Language);
+        RefreshSensorNote();
+        PawnIoResult result;
+        try
+        {
+            result = await _installPawnIo();
+        }
+        catch (Exception ex)
+        {
+            Trace.TraceWarning($"Cài PawnIO lỗi: {ex.Message}");
+            result = PawnIoResult.InstallFailed;
+        }
+        _pawnIoBusy = false;
+        _pawnIoResult = result;
+        _pawnIoInstalled = PawnIoSetup.IsInstalled();
+        RefreshPawnIoStatus(_service.Current.Language);
+        RefreshSensorNote();
     }
 
     void RefreshAutostart(bool enabled)
@@ -175,6 +230,8 @@ public partial class SettingsWindow : Window
         CpuTempLabel.Text = T(StringKey.StatCpuTemp);
         RamLabel.Text = T(StringKey.StatRam);
         PawnIoNote.Text = T(StringKey.PawnIoNeeded);
+        PawnIoInstallButton.Content = T(StringKey.PawnIoInstallButton);
+        RefreshPawnIoStatus(language);
 
         SystemSection.Content = T(StringKey.SectionSystem);
         AutostartLabel.Text = T(StringKey.Autostart);

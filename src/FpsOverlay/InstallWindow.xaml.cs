@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Input;
 using FpsOverlay.Core.Install;
 using FpsOverlay.Core.Localization;
+using FpsOverlay.Core.PawnIo;
 using FpsOverlay.Core.Settings;
 
 namespace FpsOverlay;
@@ -23,13 +24,25 @@ public partial class InstallWindow : Window
     /// <summary>Cài/cập nhật xong (App chạy bản đã cài rồi thoát); false = huỷ hoặc đóng.</summary>
     public bool Succeeded { get; private set; }
 
+    /// <summary>
+    /// Đã hỏi người dùng về PawnIO (ô tick đã hiện, tick hay không) và cài xong: App truyền
+    /// <see cref="PawnIoSetup.OfferedArgument"/> cho bản đã cài để nó nhớ, không hỏi lại ở lần cập nhật sau.
+    /// </summary>
+    public bool PawnIoOffered { get; private set; }
+
+    readonly bool _offerPawnIo;
+
     /// <param name="action"><see cref="InstallAction.Install"/> hoặc <see cref="InstallAction.Update"/>.</param>
     /// <param name="language">Ngôn ngữ trong cài đặt đã lưu; người dùng đổi được ngay trong hộp thoại (chỉ cho hộp thoại).</param>
-    internal InstallWindow(InstallAction action, AppLanguage language)
+    /// <param name="pawnIoAlreadyOffered"><c>PawnIoOffered</c> trong cài đặt đã lưu (chỉ đọc).</param>
+    internal InstallWindow(InstallAction action, AppLanguage language, bool pawnIoAlreadyOffered)
     {
         _action = action;
         _language = language;
+        _offerPawnIo = !pawnIoAlreadyOffered && !PawnIoSetup.IsInstalled();
         InitializeComponent();
+        PawnIoOption.Visibility = _offerPawnIo ? Visibility.Visible : Visibility.Collapsed;
+        PawnIoSwitch.IsChecked = false;   // mặc định không cài
         Icon = SettingsWindow.CreateWindowIcon();
         CommandBindings.Add(new CommandBinding(SystemCommands.CloseWindowCommand, (_, _) => Close()));
 
@@ -51,6 +64,8 @@ public partial class InstallWindow : Window
         LanguageLabel.Text = T(StringKey.Language);
         VersionLabel.Text = T(StringKey.InstallVersion);
         StatusText.Text = T(StringKey.InstallWorking);
+        PawnIoLabel.Text = T(StringKey.PawnIoOffer);
+        System.Windows.Automation.AutomationProperties.SetName(PawnIoSwitch, PawnIoLabel.Text);
         InstallButton.Content = T(update ? StringKey.UpdateButton : StringKey.InstallButton);
         CancelButton.Content = T(StringKey.Cancel);
     }
@@ -98,8 +113,36 @@ public partial class InstallWindow : Window
         Close();
     }
 
-    /// <summary>Các bước chạy sau khi đã chép xong (exe và PresentMon đã nằm trong thư mục cài). Hiện chưa có gì.</summary>
-    Task AfterInstallAsync() => Task.CompletedTask;
+    void OnPawnIoLabelClick(object sender, MouseButtonEventArgs e)
+    {
+        if (PawnIoSwitch.IsEnabled) PawnIoSwitch.IsChecked = PawnIoSwitch.IsChecked != true;
+    }
+
+    /// <summary>
+    /// Các bước chạy sau khi đã chép xong (exe và PresentMon đã nằm trong thư mục cài): người dùng tick ô PawnIO thì
+    /// tải + kiểm chữ ký + cài (bản này đã là Admin), rồi báo kết quả. Lỗi PawnIO không làm hỏng việc cài app.
+    /// Không ghi file cài đặt ở đây: chỉ đặt <see cref="PawnIoOffered"/> để bản đã cài tự ghi.
+    /// </summary>
+    async Task AfterInstallAsync()
+    {
+        if (!_offerPawnIo) return;
+        PawnIoOffered = true;
+        if (PawnIoSwitch.IsChecked != true) return;
+
+        StatusText.Text = Loc.Get(StringKey.PawnIoWorking, _language);
+        PawnIoResult result;
+        try
+        {
+            result = await PawnIoSetup.InstallAsync(CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Trace.TraceWarning($"Cài PawnIO lỗi: {ex.Message}");
+            result = PawnIoResult.InstallFailed;
+        }
+        MessageBox.Show(this, Loc.Get(PawnIoResults.MessageKey(result), _language), "FPS Overlay", MessageBoxButton.OK,
+            PawnIoResults.IsSuccess(result) ? MessageBoxImage.Information : MessageBoxImage.Warning);
+    }
 
     void SetBusy(bool busy)
     {

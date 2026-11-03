@@ -6,6 +6,7 @@ using System.Windows.Threading;
 using FpsOverlay.Core;
 using FpsOverlay.Core.Install;
 using FpsOverlay.Core.Localization;
+using FpsOverlay.Core.PawnIo;
 using FpsOverlay.Core.Settings;
 
 namespace FpsOverlay;
@@ -33,6 +34,8 @@ public partial class App : Application
     SettingsWindow? _settingsWindow;
     // Hộp báo lỗi đang mở mà bấm tiếp ở khay thì bỏ qua, không chạy schtasks và hiện hộp thứ hai.
     bool _settingAutostart;
+    // Lần cài PawnIO đang chạy (từ nút trong cài đặt); null = không cài.
+    Task<PawnIoResult>? _pawnIoInstall;
 
     Mutex? _singleInstance;
     // Thư mục chứa PresentMon.exe đã bung (đặt lúc khởi động, trước StartPresentMon).
@@ -77,6 +80,10 @@ public partial class App : Application
         }
 
         var settings = _settings = new SettingsService(SettingsStore.DefaultPath);
+        // Bản setup vừa hỏi người dùng về PawnIO (tick hay không): nhớ lại để lần cập nhật sau không hỏi nữa.
+        // Cờ này chỉ đến từ bản setup; Task Scheduler chạy bản cài không kèm tham số nào.
+        if (HasArg(PawnIoSetup.OfferedArgument) && !settings.Current.PawnIoOffered)
+            settings.Update(s => s with { PawnIoOffered = true });
         var overlay = _overlay = new OverlayWindow
         {
             PreviewWindow = () => IsPreviewing ? new System.Windows.Interop.WindowInteropHelper(_settingsWindow!).Handle : null,
@@ -144,8 +151,9 @@ public partial class App : Application
     // Chạy từ ngoài thư mục cài: cài mới/cập nhật qua hộp thoại, hoặc chạy luôn bản đã cài (không hỏi). Xong thì thoát.
     void RunSetup()
     {
-        // Chỉ đọc ngôn ngữ, không mở SettingsService (bản này không chạy overlay).
-        var language = SettingsStore.Load(SettingsStore.DefaultPath).Language;
+        // Chỉ đọc (ngôn ngữ, đã hỏi PawnIO chưa), không mở SettingsService: bản này không bao giờ ghi file cài đặt.
+        var saved = SettingsStore.Load(SettingsStore.DefaultPath);
+        var language = saved.Language;
         InstallAction action;
         try
         {
@@ -165,12 +173,13 @@ public partial class App : Application
             return;
         }
 
-        var window = new InstallWindow(action, language);
+        var window = new InstallWindow(action, language, saved.PawnIoOffered);
         window.Closed += (_, _) =>
         {
             if (window.Succeeded)
             {
-                try { Installer.LaunchInstalled(); }
+                // Đã hỏi PawnIO: bản đã cài (chủ của file cài đặt) nhận cờ này và tự ghi PawnIoOffered = true.
+                try { Installer.LaunchInstalled(window.PawnIoOffered ? [PawnIoSetup.OfferedArgument] : []); }
                 catch (Exception ex) { ShowError(StringKey.InstallFailed, ex, language); }
             }
             Shutdown();
@@ -348,10 +357,35 @@ public partial class App : Application
         }
 
         _ = _autostart.RefreshAsync();
-        _settingsWindow = new SettingsWindow(_settings, _autostart, SetAutostart, () => _sensors?.CpuTemperatureAvailable ?? true);
+        _settingsWindow = new SettingsWindow(_settings, _autostart, SetAutostart, () => _sensors?.CpuTemperatureAvailable ?? true,
+            InstallPawnIo, _pawnIoInstall is not null);
         _settingsWindow.Closed += (_, _) => _settingsWindow = null;   // đóng bằng cách nào cũng về FPS thật
         _settingsWindow.Show();
         _settingsWindow.Activate();
+    }
+
+    // Nút "Cài PawnIO" trong cài đặt (bản đã cài hoặc --no-install; App luôn chạy với quyền Admin). Một lần cài một lúc:
+    // đang cài thì trả về lần đang chạy. Cài xong thì mở lại thư viện cảm biến để thấy nhiệt độ CPU ngay.
+    Task<PawnIoResult> InstallPawnIo() => _pawnIoInstall ??= RunPawnIoInstallAsync();
+
+    async Task<PawnIoResult> RunPawnIoInstallAsync()
+    {
+        await Task.Yield();   // luôn trả về trước khi chạy: _pawnIoInstall được gán trước khi finally bên dưới xoá nó
+        try
+        {
+            var result = await PawnIoSetup.InstallAsync(CancellationToken.None);
+            if (PawnIoResults.IsSuccess(result))
+            {
+                _sensors?.Reinitialize();
+                if (_settings is { Current.PawnIoOffered: false } settings)
+                    settings.Update(s => s with { PawnIoOffered = true });
+            }
+            return result;
+        }
+        finally
+        {
+            _pawnIoInstall = null;
+        }
     }
 
     void SetAutostart(bool enable)

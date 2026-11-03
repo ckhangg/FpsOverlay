@@ -16,6 +16,8 @@ public enum StringKey
     AlreadyRunning, PresentMonStopped, PresentMonStartFailed, AutostartFailed, Details, PresentMonNoData,
     AutostartInstalledOnly, InstallTitle, InstallPrompt, UpdatePrompt, InstallVersion, InstallButton, UpdateButton, Cancel, InstallWorking,
     InstalledCopyRunning, InstallFailed, UninstallConfirm, UninstallDone, UninstallFailed,
+    PawnIoOffer, PawnIoInstallButton, PawnIoWorking, PawnIoInstalled, PawnIoRebootRequired, PawnIoDownloadFailed,
+    PawnIoSignatureInvalid, PawnIoInstallFailed,
 }
 
 /// <summary>Chuỗi giao diện hai ngôn ngữ. Khoá thiếu ném <see cref="KeyNotFoundException"/>.</summary>
@@ -92,6 +94,14 @@ public static class Loc
         [StringKey.UninstallConfirm] = ("Gỡ FPS Overlay khỏi máy này?\nCài đặt và log FPS của bạn vẫn được giữ lại.", "Uninstall FPS Overlay from this PC?\nYour settings and FPS logs are kept."),
         [StringKey.UninstallDone] = ("Đã gỡ FPS Overlay.", "FPS Overlay has been uninstalled."),
         [StringKey.UninstallFailed] = ("Không gỡ được hết FPS Overlay.", "Couldn't fully uninstall FPS Overlay."),
+        [StringKey.PawnIoOffer] = ("Cài PawnIO để đọc nhiệt độ CPU (tải từ GitHub chính thức)", "Install PawnIO to read CPU temperature (downloaded from its official GitHub)"),
+        [StringKey.PawnIoInstallButton] = ("CÀI PAWNIO", "INSTALL PAWNIO"),
+        [StringKey.PawnIoWorking] = ("Đang tải và cài PawnIO...", "Downloading and installing PawnIO..."),
+        [StringKey.PawnIoInstalled] = ("Đã cài PawnIO.", "PawnIO has been installed."),
+        [StringKey.PawnIoRebootRequired] = ("Đã cài PawnIO. Khởi động lại máy để đọc được nhiệt độ CPU.", "PawnIO has been installed. Restart your PC to read CPU temperature."),
+        [StringKey.PawnIoDownloadFailed] = ("Không tải được PawnIO. Kiểm tra kết nối mạng rồi thử lại.", "Couldn't download PawnIO. Check your internet connection and try again."),
+        [StringKey.PawnIoSignatureInvalid] = ("Bộ cài PawnIO tải về không có chữ ký hợp lệ nên đã bị xoá, không chạy.", "The downloaded PawnIO installer isn't validly signed, so it was deleted without running."),
+        [StringKey.PawnIoInstallFailed] = ("Không cài được PawnIO.", "Couldn't install PawnIO."),
     };
 
     public static string Get(StringKey key, AppLanguage language)
