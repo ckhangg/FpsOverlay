@@ -15,7 +15,7 @@ public enum StringKey
     ResetDefaults, Done,
     AlreadyRunning, PresentMonStopped, PresentMonStartFailed, AutostartFailed, Details, PresentMonNoData,
     AutostartInstalledOnly, InstallTitle, InstallPrompt, UpdatePrompt, InstallVersion, InstallButton, UpdateButton, Cancel, InstallWorking,
-    InstalledCopyRunning, InstallFailed, UninstallConfirm, UninstallDone, UninstallFailed,
+    InstalledCopyRunning, InstallFailed, InstallPayloadMissing, UninstallConfirm, UninstallDone, UninstallFailed,
     PawnIoOffer, PawnIoInstallButton, PawnIoWorking, PawnIoInstalled, PawnIoRebootRequired, PawnIoDownloadFailed,
     PawnIoSignatureInvalid, PawnIoInstallFailed,
 }
@@ -91,6 +91,7 @@ public static class Loc
         [StringKey.InstallWorking] = ("Đang cài...", "Installing..."),
         [StringKey.InstalledCopyRunning] = ("Hãy thoát FPS Overlay đang chạy (biểu tượng ở khay) rồi thử lại.", "Please exit the running FPS Overlay (tray icon) and try again."),
         [StringKey.InstallFailed] = ("Không cài được FPS Overlay.", "Couldn't install FPS Overlay."),
+        [StringKey.InstallPayloadMissing] = ("Bản FPS Overlay này không mang theo gói cài đặt nên không cài được.\nHãy chạy FpsOverlay.exe tạo bằng dotnet publish, hoặc mở bản đã cài từ Start Menu.", "This copy of FPS Overlay doesn't carry the setup package, so it can't install.\nRun the FpsOverlay.exe made by dotnet publish, or open the installed copy from the Start menu."),
         [StringKey.UninstallConfirm] = ("Gỡ FPS Overlay khỏi máy này?\nCài đặt và log FPS của bạn vẫn được giữ lại.", "Uninstall FPS Overlay from this PC?\nYour settings and FPS logs are kept."),
         [StringKey.UninstallDone] = ("Đã gỡ FPS Overlay.", "FPS Overlay has been uninstalled."),
         [StringKey.UninstallFailed] = ("Không gỡ được hết FPS Overlay.", "Couldn't fully uninstall FPS Overlay."),

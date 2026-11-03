@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -9,12 +9,22 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <Version>1.0.0</Version>
-    <!-- Một file exe tự chứa: dotnet publish src/FpsOverlay -c Release -o publish -->
+    <!-- Bản mang đi: một file exe tự chứa: dotnet publish src/FpsOverlay -c Release -o publish.
+         Bên trong nhúng Payload.zip = bản nhiều file để cài vào Program Files (xem target FpsBuildPayload). -->
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
     <PublishSingleFile>true</PublishSingleFile>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+  </PropertyGroup>
+
+  <!-- Bản payload (FpsPayload=true, chỉ do target FpsBuildPayload gọi): publish nhiều file bình thường, thư viện
+       native nằm cạnh apphost FpsOverlay.exe, không bung gì vào %TEMP%. Không kèm pdb (DebugType=None truyền từ
+       target, áp cho cả project Core). -->
+  <PropertyGroup Condition="'$(FpsPayload)' == 'true'">
+    <PublishSingleFile>false</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>false</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -30,18 +40,57 @@
   <ItemGroup>
     <!-- Font nhúng vào assembly, dùng qua pack://application:,,,/Assets/Fonts/#Tên font -->
     <Resource Include="Assets\Fonts\*.ttf" />
-    <!-- Giấy phép OFL phải đi kèm font khi phát hành: nhúng vào exe, EmbeddedFiles.ExtractAll bung ra cạnh exe -->
+  </ItemGroup>
+
+  <!-- Bản mang đi / dotnet build: PresentMon và giấy phép (MIT, MPL-2.0, OFL của font, ...) nhúng với tên cố định,
+       EmbeddedFiles.ExtractAll bung phẳng vào cùng một thư mục (chỉ dùng khi chạy với tham số no-install). -->
+  <ItemGroup Condition="'$(FpsPayload)' != 'true'">
+    <EmbeddedResource Include="..\..\tools\PresentMon.exe" LogicalName="PresentMon.exe" />
+    <EmbeddedResource Include="Assets\Licenses\*.txt" LogicalName="%(Filename)%(Extension)" />
     <EmbeddedResource Include="Assets\Fonts\OFL-*.txt" LogicalName="%(Filename)%(Extension)" />
   </ItemGroup>
 
-  <ItemGroup>
-    <!-- PresentMon và giấy phép (MIT, MPL-2.0, ...) nhúng với tên cố định, bung phẳng vào cùng một thư mục -->
-    <EmbeddedResource Include="..\..\tools\PresentMon.exe" LogicalName="PresentMon.exe" />
-    <EmbeddedResource Include="Assets\Licenses\*.txt" LogicalName="%(Filename)%(Extension)" />
+  <!-- Bản payload: các file đó nằm sẵn cạnh exe (phẳng), không nhúng. -->
+  <ItemGroup Condition="'$(FpsPayload)' == 'true'">
+    <None Include="..\..\tools\PresentMon.exe" Link="PresentMon.exe" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="Assets\Licenses\*.txt" Link="%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="Assets\Fonts\OFL-*.txt" Link="%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.6" />
   </ItemGroup>
+
+  <!--
+    Chỉ chạy khi `dotnet publish` bản mang đi (CLI đặt _IsPublishing=true; dotnet build / dotnet test không chạy).
+    Publish lồng chính project này với FpsPayload=true vào obj\payload\ (thư mục obj/bin riêng: không giẫm lên bản
+    ngoài; đường dẫn tương đối nên project Core được tham chiếu cũng dùng thư mục riêng của nó), nén thành Payload.zip
+    rồi nhúng với LogicalName="Payload.zip". Chạy trước BeforeBuild (trước mọi bước chuẩn bị tài nguyên, kể cả AssignTargetPaths) để tài nguyên có mặt khi biên dịch.
+  -->
+  <PropertyGroup>
+    <FpsPayloadRoot>$(MSBuildProjectDirectory)\obj\payload\$(Configuration)\</FpsPayloadRoot>
+    <FpsPayloadPublishDir>$(FpsPayloadRoot)publish\</FpsPayloadPublishDir>
+    <FpsPayloadZip>$(FpsPayloadRoot)Payload.zip</FpsPayloadZip>
+  </PropertyGroup>
+
+  <Target Name="FpsBuildPayload" BeforeTargets="BeforeBuild"
+          Condition="'$(_IsPublishing)' == 'true' and '$(FpsPayload)' != 'true' and '$(PublishSingleFile)' == 'true'">
+    <!-- Xoá bản publish lồng cũ: file thừa của lần trước không được lọt vào payload. -->
+    <RemoveDir Directories="$(FpsPayloadPublishDir)" />
+    <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="Publish"
+             Properties="FpsPayload=true;DebugType=None;DebugSymbols=false;Configuration=$(Configuration);RuntimeIdentifier=$(RuntimeIdentifier);SelfContained=true;PublishSingleFile=false;PublishDir=$(FpsPayloadPublishDir);IntermediateOutputPath=obj\payload\$(Configuration)\obj\;OutDir=obj\payload\$(Configuration)\bin\;OutputPath=obj\payload\$(Configuration)\bin\" />
+    <Error Condition="!Exists('$(FpsPayloadPublishDir)FpsOverlay.exe') or !Exists('$(FpsPayloadPublishDir)PresentMon.exe') or !Exists('$(FpsPayloadPublishDir)wpfgfx_cor3.dll')"
+           Text="Payload publish is incomplete: $(FpsPayloadPublishDir)" />
+    <ZipDirectory SourceDirectory="$(FpsPayloadPublishDir)" DestinationFile="$(FpsPayloadZip)" Overwrite="true" />
+    <ItemGroup>
+      <EmbeddedResource Include="$(FpsPayloadZip)" LogicalName="Payload.zip" />
+    </ItemGroup>
+  </Target>
+
+  <!-- Publish bản mang đi mà không qua dotnet publish (vd. msbuild -t:Publish): thiếu Payload.zip, không cài được → báo lỗi. -->
+  <Target Name="FpsRequirePayload" AfterTargets="Publish"
+          Condition="'$(_IsPublishing)' != 'true' and '$(FpsPayload)' != 'true' and '$(PublishSingleFile)' == 'true'">
+    <Error Text="This publish has no Payload.zip and cannot install. Package with: dotnet publish src/FpsOverlay -c Release -o publish" />
+  </Target>
 
 </Project>

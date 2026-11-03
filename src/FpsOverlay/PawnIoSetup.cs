@@ -124,7 +124,7 @@ static class PawnIoSetup
         if (Installer.IsInstallPathValid && File.Exists(Installer.InstalledExePath))
         {
             RejectReparsePoint(Installer.InstallDirectory);
-            directory = Path.Combine(Installer.InstallDirectory, "Temp");
+            directory = Path.Combine(Installer.InstallDirectory, Installer.TempDirectoryName);
             Directory.CreateDirectory(directory);
             RejectReparsePoint(directory);
         }

@@ -116,14 +116,22 @@ public partial class App : Application
         // Lần cài trước dừng giữa chừng (sau khi chép exe) thì bổ sung lối tắt và mục gỡ cài đặt.
         Installer.RepairEntries();
 
-        // Bản cài: bung vào thư mục cài (thiếu hoặc khác bản nhúng thì ghi lại). --no-install: vào thư mục chứa exe.
-        // Thư mục chỉ đọc không được làm app chết im lặng.
+        // Bản cài (nhiều file): PresentMon nằm sẵn cạnh exe trong payload, chỉ kiểm tra có. --no-install (single-file lúc
+        // phát triển): bung bản nhúng vào thư mục chứa exe. Thiếu file hay thư mục chỉ đọc không được làm app chết im lặng.
         try
         {
-            _toolDirectory = Installer.IsRunningInstalled
-                ? Installer.InstallDirectory
-                : Path.GetDirectoryName(Environment.ProcessPath)!;
-            EmbeddedFiles.ExtractAll(_toolDirectory);
+            if (Installer.IsRunningInstalled)
+            {
+                _toolDirectory = Installer.InstallDirectory;
+                var presentMon = Path.Combine(_toolDirectory, Installer.PresentMonName);
+                if (!File.Exists(presentMon))
+                    throw new FileNotFoundException($"Missing {presentMon}", presentMon);
+            }
+            else
+            {
+                _toolDirectory = Path.GetDirectoryName(Environment.ProcessPath)!;
+                EmbeddedFiles.ExtractAll(_toolDirectory);
+            }
         }
         catch (Exception ex)
         {
@@ -154,6 +162,14 @@ public partial class App : Application
         // Chỉ đọc (ngôn ngữ, đã hỏi PawnIO chưa), không mở SettingsService: bản này không bao giờ ghi file cài đặt.
         var saved = SettingsStore.Load(SettingsStore.DefaultPath);
         var language = saved.Language;
+        // Không mang Payload.zip (bản cài nhiều file chép đi chỗ khác, bản dotnet build): báo rõ, không cài bản hỏng.
+        if (!Installer.HasPayload)
+        {
+            MessageBox.Show(Loc.Get(StringKey.InstallPayloadMissing, language), "FPS Overlay",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+            Shutdown();
+            return;
+        }
         InstallAction action;
         try
         {

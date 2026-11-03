@@ -2,7 +2,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
-using System.Security.Cryptography;
 using System.Text;
 using FpsOverlay.Core.Install;
 using Microsoft.Win32;
@@ -10,13 +9,20 @@ using Microsoft.Win32;
 namespace FpsOverlay;
 
 /// <summary>
-/// Cài vào <c>C:\Program Files\FpsOverlay</c> (chỉ Admin ghi được): chép exe, bung PresentMon và giấy phép, lối tắt
-/// Start Menu cho mọi người dùng, mục gỡ trong Settings → Apps. App chạy với quyền Admin nên ghi được HKLM và Program Files.
+/// Cài vào <c>C:\Program Files\FpsOverlay</c> (chỉ Admin ghi được): bung bản nhiều file (<c>Payload.zip</c> nhúng trong bản
+/// mang đi: apphost, thư viện native, PresentMon, giấy phép) để bản cài không bung thư viện vào %TEMP%; lối tắt Start Menu
+/// cho mọi người dùng, mục gỡ trong Settings → Apps. App chạy với quyền Admin nên ghi được HKLM và Program Files.
 /// </summary>
 static class Installer
 {
     /// <summary>Tên mutex một bản chạy (App giữ nó suốt lúc chạy); dùng để biết bản cài có đang chạy không.</summary>
     public const string SingleInstanceMutexName = @"Local\FpsOverlay.SingleInstance";
+
+    /// <summary>Thư mục con PawnIoSetup tải bộ cài về; cài/cập nhật không đụng tới.</summary>
+    public const string TempDirectoryName = PayloadFiles.TempDirectoryName;
+
+    /// <summary>Tên PresentMon trong thư mục cài (nằm sẵn trong payload).</summary>
+    public const string PresentMonName = "PresentMon.exe";
 
     const string DirectoryName = InstallPaths.DirectoryName;
     const string ExeName = "FpsOverlay.exe";
@@ -60,46 +66,56 @@ static class Installer
         return true;
     }
 
-    /// <summary>Cài mới, cập nhật hay chạy luôn bản đã cài. Đọc file (băm cả exe) nên có thể ném lỗi IO.</summary>
+    /// <summary>
+    /// Exe đang chạy có mang theo bản cài (<c>Payload.zip</c>) không. Không có (bản đã cài nhiều file chép đi chỗ khác,
+    /// hay bản <c>dotnet build</c>) thì không cài được: App báo lỗi thay vì cài một bản hỏng.
+    /// </summary>
+    public static bool HasPayload => EmbeddedFiles.HasPayload;
+
+    // Băm một lần (vài chục MB), dùng cho cả Decide lẫn Install.
+    static readonly Lazy<string> RunningPayloadHash = new(() => EmbeddedFiles.ResourceHash(EmbeddedFiles.PayloadName));
+
+    /// <summary>Cài mới, cập nhật hay chạy luôn bản đã cài. Đọc file (băm payload) nên có thể ném lỗi IO.</summary>
     public static InstallAction Decide()
     {
+        EnsureHasPayload();
         Version? installedVersion = null;
         string? installedHash = null;
         if (File.Exists(InstalledExePath))
         {
-            // Phiên bản bản cài lấy từ FileVersion của exe (cũng sinh từ <Version>), cùng 4 phần như AssemblyVersion.
+            // Phiên bản bản cài lấy từ FileVersion của exe (apphost mang tài nguyên phiên bản của FpsOverlay.dll, cũng sinh
+            // từ <Version>), cùng 4 phần như AssemblyVersion.
             var info = FileVersionInfo.GetVersionInfo(InstalledExePath);
             installedVersion = new Version(info.FileMajorPart, info.FileMinorPart, info.FileBuildPart, info.FilePrivatePart);
-            try { installedHash = FileHash(InstalledExePath); }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }   // không đọc được: coi như khác → cập nhật
+            installedHash = PayloadFiles.ReadHash(InstallDirectory);   // null (bản single-file cũ) → cập nhật
         }
-        return InstallDecision.Decide(RunningVersion, FileHash(RunningExePath), installedVersion, installedHash);
+        return InstallDecision.Decide(RunningVersion, RunningPayloadHash.Value, installedVersion, installedHash);
     }
 
     /// <summary>
-    /// Cài hoặc cập nhật (gọi ngoài luồng UI: chép exe vài chục MB). Ném lỗi nếu không làm được; gọi lại an toàn
-    /// (mọi bước ghi đè). Không đụng tới cài đặt ở %AppData% và log.
+    /// Cài hoặc cập nhật (gọi ngoài luồng UI: bung payload hơn trăm MB). <see cref="PayloadFiles.Apply"/>: bung
+    /// <c>Payload.zip</c> vào thư mục tạm trong thư mục cài, chuyển từng file vào chỗ, xoá file cũ không còn trong payload
+    /// (trừ <c>Temp</c>), ghi <c>payload.sha256</c> sau cùng. Ném lỗi nếu không làm được; gọi lại an toàn. Không đụng tới
+    /// cài đặt ở %AppData% và log. Bản cài phải đang không chạy (InstallWindow kiểm tra mutex trước).
     /// </summary>
     public static void Install()
     {
+        EnsureHasPayload();
         EnsureInstallPathValid();
         Directory.CreateDirectory(InstallDirectory);
+        var dir = SafeInstallDirectory();   // đúng <Program Files>\FpsOverlay, không phải liên kết
 
-        // Chép qua file tạm (tên riêng mỗi lần) rồi đổi tên: lỗi giữa chừng không để lại exe cụt trong thư mục cài.
-        var temp = $"{InstalledExePath}.{Guid.NewGuid():N}.new";
-        try
-        {
-            File.Copy(RunningExePath, temp, overwrite: true);
-            File.Move(temp, InstalledExePath, overwrite: true);
-        }
-        finally
-        {
-            if (File.Exists(temp)) File.Delete(temp);
-        }
+        using (var payload = EmbeddedFiles.Open(EmbeddedFiles.PayloadName))
+            PayloadFiles.Apply(dir, payload, RunningPayloadHash.Value, [ExeName, PresentMonName], keepPath: RunningExePath);
 
-        EmbeddedFiles.ExtractAll(InstallDirectory);
         CreateShortcut();
         WriteUninstallEntry();
+    }
+
+    static void EnsureHasPayload()
+    {
+        if (!HasPayload)
+            throw new InvalidOperationException("This copy has no setup payload (Payload.zip); build it with dotnet publish.");
     }
 
     /// <summary>
@@ -166,12 +182,6 @@ static class Installer
         using var _ = Process.Start(start);
     }
 
-    public static string FileHash(string path)
-    {
-        using var s = File.OpenRead(path);
-        return Convert.ToHexStringLower(SHA256.HashData(s));
-    }
-
     // ---------- Gỡ thư mục ----------
 
     // Chặn mọi đường dẫn khác: chỉ đúng <Program Files>\FpsOverlay, tuyệt đối, không phải liên kết (junction/symlink).
@@ -208,10 +218,8 @@ static class Installer
             return;
         }
 
-        // Xoá trước mọi thứ trừ exe đang chạy; phần còn lại cmd xoá sau khi app thoát.
-        foreach (var file in Directory.GetFiles(dir))
-            if (!string.Equals(Path.GetFullPath(file), Path.GetFullPath(RunningExePath), StringComparison.OrdinalIgnoreCase))
-                File.Delete(file);
+        // Bản cài nhiều file đang chạy khoá cả exe lẫn các dll đã nạp (coreclr, wpfgfx, ...): không xoá trước được gì,
+        // để cmd xoá cả thư mục sau khi app thoát.
         ScheduleSelfDelete(dir);
     }
 

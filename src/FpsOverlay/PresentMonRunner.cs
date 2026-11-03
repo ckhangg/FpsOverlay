@@ -25,7 +25,7 @@ sealed class PresentMonRunner : IDisposable
 
     readonly string _toolDirectory;
 
-    /// <param name="toolDirectory">Thư mục chứa PresentMon.exe (nơi EmbeddedFiles.ExtractAll đã bung ra).</param>
+    /// <param name="toolDirectory">Thư mục chứa PresentMon.exe (thư mục cài, nơi payload đặt sẵn; hoặc với --no-install, nơi EmbeddedFiles.ExtractAll đã bung ra).</param>
     public PresentMonRunner(string toolDirectory) => _toolDirectory = toolDirectory;
 
     public void Start(Action<FrameSample> onFrame)
