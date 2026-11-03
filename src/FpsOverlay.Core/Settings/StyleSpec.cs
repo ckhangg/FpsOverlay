@@ -25,9 +25,24 @@ public static class StyleSpecs
         "#0A0A0F", " · ", "",
         ["#00F0FF", "#FCEE0A", "#FF003C", "#FF2A6D", "#05D9E8", "#D1F7FF", "#39FF14", "#B967FF", "#FFFFFF", "#FF8C1A"]);
 
+    private static readonly StyleSpec NeonPurple = new(
+        new StyleColors("#FF4FD8", "#F3E6FF", "#FF4FD8"),
+        "#FF4FD8", "#FFB86C", "#FF2E4D",
+        "#1A0828", " · ", "",
+        ["#FF4FD8", "#F3E6FF", "#FFB86C", "#FF2E4D", "#B967FF", "#7A5CFF", "#00F0FF", "#FF8AE6", "#FCEE0A", "#FFFFFF"]);
+
+    private static readonly StyleSpec TerminalGreen = new(
+        new StyleColors("#1FAA44", "#33FF66", "#7CFF9E"),
+        "#7CFF9E", "#E5FF4F", "#FF5F45",
+        "#000800", " | ", "> ",
+        ["#1FAA44", "#33FF66", "#7CFF9E", "#E5FF4F", "#FF5F45", "#00CC88", "#B8FFC8", "#FFB000", "#00E5FF", "#FFFFFF"]);
+
     public static StyleSpec For(OverlayStyle style) => style switch
     {
         OverlayStyle.Classic => Classic,
-        _ => Cyberpunk,
+        OverlayStyle.Cyberpunk => Cyberpunk,
+        OverlayStyle.NeonPurple => NeonPurple,
+        OverlayStyle.TerminalGreen => TerminalGreen,
+        _ => throw new ArgumentOutOfRangeException(nameof(style), style, null),
     };
 }

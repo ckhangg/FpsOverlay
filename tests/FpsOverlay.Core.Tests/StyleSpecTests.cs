@@ -38,4 +38,40 @@ public sealed class StyleSpecTests
                 Assert.True(HexColor.TryNormalize(c, out _), $"{style}: {c}");
         }
     }
+
+    [Fact]
+    public void Neon_purple_spec_matches_design()
+    {
+        var s = StyleSpecs.For(OverlayStyle.NeonPurple);
+        Assert.Equal(new StyleColors("#FF4FD8", "#F3E6FF", "#FF4FD8"), s.DefaultColors);
+        Assert.Equal(("#FF4FD8", "#FFB86C", "#FF2E4D"), (s.Good, s.Medium, s.Bad));
+        Assert.Equal("#1A0828", s.Background);
+        Assert.Equal((" · ", ""), (s.Separator, s.Prompt));
+    }
+
+    [Fact]
+    public void Terminal_green_spec_matches_design()
+    {
+        var s = StyleSpecs.For(OverlayStyle.TerminalGreen);
+        Assert.Equal(new StyleColors("#1FAA44", "#33FF66", "#7CFF9E"), s.DefaultColors);
+        Assert.Equal(("#7CFF9E", "#E5FF4F", "#FF5F45"), (s.Good, s.Medium, s.Bad));
+        Assert.Equal("#000800", s.Background);
+        Assert.Equal((" | ", "> "), (s.Separator, s.Prompt));
+    }
+
+    [Fact]
+    public void Swatches_contain_default_colors()
+    {
+        foreach (var style in Enum.GetValues<OverlayStyle>())
+        {
+            var s = StyleSpecs.For(style);
+            Assert.Contains(s.DefaultColors.Label, s.Swatches);
+            Assert.Contains(s.DefaultColors.Value, s.Swatches);
+            Assert.Contains(s.DefaultColors.Fps, s.Swatches);
+        }
+    }
+
+    [Fact]
+    public void Unknown_style_throws() =>
+        Assert.Throws<ArgumentOutOfRangeException>(() => StyleSpecs.For((OverlayStyle)99));
 }

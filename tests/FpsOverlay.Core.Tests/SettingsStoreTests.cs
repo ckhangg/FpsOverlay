@@ -45,6 +45,19 @@ public sealed class SettingsStoreTests : IDisposable
     }
 
     [Fact]
+    public void Store_round_trips_new_styles()
+    {
+        var original = OverlaySettings.Defaults with
+        {
+            Style = OverlayStyle.TerminalGreen,
+            NeonPurpleColors = new StyleColors("#123456", "#ABCDEF", "#010203"),
+            TerminalGreenColors = new StyleColors("#0A0B0C", "#1A1B1C", "#2A2B2C")
+        };
+        SettingsStore.Save(PathIn(), original);
+        Assert.Equal(original, SettingsStore.Load(PathIn()));
+    }
+
+    [Fact]
     public void Unknown_enum_and_missing_fields_fall_back()
     {
         Directory.CreateDirectory(_dir);

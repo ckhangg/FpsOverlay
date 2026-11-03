@@ -52,7 +52,9 @@ static class OverlayTheme
     public static OverlayVisuals Visuals(OverlayStyle style) => style switch
     {
         OverlayStyle.Classic => Classic,
-        _ => Cyberpunk,
+        // Tạm dùng giao diện Cyberpunk cho hai phong cách mới; Task 8 thay bằng giao diện riêng.
+        OverlayStyle.Cyberpunk or OverlayStyle.NeonPurple or OverlayStyle.TerminalGreen => Cyberpunk,
+        _ => throw new ArgumentOutOfRangeException(nameof(style), style, null),
     };
 
     /// <summary>

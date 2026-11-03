@@ -54,6 +54,8 @@ public static class SettingsStore
                 PawnIoOffered = ReadBool(root, nameof(OverlaySettings.PawnIoOffered), d.PawnIoOffered),
                 ClassicColors = ReadColors(root, nameof(OverlaySettings.ClassicColors), d.ClassicColors),
                 CyberpunkColors = ReadColors(root, nameof(OverlaySettings.CyberpunkColors), d.CyberpunkColors),
+                NeonPurpleColors = ReadColors(root, nameof(OverlaySettings.NeonPurpleColors), d.NeonPurpleColors),
+                TerminalGreenColors = ReadColors(root, nameof(OverlaySettings.TerminalGreenColors), d.TerminalGreenColors),
             }.Normalize();
         }
         catch (Exception)   // file hỏng, bị khoá, đường dẫn lạ...: lỗi gì cũng về mặc định

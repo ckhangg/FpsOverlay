@@ -80,6 +80,41 @@ public class OverlaySettingsTests
         Assert.Equal(custom, s.CyberpunkColors);
     }
 
+    [Fact]
+    public void Reset_keeps_colors_of_other_three_styles()
+    {
+        var c = new StyleColors("#111111", "#222222", "#333333");
+        var s = (OverlaySettings.Defaults with
+        {
+            Style = OverlayStyle.NeonPurple,
+            ClassicColors = c, CyberpunkColors = c, NeonPurpleColors = c, TerminalGreenColors = c
+        }).ResetToDefaults();
+        Assert.Equal(StyleColors.DefaultFor(OverlayStyle.NeonPurple), s.NeonPurpleColors);
+        Assert.Equal(c, s.ClassicColors);
+        Assert.Equal(c, s.CyberpunkColors);
+        Assert.Equal(c, s.TerminalGreenColors);
+    }
+
+    [Fact]
+    public void WithColors_round_trips_for_every_style_and_leaves_others_untouched()
+    {
+        var c = new StyleColors("#010203", "#040506", "#070809");
+        foreach (var style in Enum.GetValues<OverlayStyle>())
+        {
+            var s = OverlaySettings.Defaults.WithColors(style, c);
+            Assert.Equal(c, s.ColorsFor(style));
+            foreach (var other in Enum.GetValues<OverlayStyle>().Where(o => o != style))
+                Assert.Equal(OverlaySettings.Defaults.ColorsFor(other), s.ColorsFor(other));
+        }
+    }
+
+    [Fact]
+    public void Unknown_style_colors_throw()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => OverlaySettings.Defaults.ColorsFor((OverlayStyle)99));
+        Assert.Throws<ArgumentOutOfRangeException>(() => OverlaySettings.Defaults.WithColors((OverlayStyle)99, new StyleColors("#000000", "#000000", "#000000")));
+    }
+
     [Theory]
     [InlineData("#abcdef", "#ABCDEF")]
     [InlineData("00f0ff", "#00F0FF")]

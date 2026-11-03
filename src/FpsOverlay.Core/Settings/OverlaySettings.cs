@@ -1,6 +1,6 @@
 namespace FpsOverlay.Core.Settings;
 
-public enum OverlayStyle { Classic, Cyberpunk }
+public enum OverlayStyle { Classic, Cyberpunk, NeonPurple, TerminalGreen }
 
 public enum OverlayCorner { TopLeft, TopRight, BottomLeft, BottomRight }
 
@@ -50,6 +50,8 @@ public sealed record OverlaySettings
     public bool PawnIoOffered { get; init; }
     public StyleColors ClassicColors { get; init; } = StyleColors.DefaultFor(OverlayStyle.Classic);
     public StyleColors CyberpunkColors { get; init; } = StyleColors.DefaultFor(OverlayStyle.Cyberpunk);
+    public StyleColors NeonPurpleColors { get; init; } = StyleColors.DefaultFor(OverlayStyle.NeonPurple);
+    public StyleColors TerminalGreenColors { get; init; } = StyleColors.DefaultFor(OverlayStyle.TerminalGreen);
 
     public static OverlaySettings Defaults { get; } = new();
 
@@ -85,13 +87,19 @@ public sealed record OverlaySettings
     public StyleColors ColorsFor(OverlayStyle style) => style switch
     {
         OverlayStyle.Classic => ClassicColors,
-        _ => CyberpunkColors,
+        OverlayStyle.Cyberpunk => CyberpunkColors,
+        OverlayStyle.NeonPurple => NeonPurpleColors,
+        OverlayStyle.TerminalGreen => TerminalGreenColors,
+        _ => throw new ArgumentOutOfRangeException(nameof(style), style, null),
     };
 
     public OverlaySettings WithColors(OverlayStyle style, StyleColors colors) => style switch
     {
         OverlayStyle.Classic => this with { ClassicColors = colors },
-        _ => this with { CyberpunkColors = colors },
+        OverlayStyle.Cyberpunk => this with { CyberpunkColors = colors },
+        OverlayStyle.NeonPurple => this with { NeonPurpleColors = colors },
+        OverlayStyle.TerminalGreen => this with { TerminalGreenColors = colors },
+        _ => throw new ArgumentOutOfRangeException(nameof(style), style, null),
     };
 
     /// <summary>Đặt mốc tốt; nếu mốc kém không còn thấp hơn thì đẩy mốc kém xuống.</summary>
