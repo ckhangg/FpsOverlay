@@ -156,7 +156,7 @@ sealed class SensorService : IDisposable
                             case HardwareType.GpuIntel:
                                 gpus.Add(new GpuReading(hw.Identifier.ToString(),
                                     Pick(hw, SensorType.Load, "GPU Core"),
-                                    Pick(hw, SensorType.Temperature, "GPU Core")));
+                                    PositiveOrNull(Pick(hw, SensorType.Temperature, "GPU Core"))));
                                 break;
                         }
                     }
@@ -177,6 +177,9 @@ sealed class SensorService : IDisposable
         _cpuTempAvailable = cpuTemp is not null;
         return new SensorSnapshot(gpuLoad, gpuTemp, cpuLoad, cpuTemp, ReadRamUsedGb());
     }
+
+    // Nhiệt độ <= 0 là cảm biến chưa đọc được (như PickCpuTemp), không phải 0 °C thật.
+    static double? PositiveOrNull(double? value) => value > 0 ? value : null;
 
     static double? Pick(IHardware hw, SensorType type, string name)
     {

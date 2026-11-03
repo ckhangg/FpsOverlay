@@ -23,6 +23,28 @@ public class GameSessionTrackerTests
     }
 
     [Fact]
+    public void Session_game_is_in_front_only_when_it_covers_the_monitor_with_fps()
+    {
+        var session = new GameSession(1, "game", 11);
+        Assert.True(new SessionInput(20, 1, null, true, true, true).IsInFront(session));
+        // Alt-tab ra desktop, sang một app khác có FPS, hay game thu nhỏ thành cửa sổ: giây đó vẫn thuộc buổi nhưng FPS trống.
+        Assert.False(new SessionInput(20, null, null, false, false, true).IsInFront(session));
+        Assert.False(new SessionInput(20, 2, null, true, true, true).IsInFront(session));
+        Assert.False(new SessionInput(20, 1, null, false, true, true).IsInFront(session));
+    }
+
+    [Fact]
+    public void Alt_tab_under_a_minute_keeps_the_session_while_game_is_not_in_front()
+    {
+        var t = Started();
+        var session = t.Current!;
+        var away = new SessionInput(30, null, null, false, false, true);
+        Assert.Empty(t.Tick(away));
+        Assert.Same(session, t.Current);
+        Assert.False(away.IsInFront(session));
+    }
+
+    [Fact]
     public void Starts_after_ten_seconds_of_fullscreen_fps()
     {
         var t = new GameSessionTracker();

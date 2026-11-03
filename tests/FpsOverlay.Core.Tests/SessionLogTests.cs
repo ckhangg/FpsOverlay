@@ -41,6 +41,27 @@ public class SessionLogTests
     }
 
     [Fact]
+    public void Second_fps_is_frames_over_elapsed_when_game_is_in_front()
+    {
+        Assert.Equal(60.0, SessionLog.SecondFps(60, 1.0, gameInFront: true));
+        Assert.Equal(50.0, SessionLog.SecondFps(100, 2.0, gameInFront: true));
+    }
+
+    [Fact]
+    public void Second_fps_is_empty_without_frames()
+    {
+        Assert.Null(SessionLog.SecondFps(0, 1.0, gameInFront: true));
+        Assert.Null(SessionLog.SecondFps(10, 0, gameInFront: true));
+    }
+
+    [Fact]
+    public void Second_fps_is_empty_when_game_is_in_background()
+    {
+        // Alt-tab: game vẫn vẽ ở nền nhưng giây đó phải để trống FPS.
+        Assert.Null(SessionLog.SecondFps(144, 1.0, gameInFront: false));
+    }
+
+    [Fact]
     public void File_stem_is_sanitized()
     {
         Assert.Equal("Lies_of_P__2026-11-03_20-15", SessionLog.FileStem("Lies of P:", new DateTime(2026, 11, 3, 20, 15, 59)));

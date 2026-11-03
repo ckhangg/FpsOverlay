@@ -21,6 +21,13 @@ public static class SessionLog
 
     static string Cell(double? value, string format) => value?.ToString(format, Inv) ?? "";
 
+    /// <summary>
+    /// FPS của một giây log = số khung mới / thời gian trôi qua. Không có khung nào thì trống (không tính là 0 FPS);
+    /// game không ở phía trước (<paramref name="gameInFront"/> = false, vd. alt-tab) cũng trống dù game vẫn vẽ ở nền.
+    /// </summary>
+    public static double? SecondFps(int frames, double elapsedSeconds, bool gameInFront) =>
+        gameInFront && frames > 0 && elapsedSeconds > 0 ? frames / elapsedSeconds : null;
+
     /// <summary>Tên file không đuôi: <c>&lt;tên game&gt;_yyyy-MM-dd_HH-mm</c>; ký tự cấm và khoảng trắng thành "_", tên rỗng thành "Game".</summary>
     public static string FileStem(string processName, DateTime start)
     {

@@ -6,7 +6,17 @@ namespace FpsOverlay.Core.Logging;
 /// <param name="CoversMonitor">Cửa sổ phía trước phủ kín màn hình chứa nó.</param>
 /// <param name="HasFps">Tiến trình đó đang có FPS.</param>
 /// <param name="SessionProcessAlive">Tiến trình của buổi hiện tại còn sống (true nếu chưa có buổi).</param>
-public readonly record struct SessionInput(double Now, int? ProcessId, string? ProcessName, bool CoversMonitor, bool HasFps, bool SessionProcessAlive);
+public readonly record struct SessionInput(double Now, int? ProcessId, string? ProcessName, bool CoversMonitor, bool HasFps, bool SessionProcessAlive)
+{
+    /// <summary>Tiến trình phía trước phủ kín màn hình và có FPS (đủ điều kiện đếm/giữ buổi).</summary>
+    public bool Qualifies => ProcessId is not null && CoversMonitor && HasFps;
+
+    /// <summary>
+    /// Game của <paramref name="session"/> đang ở phía trước và đủ điều kiện. False (alt-tab, cửa sổ khác che) thì giây
+    /// này vẫn nằm trong buổi nhưng FPS để trống: khung game vẽ ở nền không tính vào log và tóm tắt.
+    /// </summary>
+    public bool IsInFront(GameSession session) => Qualifies && ProcessId == session.ProcessId;
+}
 
 public sealed record GameSession(int ProcessId, string ProcessName, double StartedAt);
 
@@ -36,13 +46,13 @@ public sealed class GameSessionTracker
         List<SessionChange>? changes = null;
         void Add(SessionChangeKind kind, GameSession session) => (changes ??= []).Add(new SessionChange(kind, session));
 
-        bool qualifies = input.ProcessId is not null && input.CoversMonitor && input.HasFps;
+        bool qualifies = input.Qualifies;
 
         if (Current is { } current)
         {
             if (!input.SessionProcessAlive)
                 End();
-            else if (qualifies && input.ProcessId == current.ProcessId)
+            else if (input.IsInFront(current))
                 _lastActive = input.Now;
             else if (input.Now - _lastActive > EndAfterSeconds)   // kể cả khi game khác đang đếm 10 giây mà chưa đủ
                 End();

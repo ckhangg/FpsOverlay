@@ -77,7 +77,8 @@ sealed class SessionLogger : IDisposable
         string? name = pid is { } p && covers && p != _active?.Info.ProcessId ? ProcessNameOf(p) : null;
         bool alive = _active is null || IsAlive(_active.Info.ProcessId);
 
-        foreach (var change in _tracker.Tick(new SessionInput(now, pid, name, covers, pid is not null, alive)))
+        var input = new SessionInput(now, pid, name, covers, pid is not null, alive);
+        foreach (var change in _tracker.Tick(input))
         {
             if (change.Kind == SessionChangeKind.Ended)
                 EndSession();
@@ -86,7 +87,7 @@ sealed class SessionLogger : IDisposable
         }
 
         if (_active is { } active)
-            WriteSecond(active, now, history, sensors);
+            WriteSecond(active, now, history, sensors, input.IsInFront(active.Info));
     }
 
     void StartSession(GameSession session, FrameTimeHistory history, double now)
@@ -103,7 +104,9 @@ sealed class SessionLogger : IDisposable
     }
 
     // Một dòng cho giây vừa qua: FPS = số khung mới / thời gian trôi qua kể từ lần Tick trước.
-    void WriteSecond(ActiveSession a, double now, FrameTimeHistory history, SensorSnapshot sensors)
+    // inFront = false (alt-tab, chưa quá 1 phút nên buổi chưa kết thúc): vẫn lấy khung để con trỏ đi tiếp nhưng bỏ đi —
+    // FPS và 1% low để trống, không tính vào tóm tắt, không kéo dài thời lượng buổi.
+    void WriteSecond(ActiveSession a, double now, FrameTimeHistory history, SensorSnapshot sensors, bool inFront)
     {
         double elapsed = now - a.LastTickAt;
         if (elapsed <= 0) return;   // tick bắt đầu buổi
@@ -111,12 +114,14 @@ sealed class SessionLogger : IDisposable
 
         _frameTimes.Clear();
         int frames = history.CopyFrameTimes(a.Info.ProcessId, ref a.Cursor, _frameTimes);
-        double? fps = frames > 0 ? frames / elapsed : null;   // không có khung nào thì để trống, không tính là 0 FPS
-        if (frames > 0) a.LastFrameAt = now;
+        double? fps = SessionLog.SecondFps(frames, elapsed, inFront);
+        if (fps is null) _frameTimes.Clear();
+        else a.LastFrameAt = now;
 
         a.Summary.AddSecond(fps, sensors);
         a.Summary.AddFrameTimes(_frameTimes);
-        a.Rows.Writer.TryWrite(SessionLog.FormatRow(DateTimeOffset.Now, fps, history.OnePercentLow(a.Info.ProcessId), sensors));
+        double? onePercentLow = inFront ? history.OnePercentLow(a.Info.ProcessId) : null;
+        a.Rows.Writer.TryWrite(SessionLog.FormatRow(DateTimeOffset.Now, fps, onePercentLow, sensors));
     }
 
     // Đóng hàng đợi và giao nội dung tóm tắt cho luồng nền; không chờ, không đụng file ở luồng UI.
@@ -136,9 +141,11 @@ sealed class SessionLogger : IDisposable
         StreamWriter? writer = null;
         try
         {
+            EnsureNoLinkedLogDirectory();
             Directory.CreateDirectory(LogDirectory);
             // Không trùng cả file CSV lẫn file tóm tắt của buổi cũ.
             path = SessionLog.UniquePath(LogDirectory, stem, ".csv", p => File.Exists(p) || File.Exists(SessionLog.SummaryPath(p)));
+            EnsureNoLinkedLogDirectory();   // kiểm lại ngay trước khi mở file
             writer = new StreamWriter(new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read), new UTF8Encoding(false));
             writer.WriteLine(SessionLog.Header);
             var sinceFlush = Stopwatch.StartNew();
@@ -164,11 +171,33 @@ sealed class SessionLogger : IDisposable
         if (path is null) return;
         try
         {
-            File.WriteAllText(SessionLog.SummaryPath(path), await summaryText, new UTF8Encoding(false));
+            var text = await summaryText;
+            EnsureNoLinkedLogDirectory();
+            // CreateNew: không ghi đè (cũng không đi theo) file hay liên kết có sẵn mang tên này.
+            using var summary = new StreamWriter(new FileStream(SessionLog.SummaryPath(path), FileMode.CreateNew, FileAccess.Write, FileShare.Read),
+                new UTF8Encoding(false));
+            summary.Write(text);
         }
         catch (Exception ex)
         {
             Trace.TraceWarning($"Không ghi được file tóm tắt {stem}: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// App chạy quyền Admin nhưng ghi vào Documents (người dùng ghi được): <c>Documents\FpsOverlay</c> hay <c>Logs</c> mà là
+    /// liên kết (junction/symlink) thì file có thể bị dẫn sang chỗ khác (vd. thư mục hệ thống) → ném lỗi, không ghi.
+    /// </summary>
+    static void EnsureNoLinkedLogDirectory()
+    {
+        foreach (var dir in new[] { Path.GetDirectoryName(LogDirectory)!, LogDirectory })
+        {
+            FileAttributes attributes;
+            // Đọc thuộc tính của chính mục này (không đi theo liên kết, kể cả liên kết hỏng); chưa có thì bỏ qua.
+            try { attributes = File.GetAttributes(dir); }
+            catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException) { continue; }
+            if (attributes.HasFlag(FileAttributes.ReparsePoint))
+                throw new IOException($"Refusing to write logs through a link: {dir}");
         }
     }
     /// <summary>Thoát app: kết thúc buổi đang ghi rồi chờ (có hạn) các luồng ghi xả file và viết tóm tắt.</summary>
