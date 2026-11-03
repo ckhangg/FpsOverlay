@@ -18,12 +18,16 @@ sealed class TrayIcon : IDisposable
 
     readonly NotifyIcon _icon;
     readonly Icon _image;
+    readonly ToolStripMenuItem _warningItem;
     readonly ToolStripMenuItem _toggleItem;
     readonly ToolStripMenuItem _settingsItem;
     readonly ToolStripMenuItem _cornerItem;
     readonly ToolStripMenuItem _autostartItem;
     readonly ToolStripMenuItem _exitItem;
     readonly ToolStripMenuItem[] _cornerItems;
+    // Chữ cảnh báo đang hiện (null = không có); Apply giữ lại để đổi cài đặt không làm mất cảnh báo.
+    string? _warning;
+    AppLanguage _language = AppLanguage.Vietnamese;
 
     public event Action? ToggleRequested;
     public event Action? SettingsRequested;
@@ -35,6 +39,7 @@ sealed class TrayIcon : IDisposable
 
     public TrayIcon()
     {
+        _warningItem = new ToolStripMenuItem("") { Enabled = false, Visible = false };
         _toggleItem = new ToolStripMenuItem("", null, (_, _) => ToggleRequested?.Invoke());
         _settingsItem = new ToolStripMenuItem("", null, (_, _) => SettingsRequested?.Invoke());
         _cornerItems = Corners
@@ -46,6 +51,7 @@ sealed class TrayIcon : IDisposable
 
         var menu = new ContextMenuStrip();
         menu.Opening += (_, _) => MenuOpening?.Invoke();
+        menu.Items.Add(_warningItem);
         menu.Items.Add(_toggleItem);
         menu.Items.Add(_settingsItem);
         menu.Items.Add(_cornerItem);
@@ -66,8 +72,8 @@ sealed class TrayIcon : IDisposable
     /// <summary>Cập nhật chữ theo ngôn ngữ, dấu chọn góc đang dùng và chữ Ẩn/Hiện theo trạng thái overlay.</summary>
     public void Apply(OverlaySettings settings, bool overlayVisible)
     {
-        var language = settings.Language;
-        _icon.Text = Loc.Get(StringKey.TrayTooltip, language);
+        var language = _language = settings.Language;
+        _icon.Text = _warning ?? Loc.Get(StringKey.TrayTooltip, language);
         _toggleItem.Text = Loc.Get(overlayVisible ? StringKey.TrayHide : StringKey.TrayShow, language);
         _settingsItem.Text = Loc.Get(StringKey.TraySettings, language);
         _cornerItem.Text = Loc.Get(StringKey.TrayCorner, language);
@@ -78,6 +84,15 @@ sealed class TrayIcon : IDisposable
             _cornerItems[i].Text = Loc.Get(Corners[i].Key, language);
             _cornerItems[i].Checked = Corners[i].Corner == settings.Corner;
         }
+    }
+
+    /// <summary>Hiện dòng cảnh báo đầu menu và đặt làm tooltip; null thì ẩn dòng đó và trả tooltip về như cũ.</summary>
+    public void SetWarning(string? text)
+    {
+        _warning = text;
+        _warningItem.Text = text ?? "";
+        _warningItem.Visible = text is not null;
+        _icon.Text = text ?? Loc.Get(StringKey.TrayTooltip, _language);
     }
 
     /// <summary>Dấu tick ở mục Khởi động cùng Windows.</summary>

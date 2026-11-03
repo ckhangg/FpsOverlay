@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Windows;
 using System.Windows.Media;
+using System.Windows.Threading;
 using FpsOverlay.Core;
 using FpsOverlay.Core.Localization;
 using FpsOverlay.Core.Settings;
@@ -12,6 +13,11 @@ public partial class App : Application
     readonly FpsCalculator _calculator = new();
     readonly Stopwatch _previewClock = Stopwatch.StartNew();
     readonly AutostartService _autostart = new();
+    readonly Stopwatch _clock = Stopwatch.StartNew();
+    // Thời điểm (giây theo _clock) PresentMon được chạy/chạy lại; null = đang chủ động dừng, không cảnh báo.
+    double? _presentMonStartedAt;
+    bool _stalled;
+    DispatcherTimer? _watchdog;
     SettingsService? _settings;
     PresentMonRunner? _runner;
     OverlayWindow? _overlay;
@@ -57,7 +63,11 @@ public partial class App : Application
         tray.AutostartRequested += SetAutostart;
         tray.ExitRequested += Shutdown;
         // Đổi ngôn ngữ hay góc (kể cả từ cửa sổ cài đặt) thì menu khay đổi theo ngay.
-        settings.Changed += s => tray.Apply(s, overlay.IsVisible);
+        settings.Changed += s =>
+        {
+            tray.Apply(s, overlay.IsVisible);
+            if (_stalled) tray.SetWarning(Loc.Get(StringKey.PresentMonNoData, s.Language));   // đổi chữ theo ngôn ngữ mới
+        };
         _autostart.Changed += tray.SetAutostart;
         // Đọc lại mỗi lần mở menu: tác vụ có thể bị xoá/sửa trong Task Scheduler lúc app đang chạy.
         tray.MenuOpening += () => _ = _autostart.RefreshAsync();
@@ -78,8 +88,23 @@ public partial class App : Application
             return;
         }
 
+        _presentMonStartedAt = _clock.Elapsed.TotalSeconds;
+        _watchdog = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        _watchdog.Tick += (_, _) => CheckPresentMon();
+        _watchdog.Start();
+
         _overlay.Show();
         CompositionTarget.Rendering += OnRendering;
+    }
+
+    // Mỗi giây kiểm tra PresentMon có đang gửi dữ liệu không; chỉ đụng vào khay khi trạng thái đổi.
+    void CheckPresentMon()
+    {
+        bool stalled = _presentMonStartedAt is { } startedAt &&
+            PresentMonHealth.IsStalled(_clock.Elapsed.TotalSeconds - startedAt, _calculator.SecondsSinceAnyFrame());
+        if (stalled == _stalled) return;
+        _stalled = stalled;
+        _tray?.SetWarning(stalled ? Loc.Get(StringKey.PresentMonNoData, Language) : null);
     }
 
     // Vẽ lại con số mỗi khung hình của WPF: cập nhật nhanh nhất có thể.
@@ -98,8 +123,14 @@ public partial class App : Application
     void ToggleOverlay()
     {
         if (_overlay is null || _settings is null) return;
+        // Ẩn thì ngừng đăng ký vẽ mỗi khung hình; hiện lại thì đăng ký một lần (luôn gỡ trước để không bao giờ trùng).
+        CompositionTarget.Rendering -= OnRendering;
         if (_overlay.IsVisible) _overlay.Hide();
-        else _overlay.Show();
+        else
+        {
+            _overlay.Show();
+            CompositionTarget.Rendering += OnRendering;
+        }
         _tray?.Apply(_settings.Current, _overlay.IsVisible);
     }
 
@@ -152,6 +183,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _watchdog?.Stop();
         CompositionTarget.Rendering -= OnRendering;
         _tray?.Dispose();
         _runner?.Dispose();

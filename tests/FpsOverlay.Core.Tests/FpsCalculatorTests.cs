@@ -113,4 +113,16 @@ public class FpsCalculatorTests
     [Fact]
     public void Format_does_not_allocate_for_common_values() =>
         Assert.Same(FpsCalculator.Format(144.2), FpsCalculator.Format(143.8));
+
+    [Fact] public void Seconds_since_any_frame_null_before_first_frame() => Assert.Null(new FpsCalculator().SecondsSinceAnyFrame());
+
+    [Fact]
+    public void Seconds_since_any_frame_uses_clock()
+    {
+        double clock = 100;
+        var c = new FpsCalculator(() => clock);
+        c.Add(new(1, 0));
+        clock += 3;
+        Assert.Equal(3, c.SecondsSinceAnyFrame()!.Value, 3);
+    }
 }

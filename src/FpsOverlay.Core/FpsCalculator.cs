@@ -45,6 +45,13 @@ public sealed class FpsCalculator
         }
     }
 
+    /// <summary>Số giây kể từ khung hình mới nhất (của mọi tiến trình), hoặc null nếu chưa nhận khung nào.</summary>
+    public double? SecondsSinceAnyFrame()
+    {
+        lock (_lock)
+            return _latestTime == double.MinValue ? null : _clock() - _clockAtLatest;
+    }
+
     /// <summary>FPS của tiến trình, hoặc null nếu nó có ít hơn 2 khung hình trong cửa sổ trượt.</summary>
     public double? GetFps(int processId)
     {
