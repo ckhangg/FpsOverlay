@@ -105,6 +105,16 @@ static class NativeMethods
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool CloseHandle(IntPtr hObject);
 
+    // Đường dẫn exe của tiến trình (nhận ra game theo thư mục cài); quyền hạn chế đủ cho cả tiến trình chạy quyền cao hơn.
+    public const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern IntPtr OpenProcess(uint dwDesiredAccess, [MarshalAs(UnmanagedType.Bool)] bool bInheritHandle, int dwProcessId);
+
+    [DllImport("kernel32.dll", EntryPoint = "QueryFullProcessImageNameW", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool QueryFullProcessImageName(IntPtr hProcess, uint dwFlags, char[] lpExeName, ref uint lpdwSize);
+
     // Bộ nhớ vật lý: dùng tính RAM đang dùng cho overlay
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
     public struct MEMORYSTATUSEX

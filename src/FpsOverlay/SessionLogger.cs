@@ -72,7 +72,7 @@ sealed class SessionLogger : IDisposable
         foreach (var candidate in candidates)
             if (calculator.GetFps(candidate) is not null) { pid = candidate; break; }
 
-        bool covers = pid is not null && ForegroundCoversMonitor();
+        bool covers = pid is not null && ForegroundWindowInfo.CoversMonitor(NativeMethods.GetForegroundWindow());
         // Tên chỉ cần khi sắp bắt đầu một buổi mới.
         string? name = pid is { } p && covers && p != _active?.Info.ProcessId ? ProcessNameOf(p) : null;
         bool alive = _active is null || IsAlive(_active.Info.ProcessId);
@@ -239,26 +239,5 @@ sealed class SessionLogger : IDisposable
         catch (Exception) { }
         _nameCache = (pid, name);
         return name;
-    }
-
-    /// <summary>Cửa sổ phía trước phủ kín màn hình chứa nó (game toàn màn hình hoặc borderless); màn hình nền không tính.</summary>
-    static bool ForegroundCoversMonitor()
-    {
-        var hwnd = NativeMethods.GetForegroundWindow();
-        if (hwnd == IntPtr.Zero || hwnd == NativeMethods.GetShellWindow())
-            return false;
-
-        var className = new StringBuilder(64);
-        NativeMethods.GetClassName(hwnd, className, className.Capacity);
-        if (className.ToString() is "Progman" or "WorkerW")
-            return false;
-
-        var monitor = NativeMethods.MonitorFromWindow(hwnd, NativeMethods.MONITOR_DEFAULTTONEAREST);
-        var info = new NativeMethods.MONITORINFO { cbSize = (uint)System.Runtime.InteropServices.Marshal.SizeOf<NativeMethods.MONITORINFO>() };
-        if (!NativeMethods.GetWindowRect(hwnd, out var window) || !NativeMethods.GetMonitorInfo(monitor, ref info))
-            return false;
-
-        var m = info.rcMonitor;
-        return window.Left <= m.Left && window.Top <= m.Top && window.Right >= m.Right && window.Bottom >= m.Bottom;
     }
 }

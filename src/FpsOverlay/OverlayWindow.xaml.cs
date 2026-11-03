@@ -6,6 +6,7 @@ using System.Windows.Media;
 using System.Windows.Media.Effects;
 using System.Windows.Threading;
 using FpsOverlay.Core;
+using FpsOverlay.Core.GameOnly;
 using FpsOverlay.Core.Settings;
 
 namespace FpsOverlay;
@@ -661,14 +662,7 @@ public partial class OverlayWindow : Window
     static IntPtr ExternalForeground()
     {
         var fg = NativeMethods.GetForegroundWindow();
-        if (fg == IntPtr.Zero || fg == NativeMethods.GetShellWindow())
-            return IntPtr.Zero;
-        NativeMethods.GetWindowThreadProcessId(fg, out var pid);
-        if (pid == (uint)Environment.ProcessId)
-            return IntPtr.Zero;
-        var className = new System.Text.StringBuilder(64);
-        NativeMethods.GetClassName(fg, className, className.Capacity);
-        return className.ToString() is "Progman" or "WorkerW" ? IntPtr.Zero : fg;
+        return ForegroundWindowInfo.Kind(fg) == ForegroundKind.Other ? fg : IntPtr.Zero;
     }
 
     // DPI hiệu dụng của màn hình; lỗi thì coi như 96.

@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Threading;
 using FpsOverlay.Core;
+using FpsOverlay.Core.GameOnly;
 using FpsOverlay.Core.Install;
 using FpsOverlay.Core.Localization;
 using FpsOverlay.Core.PawnIo;
@@ -27,6 +28,17 @@ public partial class App : Application
     DispatcherTimer? _watchdog;
     DispatcherTimer? _statsTimer;
     DispatcherTimer? _logTimer;
+    // Dò cửa sổ phía trước để chỉ hiện overlay khi đang chơi game (xem UpdateVisibility).
+    DispatcherTimer? _gameTimer;
+    // Người dùng bấm "Ẩn FPS" ở khay: ẩn bất kể đang chơi gì.
+    bool _hiddenByUser;
+    // Overlay đang (được quyết định là) hiện; chỉ SetOverlayShown đổi. Lúc khởi động overlay hiện, nhịp dò đầu tiên quyết định.
+    bool _shown = true;
+    // Tên exe của app (không phải app này/desktop) ở phía trước gần nhất: cho hai mục Luôn hiện / Không bao giờ hiện ở khay.
+    string? _lastAppName;
+    string? _lastAppPath;
+    // Đường dẫn exe các tiến trình của cửa sổ phía trước; dùng lại giữa các nhịp dò.
+    readonly List<string?> _foregroundPaths = [];
     SensorService? _sensors;
     SettingsService? _settings;
     PresentMonRunner? _runner;
@@ -95,10 +107,11 @@ public partial class App : Application
         settings.Changed += overlay.Apply;
         settings.Changed += _ => UpdateStats();   // bật/tắt mục thì hiện ngay, không chờ nhịp một giây
         settings.Changed += _ => ApplyResourceState();   // bật/tắt ghi log lúc đang ẩn thì áp dụng ngay
+        settings.Changed += _ => UpdateVisibility();   // đổi danh sách app / chỉ-hiện-khi-chơi thì áp dụng ngay
         _sensors = new SensorService();
         _sensors.Start();   // luồng nền đọc mỗi giây; dừng khi ẩn overlay mà không ghi log (ApplyResourceState)
         var tray = _tray = new TrayIcon();
-        tray.Apply(settings.Current, overlayVisible: true);
+        tray.Apply(settings.Current, shownByUser: true);
         tray.ToggleRequested += ToggleOverlay;
         tray.SettingsRequested += OpenSettings;
         tray.CornerRequested += corner =>
@@ -107,25 +120,43 @@ public partial class App : Application
             settings.Update(s => s.WithCorner(corner));
         };
         // Di chuyển overlay: mục khay bật/tắt (tắt = lưu); vị trí lưu là góc gần nhất + khoảng cách tới mép (DIP).
+        // Overlay đang tự ẩn (không chơi game) thì hiện trước để có cái mà kéo.
         tray.MoveRequested += () =>
         {
             if (overlay.IsMoving) overlay.EndMove(save: true);
-            else overlay.BeginMove();
+            else if (!_hiddenByUser)
+            {
+                if (!_shown) SetOverlayShown(true);
+                overlay.BeginMove();
+            }
         };
         overlay.MovingChanged += tray.SetMoving;
+        overlay.MovingChanged += _ => UpdateVisibility();   // kéo xong ở desktop thì ẩn ngay
+        tray.AlwaysShowRequested += () =>
+        {
+            if (_lastAppName is { } name) settings.Update(s => s.WithAlwaysShow(name));
+        };
+        tray.NeverShowRequested += () =>
+        {
+            if (_lastAppName is { } name) settings.Update(s => s.WithNeverShow(name));
+        };
         overlay.PositionSaved += (corner, x, y) => settings.Update(s => s with { Corner = corner, OffsetX = x, OffsetY = y });
         tray.AutostartRequested += SetAutostart;
         tray.ExitRequested += Shutdown;
         // Đổi ngôn ngữ hay góc (kể cả từ cửa sổ cài đặt) thì menu khay đổi theo ngay.
         settings.Changed += s =>
         {
-            tray.Apply(s, overlay.IsVisible);
+            tray.Apply(s, !_hiddenByUser);
             if (_stalled) tray.SetWarning(Loc.Get(StringKey.PresentMonNoData, s.Language));   // đổi chữ theo ngôn ngữ mới
         };
         tray.SetAutostartLocked(!_autostart.CanManage);
         _autostart.Changed += tray.SetAutostart;
         // Đọc lại mỗi lần mở menu: tác vụ có thể bị xoá/sửa trong Task Scheduler lúc app đang chạy.
-        tray.MenuOpening += () => _ = _autostart.RefreshAsync();
+        tray.MenuOpening += () =>
+        {
+            _ = _autostart.RefreshAsync();
+            tray.SetAppTarget(_lastAppName);
+        };
         _ = _autostart.RefreshAsync();
 
         // Lần cài trước dừng giữa chừng (sau khi chép exe) thì bổ sung lối tắt và mục gỡ cài đặt.
@@ -167,8 +198,10 @@ public partial class App : Application
         _logTimer.Tick += (_, _) => LogTick();
         _logTimer.Start();
 
-        _overlay.Show();
-        CompositionTarget.Rendering += OnRendering;
+        SetOverlayShown(true);
+        _gameTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+        _gameTimer.Tick += (_, _) => UpdateVisibility();
+        _gameTimer.Start();
     }
 
     // Chạy từ ngoài thư mục cài: cài mới/cập nhật qua hộp thoại, hoặc chạy luôn bản đã cài (không hỏi). Xong thì thoát.
@@ -399,12 +432,58 @@ public partial class App : Application
             settings.HotAlertBlink && _cpuAlarm.State == HeatState.Alarming);
     }
 
+    // Nút Ẩn/Hiện FPS ở khay: chỉ đổi lựa chọn của người dùng; hiện hay ẩn thật do UpdateVisibility quyết định.
     void ToggleOverlay()
     {
+        if (_settings is null) return;
+        _hiddenByUser = !_hiddenByUser;
+        _tray?.Apply(_settings.Current, !_hiddenByUser);
+        UpdateVisibility();
+    }
+
+    // Mỗi 250 ms (và ngay khi cài đặt, cửa sổ cài đặt hay chế độ di chuyển đổi): xem cửa sổ phía trước có phải game
+    // không rồi hiện/ẩn overlay. Không đụng tới đường vẽ mỗi khung hình.
+    void UpdateVisibility()
+    {
         if (_overlay is null || _settings is null) return;
-        // Ẩn thì ngừng đăng ký vẽ mỗi khung hình; hiện lại thì đăng ký một lần (luôn gỡ trước để không bao giờ trùng).
+        var s = _settings.Current;
+        var hwnd = NativeMethods.GetForegroundWindow();
+        var kind = ForegroundWindowInfo.Kind(hwnd);
+        bool isGame = false;
+        if (kind == ForegroundKind.Other)
+        {
+            _foregroundPaths.Clear();
+            foreach (var pid in ForegroundProcess.GetCandidates())
+                _foregroundPaths.Add(ForegroundWindowInfo.ExePath(pid));
+            isGame = GameWindowRule.IsGame(ForegroundWindowInfo.CoversMonitor(hwnd), _foregroundPaths,
+                s.AlwaysShowApps, s.NeverShowApps);
+            // Tiến trình chính theo thứ tự GetCandidates; bộ nhớ đường dẫn trả về cùng chuỗi nên chỉ tách tên khi đổi app.
+            var path = _foregroundPaths.Count > 0 ? _foregroundPaths[0] : null;
+            if (!ReferenceEquals(path, _lastAppPath))
+            {
+                _lastAppPath = path;
+                _lastAppName = path is null ? null : Path.GetFileName(path);
+            }
+        }
+        bool show = GameWindowRule.ShouldShow(_hiddenByUser, _overlay.IsMoving, IsPreviewing, s.ShowOnlyInGame,
+            kind, isGame, _shown);
+        if (show != _shown)
+            SetOverlayShown(show);
+    }
+
+    // Chỗ duy nhất hiện/ẩn overlay (trừ Fail lúc thoát). Ẩn thì ngừng vẽ mỗi khung hình, lưu nếu đang di chuyển
+    // và tắt báo động; hiện thì đăng ký vẽ một lần (luôn gỡ trước để không bao giờ trùng).
+    void SetOverlayShown(bool show)
+    {
+        if (_overlay is null) return;
+        _shown = show;   // trước EndMove: MovingChanged gọi lại UpdateVisibility, khi đó thấy đã khớp nên không làm gì
         CompositionTarget.Rendering -= OnRendering;
-        if (_overlay.IsVisible)
+        if (show)
+        {
+            _overlay.Show();
+            CompositionTarget.Rendering += OnRendering;
+        }
+        else
         {
             if (_overlay.IsMoving) _overlay.EndMove(save: true);   // ẩn giữa lúc di chuyển = lưu
             _overlay.Hide();
@@ -412,12 +491,6 @@ public partial class App : Application
             _cpuAlarm.Reset();
             _overlay.SetAlerts(false, false);
         }
-        else
-        {
-            _overlay.Show();
-            CompositionTarget.Rendering += OnRendering;
-        }
-        _tray?.Apply(_settings.Current, _overlay.IsVisible);
         ApplyResourceState();
     }
 
@@ -437,9 +510,14 @@ public partial class App : Application
         _ = _autostart.RefreshAsync();
         _settingsWindow = new SettingsWindow(_settings, _autostart, SetAutostart, () => _sensors?.CpuTemperatureAvailable ?? true,
             InstallPawnIo, _pawnIoInstall is not null, TestAlert);
-        _settingsWindow.Closed += (_, _) => _settingsWindow = null;   // đóng bằng cách nào cũng về FPS thật
+        _settingsWindow.Closed += (_, _) =>
+        {
+            _settingsWindow = null;   // đóng bằng cách nào cũng về FPS thật
+            UpdateVisibility();
+        };
         _settingsWindow.Show();
         _settingsWindow.Activate();
+        UpdateVisibility();   // xem trước: hiện overlay ngay cả khi không chơi game
     }
 
     // Nút "Thử cảnh báo": hai số nhiệt hiện và nháy 3 giây trên overlay, kèm tiếng nếu bật.
@@ -495,6 +573,7 @@ public partial class App : Application
 
     void Fail(string message)
     {
+        _gameTimer?.Stop();
         _watchdog?.Stop();
         _statsTimer?.Stop();
         _logTimer?.Stop();
@@ -510,6 +589,7 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         if (_overlay is { IsMoving: true }) _overlay.EndMove(save: true);   // không mất vị trí vừa kéo
+        _gameTimer?.Stop();
         _watchdog?.Stop();
         _statsTimer?.Stop();
         _logTimer?.Stop();
