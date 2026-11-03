@@ -322,7 +322,7 @@ public partial class SettingsWindow : Window
     {
         if (_refreshing) return;
         var corner = (OverlayCorner)((FrameworkElement)sender).Tag;
-        _service.Update(s => s with { Corner = corner });
+        _service.Update(s => s.WithCorner(corner));
     }
 
     void OnScaleChanged(object sender, RoutedPropertyChangedEventArgs<double> e)

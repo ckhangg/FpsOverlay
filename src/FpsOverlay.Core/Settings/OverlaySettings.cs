@@ -18,9 +18,15 @@ public sealed record OverlaySettings
     public const int MaxHotAlertSeconds = 60;
     public const double MinScale = 0.5;
     public const double MaxScale = 3.0;
+    public const double DefaultOffset = 8;
+    public const double MaxOffset = 4000;
 
     public OverlayStyle Style { get; init; } = OverlayStyle.Cyberpunk;
     public OverlayCorner Corner { get; init; } = OverlayCorner.TopLeft;
+    public OverlayLayout Layout { get; init; } = OverlayLayout.Horizontal;
+    // Khoảng cách (DIP) từ mép màn hình tới khung overlay, tính từ góc đã chọn.
+    public double OffsetX { get; init; } = DefaultOffset;
+    public double OffsetY { get; init; } = DefaultOffset;
     public double Scale { get; init; } = 1.0;
     public double BackgroundOpacity { get; init; } = 0.72;
     public bool ColorByFps { get; init; } = true;
@@ -64,6 +70,8 @@ public sealed record OverlaySettings
 
         var clamped = this with
         {
+            OffsetX = Clamp(OffsetX, 0, MaxOffset, DefaultOffset),
+            OffsetY = Clamp(OffsetY, 0, MaxOffset, DefaultOffset),
             Scale = Clamp(Scale, MinScale, MaxScale, 1.0),
             BackgroundOpacity = Clamp(BackgroundOpacity, 0, 1, 0.72),
             GoodThreshold = good,
@@ -101,6 +109,10 @@ public sealed record OverlaySettings
         OverlayStyle.TerminalGreen => this with { TerminalGreenColors = colors },
         _ => throw new ArgumentOutOfRangeException(nameof(style), style, null),
     };
+
+    /// <summary>Đổi góc và đưa hai offset về mặc định (chọn góc từ menu nghĩa là đặt lại vị trí).</summary>
+    public OverlaySettings WithCorner(OverlayCorner corner) =>
+        this with { Corner = corner, OffsetX = DefaultOffset, OffsetY = DefaultOffset };
 
     /// <summary>Đặt mốc tốt; nếu mốc kém không còn thấp hơn thì đẩy mốc kém xuống.</summary>
     public OverlaySettings WithGoodThreshold(int value)

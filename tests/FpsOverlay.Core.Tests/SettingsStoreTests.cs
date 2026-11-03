@@ -45,6 +45,14 @@ public sealed class SettingsStoreTests : IDisposable
     }
 
     [Fact]
+    public void Layout_and_offsets_round_trip()
+    {
+        var original = OverlaySettings.Defaults with { Layout = OverlayLayout.Vertical, OffsetX = 123.5, OffsetY = 40 };
+        SettingsStore.Save(PathIn(), original);
+        Assert.Equal(original, SettingsStore.Load(PathIn()));
+    }
+
+    [Fact]
     public void Store_round_trips_new_styles()
     {
         var original = OverlaySettings.Defaults with

@@ -195,4 +195,30 @@ public class OverlaySettingsTests
         var s = (OverlaySettings.Defaults with { ShowGpuMemory = true, ShowGpuClock = true, ShowGpuPower = true, ShowGpuFan = true }).ResetToDefaults();
         Assert.False(s.ShowGpuMemory || s.ShowGpuClock || s.ShowGpuPower || s.ShowGpuFan);
     }
+
+    [Fact]
+    public void With_corner_resets_offsets()
+    {
+        var s = (OverlaySettings.Defaults with { OffsetX = 300, OffsetY = 50 }).WithCorner(OverlayCorner.BottomLeft);
+        Assert.Equal(OverlayCorner.BottomLeft, s.Corner);
+        Assert.Equal(OverlaySettings.DefaultOffset, s.OffsetX);
+        Assert.Equal(OverlaySettings.DefaultOffset, s.OffsetY);
+    }
+
+    [Fact]
+    public void Layout_and_offsets_defaults()
+    {
+        Assert.Equal(OverlayLayout.Horizontal, OverlaySettings.Defaults.Layout);
+        Assert.Equal(8, OverlaySettings.Defaults.OffsetX);
+        Assert.Equal(8, OverlaySettings.Defaults.OffsetY);
+    }
+
+    [Fact]
+    public void Normalize_clamps_offsets()
+    {
+        var s = (OverlaySettings.Defaults with { OffsetX = -5, OffsetY = 9999 }).Normalize();
+        Assert.Equal(0, s.OffsetX);
+        Assert.Equal(4000, s.OffsetY);
+        Assert.Equal(8, (OverlaySettings.Defaults with { OffsetX = double.NaN }).Normalize().OffsetX);
+    }
 }

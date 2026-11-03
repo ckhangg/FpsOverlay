@@ -29,6 +29,9 @@ public static class SettingsStore
             {
                 Style = ReadEnum(root, nameof(OverlaySettings.Style), d.Style),
                 Corner = ReadEnum(root, nameof(OverlaySettings.Corner), d.Corner),
+                Layout = ReadEnum(root, nameof(OverlaySettings.Layout), d.Layout),
+                OffsetX = ReadDouble(root, nameof(OverlaySettings.OffsetX), d.OffsetX),
+                OffsetY = ReadDouble(root, nameof(OverlaySettings.OffsetY), d.OffsetY),
                 Scale = ReadDouble(root, nameof(OverlaySettings.Scale), d.Scale),
                 BackgroundOpacity = ReadDouble(root, nameof(OverlaySettings.BackgroundOpacity), d.BackgroundOpacity),
                 ColorByFps = ReadBool(root, nameof(OverlaySettings.ColorByFps), d.ColorByFps),

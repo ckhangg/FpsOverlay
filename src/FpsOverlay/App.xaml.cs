@@ -101,7 +101,7 @@ public partial class App : Application
         tray.Apply(settings.Current, overlayVisible: true);
         tray.ToggleRequested += ToggleOverlay;
         tray.SettingsRequested += OpenSettings;
-        tray.CornerRequested += corner => settings.Update(s => s with { Corner = corner });
+        tray.CornerRequested += corner => settings.Update(s => s.WithCorner(corner));
         tray.AutostartRequested += SetAutostart;
         tray.ExitRequested += Shutdown;
         // Đổi ngôn ngữ hay góc (kể cả từ cửa sổ cài đặt) thì menu khay đổi theo ngay.

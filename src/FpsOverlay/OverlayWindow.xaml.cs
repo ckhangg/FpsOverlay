@@ -13,9 +13,6 @@ namespace FpsOverlay;
 /// <summary>Cửa sổ trong suốt hiện số FPS: luôn trên cùng, chuột bấm xuyên qua, không chiếm focus.</summary>
 public partial class OverlayWindow : Window
 {
-    /// <summary>Khoảng cách tới mép màn hình (DIP), ở cả bốn góc.</summary>
-    const double ScreenMargin = 8;
-
     readonly DispatcherTimer _topmostTimer = new() { Interval = TimeSpan.FromSeconds(1) };
     IntPtr _hwnd;
 
@@ -502,7 +499,7 @@ public partial class OverlayWindow : Window
         Chrome.Clip = geometry;
     }
 
-    // Đặt cửa sổ vào góc đã chọn của màn hình đang có cửa sổ phía trước (game), cách mép 8 DIP (không trừ taskbar).
+    // Đặt cửa sổ vào góc đã chọn của màn hình đang có cửa sổ phía trước (game), cách mép theo OffsetX/OffsetY (không trừ taskbar).
     void UpdatePosition()
     {
         if (_hwnd == IntPtr.Zero || !NativeMethods.GetWindowRect(_hwnd, out var self))
@@ -515,10 +512,13 @@ public partial class OverlayWindow : Window
         if (NativeMethods.GetDpiForMonitor(monitor, NativeMethods.MDT_EFFECTIVE_DPI, out var dpiX, out _) == 0 && dpiX > 0)
             dpi = dpiX;
         var m = info.rcMonitor;
-        // Lề trong suốt của Root (ánh sáng viền) được trừ ra để khung vẫn cách mép ScreenMargin.
-        var margin = ScreenMargin - Root.Margin.Left;
-        var (x, y) = OverlayPlacement.Compute(new PixelRect(m.Left, m.Top, m.Right, m.Bottom),
-            self.Right - self.Left, self.Bottom - self.Top, _settings.Corner, (int)Math.Round(margin * dpi / 96.0));
+        // Đặt theo khung nhìn thấy: lề trong suốt của Root (ánh sáng viền) được trừ ra khỏi cửa sổ.
+        int pad = (int)Math.Round(Root.Margin.Left * dpi / 96.0);
+        int offX = (int)Math.Round(_settings.OffsetX * dpi / 96.0);
+        int offY = (int)Math.Round(_settings.OffsetY * dpi / 96.0);
+        var (fx, fy) = OverlayPlacement.Compute(new PixelRect(m.Left, m.Top, m.Right, m.Bottom),
+            self.Right - self.Left - 2 * pad, self.Bottom - self.Top - 2 * pad, _settings.Corner, offX, offY);
+        int x = fx - pad, y = fy - pad;
         // So với vị trí thật của cửa sổ (WPF có thể đã dời khi DPI đổi); chỉ đặt khi khác, để không vòng lặp với DpiChanged.
         if (self.Left == x && self.Top == y)
             return;
