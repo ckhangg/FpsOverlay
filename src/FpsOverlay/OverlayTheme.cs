@@ -1,8 +1,23 @@
+using System.Windows;
 using System.Windows.Media;
 using FpsOverlay.Core;
 using FpsOverlay.Core.Settings;
 
 namespace FpsOverlay;
+
+/// <summary>Chữ nào phát sáng (cùng màu chữ): không gì, chỉ số FPS, nhãn và số FPS, hay mọi chữ.</summary>
+enum TextGlow { None, FpsOnly, LabelsAndFps, All }
+
+/// <summary>
+/// Phần hình của một phong cách overlay (font, cỡ chữ, khoảng cách, khung, hiệu ứng). Màu nằm ở <see cref="StyleSpec"/>.
+/// Khoảng cách (gap) là cỡ chữ của dấu cách giữa nhãn và giá trị.
+/// </summary>
+sealed record OverlayVisuals(
+    FontFamily LabelFont, FontFamily ValueFont,
+    double FpsLabelSize, double FpsValueSize, double StatLabelSize, double StatValueSize,
+    double FpsGapSize, double StatGapSize,
+    CornerRadius CornerRadius, Thickness BorderThickness, Brush? BorderBrush, bool BorderGlow,
+    double Chamfer, Thickness Padding, TextGlow Glow, bool Outline, bool Scanlines);
 
 /// <summary>Font và màu cố định của từng phong cách overlay. Mọi brush đều đã Freeze và được dùng lại.</summary>
 static class OverlayTheme
@@ -12,40 +27,48 @@ static class OverlayTheme
     static readonly FontFamily ChakraPetch = new(FontBase, "./Assets/Fonts/#Chakra Petch");
     static readonly FontFamily JetBrainsMono = new(FontBase, "./Assets/Fonts/#JetBrains Mono");
 
-    static readonly Brush ClassicGood = Frozen("#39FF14");
-    static readonly Brush ClassicMedium = Frozen("#FFD400");
-    static readonly Brush ClassicBad = Frozen("#FF3B30");
-    static readonly Brush CyberGood = Frozen("#00F0FF");
-    static readonly Brush CyberMedium = Frozen("#FCEE0A");
-    static readonly Brush CyberBad = Frozen("#FF003C");
-
-    /// <summary>Viền trái của phong cách Cyberpunk.</summary>
-    public static readonly Brush CyberAccent = Frozen("#FCEE0A");
-
-    public static readonly Color ClassicBackground = Color.FromRgb(0x00, 0x00, 0x00);
-    public static readonly Color CyberBackground = Color.FromRgb(0x0A, 0x0A, 0x0F);
-
     static readonly Dictionary<string, Brush> HexCache = new(StringComparer.OrdinalIgnoreCase);
+
+    // Cổ điển: Consolas, góc bo 4, viền đen quanh chữ.
+    // Khoảng cách ≈ 5–6 DIP (FPS) và ≈ 4–5 DIP (mục phụ).
+    static readonly OverlayVisuals Classic = new(
+        Consolas, Consolas,
+        FpsLabelSize: 18, FpsValueSize: 24, StatLabelSize: 14, StatValueSize: 18,
+        FpsGapSize: 11, StatGapSize: 9,
+        CornerRadius: new CornerRadius(4), BorderThickness: new Thickness(0), BorderBrush: null, BorderGlow: false,
+        Chamfer: 0, Padding: new Thickness(12, 4, 12, 4), Glow: TextGlow.None, Outline: true, Scanlines: false);
+
+    // Cyberpunk: viền trái vàng, góc phải dưới vát, số FPS phát sáng.
+    // Chakra Petch có dấu cách hẹp nên cỡ dấu cách lớn hơn Consolas để ra cùng khoảng cách.
+    // Lề phải cộng thêm độ vát để chữ không bị cắt.
+    static readonly OverlayVisuals Cyberpunk = new(
+        ChakraPetch, JetBrainsMono,
+        FpsLabelSize: 18, FpsValueSize: 24, StatLabelSize: 14, StatValueSize: 18,
+        FpsGapSize: 20, StatGapSize: 16,
+        CornerRadius: new CornerRadius(0), BorderThickness: new Thickness(3, 0, 0, 0), BorderBrush: Frozen("#FCEE0A"),
+        BorderGlow: false, Chamfer: 9, Padding: new Thickness(10, 3, 10 + 9, 3), Glow: TextGlow.FpsOnly,
+        Outline: false, Scanlines: false);
+
+    public static OverlayVisuals Visuals(OverlayStyle style) => style switch
+    {
+        OverlayStyle.Classic => Classic,
+        _ => Cyberpunk,
+    };
 
     /// <summary>
     /// Màu FPS theo mức. <see cref="FpsLevel.None"/> không có màu mức riêng nên trả màu FPS mặc định của phong cách.
     /// </summary>
-    public static Brush LevelBrush(OverlayStyle style, FpsLevel level) => (style, level) switch
+    public static Brush LevelBrush(OverlayStyle style, FpsLevel level)
     {
-        (OverlayStyle.Classic, FpsLevel.Good) => ClassicGood,
-        (OverlayStyle.Classic, FpsLevel.Medium) => ClassicMedium,
-        (OverlayStyle.Classic, FpsLevel.Bad) => ClassicBad,
-        (OverlayStyle.Cyberpunk, FpsLevel.Good) => CyberGood,
-        (OverlayStyle.Cyberpunk, FpsLevel.Medium) => CyberMedium,
-        (OverlayStyle.Cyberpunk, FpsLevel.Bad) => CyberBad,
-        _ => FromHex(StyleColors.DefaultFor(style).Fps),
-    };
-
-    public static FontFamily LabelFont(OverlayStyle style) =>
-        style == OverlayStyle.Classic ? Consolas : ChakraPetch;
-
-    public static FontFamily ValueFont(OverlayStyle style) =>
-        style == OverlayStyle.Classic ? Consolas : JetBrainsMono;
+        var spec = StyleSpecs.For(style);
+        return FromHex(level switch
+        {
+            FpsLevel.Good => spec.Good,
+            FpsLevel.Medium => spec.Medium,
+            FpsLevel.Bad => spec.Bad,
+            _ => spec.DefaultColors.Fps,
+        });
+    }
 
     /// <summary>Brush cho chuỗi <c>#RRGGBB</c> (đã chuẩn hoá bởi <see cref="OverlaySettings.Normalize"/>), có cache.</summary>
     public static Brush FromHex(string hex)
@@ -58,18 +81,22 @@ static class OverlayTheme
         return brush;
     }
 
-    static Brush Frozen(string hex)
+    /// <summary>Màu của chuỗi <c>#RRGGBB</c>; chuỗi hỏng thành trắng.</summary>
+    public static Color ColorFromHex(string hex)
     {
-        Color color;
         try
         {
-            color = (Color)ColorConverter.ConvertFromString(hex);
+            return (Color)ColorConverter.ConvertFromString(hex);
         }
         catch (Exception e) when (e is FormatException or NotSupportedException)
         {
-            color = Colors.White;
+            return Colors.White;
         }
-        var brush = new SolidColorBrush(color);
+    }
+
+    static Brush Frozen(string hex)
+    {
+        var brush = new SolidColorBrush(ColorFromHex(hex));
         brush.Freeze();
         return brush;
     }

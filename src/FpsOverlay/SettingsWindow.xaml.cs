@@ -104,6 +104,10 @@ public partial class SettingsWindow : Window
             OnePercentSwitch.IsChecked = s.ShowOnePercentLow;
             GpuLoadSwitch.IsChecked = s.ShowGpuLoad;
             GpuTempSwitch.IsChecked = s.ShowGpuTemp;
+            GpuMemorySwitch.IsChecked = s.ShowGpuMemory;
+            GpuClockSwitch.IsChecked = s.ShowGpuClock;
+            GpuPowerSwitch.IsChecked = s.ShowGpuPower;
+            GpuFanSwitch.IsChecked = s.ShowGpuFan;
             CpuLoadSwitch.IsChecked = s.ShowCpuLoad;
             CpuTempSwitch.IsChecked = s.ShowCpuTemp;
             RamSwitch.IsChecked = s.ShowRam;
@@ -220,6 +224,10 @@ public partial class SettingsWindow : Window
         OnePercentLabel.Text = T(StringKey.StatOnePercentLow);
         GpuLoadLabel.Text = T(StringKey.StatGpuLoad);
         GpuTempLabel.Text = T(StringKey.StatGpuTemp);
+        GpuMemoryLabel.Text = T(StringKey.StatGpuMemory);
+        GpuClockLabel.Text = T(StringKey.StatGpuClock);
+        GpuPowerLabel.Text = T(StringKey.StatGpuPower);
+        GpuFanLabel.Text = T(StringKey.StatGpuFan);
         CpuLoadLabel.Text = T(StringKey.StatCpuLoad);
         CpuTempLabel.Text = T(StringKey.StatCpuTemp);
         RamLabel.Text = T(StringKey.StatRam);
@@ -317,10 +325,13 @@ public partial class SettingsWindow : Window
         if (_refreshing) return;
         bool one = OnePercentSwitch.IsChecked == true, gpuLoad = GpuLoadSwitch.IsChecked == true,
              gpuTemp = GpuTempSwitch.IsChecked == true, cpuLoad = CpuLoadSwitch.IsChecked == true,
-             cpuTemp = CpuTempSwitch.IsChecked == true, ram = RamSwitch.IsChecked == true;
+             cpuTemp = CpuTempSwitch.IsChecked == true, ram = RamSwitch.IsChecked == true,
+             gpuMemory = GpuMemorySwitch.IsChecked == true, gpuClock = GpuClockSwitch.IsChecked == true,
+             gpuPower = GpuPowerSwitch.IsChecked == true, gpuFan = GpuFanSwitch.IsChecked == true;
         _service.Update(s => s with
         {
             ShowOnePercentLow = one, ShowGpuLoad = gpuLoad, ShowGpuTemp = gpuTemp,
+            ShowGpuMemory = gpuMemory, ShowGpuClock = gpuClock, ShowGpuPower = gpuPower, ShowGpuFan = gpuFan,
             ShowCpuLoad = cpuLoad, ShowCpuTemp = cpuTemp, ShowRam = ram,
         });
     }

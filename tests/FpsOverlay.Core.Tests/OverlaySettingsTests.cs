@@ -114,4 +114,18 @@ public class OverlaySettingsTests
         Assert.False(s.LoggingEnabled);
         Assert.True(s.PawnIoOffered);
     }
+
+    [Fact]
+    public void New_gpu_switches_default_off()
+    {
+        var d = OverlaySettings.Defaults;
+        Assert.False(d.ShowGpuMemory || d.ShowGpuClock || d.ShowGpuPower || d.ShowGpuFan);
+    }
+
+    [Fact]
+    public void Reset_turns_new_gpu_switches_off()
+    {
+        var s = (OverlaySettings.Defaults with { ShowGpuMemory = true, ShowGpuClock = true, ShowGpuPower = true, ShowGpuFan = true }).ResetToDefaults();
+        Assert.False(s.ShowGpuMemory || s.ShowGpuClock || s.ShowGpuPower || s.ShowGpuFan);
+    }
 }

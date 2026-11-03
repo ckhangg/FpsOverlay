@@ -28,6 +28,11 @@ public sealed record OverlaySettings
     public bool ShowOnePercentLow { get; init; } = true;
     public bool ShowGpuLoad { get; init; } = true;
     public bool ShowGpuTemp { get; init; } = true;
+    // Bốn số GPU thêm (VRAM, xung nhân, công suất, quạt): mặc định tắt để dải ngang không dài thêm.
+    public bool ShowGpuMemory { get; init; }
+    public bool ShowGpuClock { get; init; }
+    public bool ShowGpuPower { get; init; }
+    public bool ShowGpuFan { get; init; }
     public bool ShowCpuLoad { get; init; } = true;
     public bool ShowCpuTemp { get; init; } = true;
     public bool ShowRam { get; init; } = true;

@@ -343,7 +343,8 @@ public partial class App : Application
         if (IsPreviewing)
         {
             onePercentLow = PreviewFps.At(_previewClock.Elapsed.TotalSeconds) * 0.8;
-            sensors = new SensorSnapshot(GpuLoad: 67, GpuTemp: 71, CpuLoad: 34, CpuTemp: 65, RamUsedGb: 9.2);
+            sensors = new SensorSnapshot(GpuLoad: 67, GpuTemp: 71, CpuLoad: 34, CpuTemp: 65, RamUsedGb: 9.2,
+                GpuMemoryUsedGb: 3.1, GpuClockMhz: 1590, GpuPowerW: 48, GpuFanRpm: 2400);
         }
         else
         {

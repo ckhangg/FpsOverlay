@@ -29,11 +29,14 @@ public static class StatRows
         _ => "",
     };
 
-    // Bốn dòng GPU mới có số liệu nhưng chưa hiện; Task 4 nối công tắc.
     public static bool IsVisible(StatRow row, OverlaySettings s) => row switch
     {
         StatRow.OnePercentLow => s.ShowOnePercentLow,
         StatRow.Gpu => s.ShowGpuLoad || s.ShowGpuTemp,
+        StatRow.GpuMemory => s.ShowGpuMemory,
+        StatRow.GpuClock => s.ShowGpuClock,
+        StatRow.GpuPower => s.ShowGpuPower,
+        StatRow.GpuFan => s.ShowGpuFan,
         StatRow.Cpu => s.ShowCpuLoad || s.ShowCpuTemp,
         StatRow.Ram => s.ShowRam,
         _ => false,

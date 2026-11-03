@@ -104,4 +104,16 @@ public class StatRowsTests
         Assert.Equal(("50°", ""), StatRows.Values(StatRow.Cpu, null, Snap, tempOnly, OverlayLayout.Vertical));
         Assert.Equal(1, StatRows.TempCell(StatRow.Cpu, tempOnly));
     }
+
+    [Fact]
+    public void Gpu_extra_rows_follow_switches()
+    {
+        var d = OverlaySettings.Defaults;
+        Assert.False(StatRows.IsVisible(StatRow.GpuClock, d));
+        Assert.True(StatRows.IsVisible(StatRow.GpuClock, d with { ShowGpuClock = true }));
+        Assert.True(StatRows.IsVisible(StatRow.GpuMemory, d with { ShowGpuMemory = true }));
+        Assert.True(StatRows.IsVisible(StatRow.GpuPower, d with { ShowGpuPower = true }));
+        Assert.True(StatRows.IsVisible(StatRow.GpuFan, d with { ShowGpuFan = true }));
+        Assert.False(StatRows.IsVisible(StatRow.GpuFan, d with { ShowGpuClock = true }));
+    }
 }

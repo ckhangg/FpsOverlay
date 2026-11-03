@@ -19,13 +19,7 @@
         <Border.LayoutTransform>
             <ScaleTransform x:Name="Zoom" ScaleX="1" ScaleY="1" />
         </Border.LayoutTransform>
-        <!-- Hàng ngang các mục nhãn + giá trị. Mục phụ mở đầu bằng dấu ngăn " · " nên ẩn mục là ẩn luôn dấu ngăn. Số phụ không phát sáng nên dùng Run, không cần InlineUIContainer. -->
-        <StackPanel x:Name="Items" Orientation="Horizontal">
-            <TextBlock x:Name="FpsItem" VerticalAlignment="Center"><Run x:Name="FpsLabel" Text="FPS" /><Run x:Name="FpsGap" Text=" " /><InlineUIContainer BaselineAlignment="Baseline"><TextBlock x:Name="FpsValue" Text="--" /></InlineUIContainer></TextBlock>
-            <TextBlock x:Name="OneItem" VerticalAlignment="Center"><Run x:Name="OneSep" Text=" · " /><Run x:Name="OneLabel" Text="1%" /><Run x:Name="OneGap" Text=" " /><Run x:Name="OneValue" Text="--" /></TextBlock>
-            <TextBlock x:Name="GpuItem" VerticalAlignment="Center"><Run x:Name="GpuSep" Text=" · " /><Run x:Name="GpuLabel" Text="GPU" /><Run x:Name="GpuGap" Text=" " /><Run x:Name="GpuLoad" Text="--" /><Run x:Name="GpuTempGap" Text=" " /><Run x:Name="GpuTemp" Text="--" /></TextBlock>
-            <TextBlock x:Name="CpuItem" VerticalAlignment="Center"><Run x:Name="CpuSep" Text=" · " /><Run x:Name="CpuLabel" Text="CPU" /><Run x:Name="CpuGap" Text=" " /><Run x:Name="CpuLoad" Text="--" /><Run x:Name="CpuTempGap" Text=" " /><Run x:Name="CpuTemp" Text="--" /></TextBlock>
-            <TextBlock x:Name="RamItem" VerticalAlignment="Center"><Run x:Name="RamSep" Text=" · " /><Run x:Name="RamLabel" Text="RAM" /><Run x:Name="RamGap" Text=" " /><Run x:Name="RamValue" Text="--" /></TextBlock>
-        </StackPanel>
+        <!-- Hàng ngang các mục nhãn + giá trị; các mục được dựng trong code (mục FPS rồi một mục cho mỗi StatRow). -->
+        <StackPanel x:Name="Items" Orientation="Horizontal" />
     </Border>
 </Window>

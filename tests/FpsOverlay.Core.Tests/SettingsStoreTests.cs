@@ -133,4 +133,12 @@ public sealed class SettingsStoreTests : IDisposable
         File.WriteAllText(PathIn(), "{\"Style\":\"Rainbow\"}");
         Assert.Equal(OverlayStyle.Cyberpunk, SettingsStore.Load(PathIn()).Style);
     }
+
+    [Fact]
+    public void Store_round_trips_new_switches()
+    {
+        var original = OverlaySettings.Defaults with { ShowGpuMemory = true, ShowGpuClock = true, ShowGpuPower = true, ShowGpuFan = true };
+        SettingsStore.Save(PathIn(), original);
+        Assert.Equal(original, SettingsStore.Load(PathIn()));
+    }
 }
