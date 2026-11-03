@@ -77,7 +77,7 @@ public static class Loc
         [StringKey.AlreadyRunning] = ("FPS Overlay đang chạy rồi (xem biểu tượng ở khay hệ thống).", "FPS Overlay is already running (see the tray icon)."),
         [StringKey.PresentMonStopped] = ("PresentMon đã dừng bất ngờ nên không đo được FPS.\nHãy chắc rằng app đang chạy với quyền Administrator.", "PresentMon stopped unexpectedly, so FPS can't be measured.\nMake sure the app is running as Administrator."),
         [StringKey.PresentMonStartFailed] = ("Không khởi động được PresentMon.\nFile PresentMon.exe phải nằm cùng thư mục với FpsOverlay.exe.", "Couldn't start PresentMon.\nPresentMon.exe must be in the same folder as FpsOverlay.exe."),
-        [StringKey.PresentMonNoData] = ("⚠ PresentMon không gửi dữ liệu. Thử chạy lại app với quyền Administrator.", "⚠ PresentMon isn't sending data. Try restarting the app as Administrator."),
+        [StringKey.PresentMonNoData] = ("⚠ PresentMon không gửi dữ liệu. Thử thoát và mở lại app.", "⚠ PresentMon isn't sending data. Try exiting and reopening the app."),
         [StringKey.AutostartFailed] = ("Không đổi được chế độ khởi động cùng Windows.", "Couldn't change Start with Windows."),
         [StringKey.Details] = ("Chi tiết", "Details"),
         [StringKey.AutostartInstalledOnly] = ("Chỉ bản đã cài mới bật được.", "Only the installed copy can enable this."),
