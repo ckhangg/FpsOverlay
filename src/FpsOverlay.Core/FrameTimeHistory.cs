@@ -26,6 +26,7 @@ public sealed class FrameTimeHistory
     readonly object _lock = new();
     readonly double _windowSeconds;
     double _latestTime = double.MinValue;
+    double _lastSweepTime = double.MinValue;
     double[] _sortBuffer = new double[1024]; // dùng lại giữa các lần gọi để không cấp phát
 
     public FrameTimeHistory(double windowSeconds = 10)
@@ -54,6 +55,21 @@ public sealed class FrameTimeHistory
             state.LastTime = frame.TimeSeconds;
 
             Trim(state);
+
+            // Quét định kỳ (mỗi > 1 giây thời gian khung): bỏ tiến trình đã ngừng vẽ quá một cửa sổ,
+            // để bộ nhớ không phình theo số tiến trình đã qua và pid dùng lại không dính khoảng nghỉ cũ.
+            if (_latestTime - _lastSweepTime > 1.0)
+            {
+                _lastSweepTime = _latestTime;
+                var cutoff = _latestTime - _windowSeconds;
+                List<int>? stale = null;
+                foreach (var kv in _pids)
+                    if (kv.Value.LastTime < cutoff)
+                        (stale ??= new()).Add(kv.Key);
+                if (stale != null)
+                    foreach (var pid in stale)
+                        _pids.Remove(pid);
+            }
         }
     }
 
@@ -109,23 +125,28 @@ public sealed class FrameTimeHistory
     }
 
     /// <summary>
-    /// Thêm vào <paramref name="into"/> các frametime có thời điểm khung &gt; <paramref name="afterTimeSeconds"/>;
-    /// trả về số đã thêm. Gọi định kỳ với <see cref="LatestTimeSeconds"/> của lần trước thì mỗi frametime được lấy đúng một lần.
+    /// Thêm vào <paramref name="into"/> các frametime của tiến trình có thời điểm khung &gt; <paramref name="cursor"/>,
+    /// rồi đặt <paramref name="cursor"/> bằng thời điểm khung cuối cùng đã chép (giữ nguyên nếu không có). Trả về số đã thêm.
+    /// Làm trọn trong một lần giữ khoá nên gọi định kỳ với cùng một biến cursor (khởi đầu <see cref="double.NegativeInfinity"/>)
+    /// thì mỗi frametime được lấy đúng một lần.
     /// </summary>
-    public int CopyFrameTimes(int processId, double afterTimeSeconds, List<double> into)
+    public int CopyFrameTimes(int processId, ref double cursor, List<double> into)
     {
         lock (_lock)
         {
             if (!_pids.TryGetValue(processId, out var state))
                 return 0;
             int added = 0;
+            double newCursor = cursor;
             foreach (var e in state.Entries)
             {
-                if (e.Time <= afterTimeSeconds)
+                if (e.Time <= cursor)
                     continue;
                 into.Add(e.FrameTime);
+                newCursor = e.Time;
                 added++;
             }
+            cursor = newCursor;
             return added;
         }
     }
