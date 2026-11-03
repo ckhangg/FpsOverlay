@@ -25,7 +25,7 @@
 | Nền cửa sổ | `#1B1B1B`, thanh tiêu đề `#111111` | như hiện tại `#0A0A0F`, thanh tiêu đề vàng | `#140620`, viền `#C64BFF` 1.5 phát sáng tím, bo góc 14 | `#000800`, viền `#1FAA44` 1, vạch quét CRT mờ, góc vuông |
 | Điểm nhấn | cam `#FF8C1A` | vàng `#FCEE0A` / cyan `#00F0FF` | hồng `#FF4FD8` (phát sáng) | xanh `#33FF66` / `#7CFF9E` |
 | Chữ thường | `#E6E6E6` | `#D8D8E0` | `#F3E6FF` | `#33FF66` (phát sáng nhẹ) |
-| Font chữ / số | Segoe UI / Consolas | Chakra Petch / JetBrains Mono | Orbitron (tiêu đề) + JetBrains Mono | VT323 cho mọi chữ, cỡ lớn hơn khoảng 1,25 lần |
+| Font chữ / số | Segoe UI / Consolas | Chakra Petch / JetBrains Mono | Chakra Petch (tiêu đề, giãn chữ rộng, phát sáng) + JetBrains Mono — xem ghi chú font | VT323 cho mọi chữ, cỡ lớn hơn khoảng 1,25 lần |
 | Tiêu đề mục | `// GIAO DIỆN` màu cam | như hiện tại | Orbitron, hồng phát sáng | `// GIAO DIỆN` xanh sáng |
 | Nút | nền cam, bo 4; nút phụ viền xám | như hiện tại (vát góc) | dạng viên thuốc, hồng phát sáng; nút phụ viền tím | chữ dạng `[ XONG ]`, không nền |
 | Công tắc | viên tròn cam | như hiện tại | viên tròn hồng phát sáng | chữ `[BẬT]` / `[TẮT]` (en `[ON]` / `[OFF]`) |
@@ -34,6 +34,10 @@
 | Ký hiệu mở/thu mục | ▾ / ▴ | ▾ / ▴ | ▾ / ▴ | `[+]` / `[-]` |
 
 - Mỗi chủ đề cung cấp **đủ mọi mẫu** mà cửa sổ đang dùng: màu, font, kiểu nút, công tắc, thanh trượt, lựa chọn, ô màu mẫu, ô nhập mã màu, tiêu đề mục, nút tiêu đề thu gọn, checkbox, thanh cuộn nếu có kiểu riêng, viền focus bàn phím. Thiếu mẫu nào thì cửa sổ sẽ lỗi khi đổi chủ đề, nên phải có kiểm tra (xem Ràng buộc).
+- **Ghi chú font** *(quyết định của người làm thiết kế, sau khi kiểm bảng ký tự)*:
+  - Orbitron Bold **không có chữ tiếng Việt có dấu** (thiếu Đ, ệ, ạ, ư, ơ, ă...). Tiêu đề tiếng Việt như "CÀI ĐẶT", "// GIAO DIỆN" sẽ bị lẫn font. Vì vậy cửa sổ Neon dùng **Chakra Petch** (có đủ dấu) cho tiêu đề, giãn chữ rộng và phát sáng hồng cho gần với bản vẽ.
+  - Orbitron vẫn dùng cho nhãn overlay (chỉ chữ không dấu: FPS, GPU...).
+  - VT323 và Chakra Petch đã kiểm: có đủ tiếng Việt.
 - **Terminal:** công tắc, thanh trượt và lựa chọn vẫn là đúng điều khiển WPF (bấm, kéo, phím mũi tên, Tab và Space vẫn dùng được); chỉ phần vẽ là chữ. Thanh trượt dạng chữ vẫn kéo bằng chuột được: bấm hoặc kéo dọc dải chữ đặt giá trị theo vị trí.
 - **Chữ phụ thuộc ngôn ngữ trong mẫu** (`[BẬT]`/`[TẮT]`, `[ON]`/`[OFF]`) lấy từ tài nguyên mà app đặt lại mỗi khi đổi ngôn ngữ. Ký hiệu mở/thu mục cũng lấy từ tài nguyên của chủ đề, thay cho ▾/▴ viết cứng trong code.
 - **Đổi tên mẫu `Cp.*` thành tên theo vai trò** (`Ui.Accent`, `Ui.Text`, `Ui.Switch`, `Ui.Section`...) *(quyết định của người làm thiết kế: tên `Cp.Yellow` không còn đúng khi chủ đề Cổ điển dùng cam)*.
