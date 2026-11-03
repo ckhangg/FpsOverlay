@@ -11,7 +11,7 @@
 
 ## 2. Công nghệ và cấu trúc
 - C# / **.NET 10**, WPF (+ WinForms `NotifyIcon` cho khay), xUnit.
-- `src/FpsOverlay.Core`: logic thuần, có test (`tests/FpsOverlay.Core.Tests`, 256 test).
+- `src/FpsOverlay.Core`: logic thuần, có test (`tests/FpsOverlay.Core.Tests`, 287 test).
 - `src/FpsOverlay`: app WPF. Chạy với quyền **Administrator** (`app.manifest` requireAdministrator) vì PresentMon cần ETW.
 - Đo FPS: **PresentMon 2.6.0** (`tools/PresentMon.exe`), cửa sổ trượt 0,5 s, độ trễ cho phép 1,5 s (dữ liệu ETW về theo đợt ~1 s).
 - Cảm biến: **LibreHardwareMonitorLib 0.9.6** (GPU/CPU tải và nhiệt, VRAM, xung nhân, công suất, quạt GPU), RAM qua `GlobalMemoryStatusEx`. Nhiệt độ CPU cần driver **PawnIO** (người dùng tự đồng ý cài).
@@ -25,6 +25,7 @@
 | 2 | Khởi động cùng Windows (Task Scheduler, quyền cao nhất), đo game Store/UWP (ApplicationFrameHost), dọn lỗi nhỏ. **Bỏ phím tắt** (người dùng chỉnh ở khay) | merge vào master |
 | 3–4 | Cảnh báo PresentMon, tiết kiệm khi ẩn, 1% low, GPU/CPU/RAM/nhiệt độ, log mỗi buổi chơi, overlay theo màn hình có game, **một file tự cài vào Program Files**, PawnIO | merge vào master |
 | 5 | Phiên bản **1.1.0**: bảng kiểu + mô hình hàng (refactor); VRAM/CLK/PWR/FAN (mặc định tắt, log thêm 4 cột); cảnh báo quá nhiệt (ngưỡng GPU 85/CPU 90, N giây mặc định 10, nháy bật, bíp tắt, nút "Thử cảnh báo", mục `// CẢNH BÁO`); hai kiểu mới **Neon tím** (Orbitron) và **Terminal xanh** (VT323); bố cục dọc; mục khay "Di chuyển overlay" (kéo thả; Enter/bấm đúp lưu, Esc huỷ, trả focus về game); cửa sổ cài đặt cuộn được | merge vào master, người dùng đã kiểm tay OK (2026-11-03) |
+| 6 | Phiên bản **1.2.0**: "Chỉ hiện khi chơi game" (mặc định bật; overlay hiện khi cửa sổ phía trước phủ kín màn hình, hoặc exe nằm trong `\steamapps\common\` hay `\XboxGames\`, hoặc nằm trong "Luôn hiện"; "Không bao giờ hiện" thắng; kiểm mỗi 250 ms); mục khay "Luôn hiện cho …"/"Không bao giờ hiện cho …"; cài đặt: danh sách thông số thu gọn sau nút "Chọn thông số hiển thị ▾" kèm "Đang hiện N/10", danh sách ứng dụng thu gọn có nút Xoá | **chưa merge**, nhánh `feat/game-only-overlay`; chưa kiểm tay |
 
 Hoãn theo ý người dùng: **biểu đồ FPS/frametime** (làm sau).
 
@@ -33,9 +34,11 @@ Hoãn theo ý người dùng: **biểu đồ FPS/frametime** (làm sau).
 - `docs/superpowers/specs/2026-11-02-ui-themes-settings-design.md` — đợt UI
 - `docs/superpowers/specs/2026-11-03-stats-logging-install-design.md` — đợt 3–4 (kèm mục "Rủi ro còn lại (đã chấp nhận)")
 - `docs/superpowers/specs/2026-11-03-gpu-alerts-themes-layout-design.md` — đợt 5
-- `docs/superpowers/plans/*.md` — kế hoạch tương ứng (đợt 3–4 có thêm Task 9b; đợt 5: `2026-11-03-gpu-alerts-themes-layout.md`)
+- `docs/superpowers/specs/2026-11-03-game-only-overlay-design.md` — đợt 6
+- `docs/superpowers/plans/*.md` — kế hoạch tương ứng (đợt 3–4 có thêm Task 9b; đợt 5: `2026-11-03-gpu-alerts-themes-layout.md`; đợt 6: `2026-11-03-game-only-overlay.md`)
 
 ## 5. Trạng thái hiện tại
+- **Đợt 6 (1.2.0) nằm trên nhánh `feat/game-only-overlay`, chưa merge vào master, chưa kiểm tay.** Code xong, `dotnet test`: 287/287 pass, `dotnet build src/FpsOverlay`: 0 cảnh báo. Cần kiểm tay mục "Đợt 6" ở mục 9 trước khi merge.
 - **Đợt 5 (1.1.0) đã merge vào master** (nhánh `feat/gpu-alerts-themes-layout` đã xoá; người dùng chọn merge trước khi kiểm tay, lỗi tìm thấy sửa trên nhánh mới từ master). Code xong, `dotnet test`: 256/256 pass, `dotnet build src/FpsOverlay`: 0 cảnh báo, `dotnet publish` chạy được. Người dùng đã cài bản 1.1.0 và kiểm tay đợt 5 trên máy thật: OK (2026-11-03).
 - Master (đợt 1–4): đã merge vào master (nhánh `feat/stats-install` đã xoá). `dotnet test` lúc đó: 196/196 pass.
 - Review (đợt 1–4): mỗi task có review riêng + review toàn nhánh + một đợt sửa sau review cuối, đã qua.
@@ -61,6 +64,11 @@ Hoãn theo ý người dùng: **biểu đồ FPS/frametime** (làm sau).
 - **R9** Bộ cài PawnIO chỉ được chạy nếu chữ ký hợp lệ **và** người ký `CN=namazso.eu`, `O=namazso` (kiểm theo tên, không theo mã chứng chỉ, để tác giả gia hạn chứng chỉ vẫn nhận).
 - **R10** (người dùng chọn) File mang đi chứa sẵn bản app nhiều file; khi cài chép bản nhiều file vào Program Files để thư viện không nạp từ `%TEMP%`.
 - **R11** Biến môi trường profiler của .NET (`CORECLR_*`) không chặn được từ trong app → ghi vào spec là rủi ro đã chấp nhận.
+- **Đợt 6** Cửa sổ của chính app và thanh taskbar/khay ẩn/Alt-Tab (cửa sổ phía trước) giữ nguyên quyết định hiện/ẩn trước đó. Nhờ vậy mở menu khay giữa game không làm overlay ẩn, và mục khay "Luôn hiện cho …" nhắm đúng game chứ không phải `explorer.exe`.
+- **Đợt 6** "Khôi phục mặc định" giữ nguyên hai danh sách ứng dụng.
+- **Đợt 6** "Không bao giờ hiện" thắng mọi điều kiện khác (toàn màn hình, thư mục game, "Luôn hiện").
+- **Đợt 6** `\WindowsApps\` cố ý **không** tính là thư mục game (sẽ làm Notepad/Photos/Calculator thành game). Game Store cũ chạy cửa sổ cần bấm "Luôn hiện" một lần.
+- **Đợt 6** Overlay tự ẩn mà log tắt thì PresentMon dừng; vào game thì số có thể là `--` trong 1–3 giây đầu.
 - **Đợt 5, R5** Góc và khoảng cách lưu đo tới **khung nhìn thấy được** của overlay; kiểu Neon có vùng trong suốt 8 DIP chứa ánh sáng nên được trừ ra, để đổi kiểu không làm overlay nhảy chỗ.
 - **Đợt 5** Ánh sáng (glow) của Neon theo màu chữ: đổi màu nhãn thì ánh sáng đổi theo.
 - **Đợt 5** Cảnh báo nhiệt kết thúc khi đang xem trước, khi overlay ẩn, hoặc khi tắt hiện nhiệt độ tương ứng.
@@ -160,3 +168,19 @@ Hoãn theo ý người dùng: **biểu đồ FPS/frametime** (làm sau).
 42. Terminal xanh với mọi hàng bật: CPU/GPU của app vẫn thấp.
 43. Đổi Neon ↔ kiểu khác: overlay không nhảy thấy được ở góc dưới/phải.
 44. Cửa sổ cài đặt trên màn hình thấp: cuộn được, nút "Khôi phục mặc định" / "Xong" vẫn hiện.
+
+**Đợt 6 (1.2.0)**
+45. Desktop: overlay ẩn. Vào game borderless: hiện ngay.
+46. Mở menu khay giữa game: overlay không chớp tắt. Mục khay "Luôn hiện cho …" nhắm đúng game, không phải `explorer.exe`.
+47. Alt-Tab hoặc phím Win trong game borderless: overlay không biến mất trước khi menu khay mở.
+48. "Luôn hiện cho notepad.exe": overlay hiện khi Notepad ở phía trước.
+49. "Không bao giờ hiện" cho trình duyệt rồi xem video toàn màn hình: overlay không hiện.
+50. "Ẩn FPS" rồi vào game: vẫn ẩn.
+51. "Di chuyển overlay" từ desktop: overlay hiện để kéo.
+52. Cửa sổ cài đặt ngắn hơn rõ rệt. Mở/thu gọn cả ô thông số lẫn ô danh sách ứng dụng; tick/bỏ tick đổi overlay ngay; "Đang hiện N/10" đúng.
+53. Ghi chú PawnIO vẫn thấy khi ô thông số thu gọn.
+54. Danh sách ứng dụng hiện đúng; nút "Xoá" gỡ được một ứng dụng khỏi danh sách; nhóm rỗng hiện "(trống)".
+55. Đổi ngôn ngữ: mọi chữ mới đổi theo.
+56. Cập nhật đè bản 1.1.0 bằng file mang đi 1.2.0: hộp thoại báo Cập nhật; cài đặt cũ còn nguyên và tuỳ chọn "Chỉ hiện khi chơi game" đang bật.
+57. Game Game Pass chạy cửa sổ được nhận ra (overlay hiện).
+58. Tắt log, ở desktop: PresentMon biến khỏi Task Manager. Vào game: overlay hiện và có số sau vài giây.
