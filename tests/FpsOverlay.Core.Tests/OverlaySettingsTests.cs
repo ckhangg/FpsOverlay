@@ -1,3 +1,4 @@
+using FpsOverlay.Core.GameOnly;
 using FpsOverlay.Core.Settings;
 
 namespace FpsOverlay.Core.Tests;
@@ -220,5 +221,54 @@ public class OverlaySettingsTests
         Assert.Equal(0, s.OffsetX);
         Assert.Equal(4000, s.OffsetY);
         Assert.Equal(8, (OverlaySettings.Defaults with { OffsetX = double.NaN }).Normalize().OffsetX);
+    }
+
+    [Fact]
+    public void Defaults_show_only_in_game_with_empty_lists()
+    {
+        Assert.True(OverlaySettings.Defaults.ShowOnlyInGame);
+        Assert.Empty(OverlaySettings.Defaults.AlwaysShowApps);
+        Assert.Empty(OverlaySettings.Defaults.NeverShowApps);
+    }
+
+    [Fact]
+    public void Normalize_keeps_only_never_when_name_is_in_both()
+    {
+        var s = (OverlaySettings.Defaults with
+        {
+            AlwaysShowApps = AppNames.From(["a.exe", "b.exe"]),
+            NeverShowApps = AppNames.From(["A.exe"]),
+        }).Normalize();
+        Assert.Equal(["b.exe"], s.AlwaysShowApps);
+        Assert.Equal(["A.exe"], s.NeverShowApps);
+    }
+
+    [Fact]
+    public void With_always_and_never_move_between_lists()
+    {
+        var s = OverlaySettings.Defaults.WithAlwaysShow("a.exe");
+        Assert.True(s.AlwaysShowApps.Contains("a.exe"));
+
+        s = s.WithNeverShow("A.EXE");
+        Assert.True(s.NeverShowApps.Contains("a.exe"));
+        Assert.Empty(s.AlwaysShowApps);
+
+        s = s.WithAlwaysShow("a.exe");
+        Assert.Empty(s.NeverShowApps);
+
+        s = s.WithNeverShow("b.exe").WithoutApp("B.exe").WithoutApp("a.exe");
+        Assert.Empty(s.AlwaysShowApps);
+        Assert.Empty(s.NeverShowApps);
+    }
+
+    [Fact]
+    public void Reset_keeps_app_lists_and_restores_game_only()
+    {
+        var s = (OverlaySettings.Defaults with { ShowOnlyInGame = false })
+            .WithAlwaysShow("a.exe").WithNeverShow("b.exe");
+        var reset = s.ResetToDefaults();
+        Assert.True(reset.ShowOnlyInGame);
+        Assert.Equal(["a.exe"], reset.AlwaysShowApps);
+        Assert.Equal(["b.exe"], reset.NeverShowApps);
     }
 }

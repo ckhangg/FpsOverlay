@@ -1,3 +1,5 @@
+using FpsOverlay.Core.GameOnly;
+
 namespace FpsOverlay.Core.Settings;
 
 public enum OverlayStyle { Classic, Cyberpunk, NeonPurple, TerminalGreen }
@@ -54,6 +56,10 @@ public sealed record OverlaySettings
     // Ghi log phiên và cờ đã mời cài PawnIO: không thuộc phần giao diện nên Khôi phục mặc định không đụng tới.
     public bool LoggingEnabled { get; init; } = true;
     public bool PawnIoOffered { get; init; }
+    // Chỉ hiện overlay khi đang chơi game; hai danh sách exe do người dùng thêm từ menu khay ("không bao giờ" thắng "luôn hiện").
+    public bool ShowOnlyInGame { get; init; } = true;
+    public AppNames AlwaysShowApps { get; init; } = AppNames.Empty;
+    public AppNames NeverShowApps { get; init; } = AppNames.Empty;
     public StyleColors ClassicColors { get; init; } = StyleColors.DefaultFor(OverlayStyle.Classic);
     public StyleColors CyberpunkColors { get; init; } = StyleColors.DefaultFor(OverlayStyle.Cyberpunk);
     public StyleColors NeonPurpleColors { get; init; } = StyleColors.DefaultFor(OverlayStyle.NeonPurple);
@@ -79,6 +85,8 @@ public sealed record OverlaySettings
             GpuHotThreshold = Math.Clamp(GpuHotThreshold, MinHotThreshold, MaxHotThreshold),
             CpuHotThreshold = Math.Clamp(CpuHotThreshold, MinHotThreshold, MaxHotThreshold),
             HotAlertSeconds = Math.Clamp(HotAlertSeconds, 0, MaxHotAlertSeconds),
+            NeverShowApps = NeverShowApps ?? AppNames.Empty,
+            AlwaysShowApps = RemoveAll(AlwaysShowApps ?? AppNames.Empty, NeverShowApps ?? AppNames.Empty),
         };
         return clamped.NormalizeColors();
     }
@@ -128,13 +136,33 @@ public sealed record OverlaySettings
         return this with { BadThreshold = bad, GoodThreshold = Math.Max(GoodThreshold, bad + 1) };
     }
 
-    /// <summary>Về mặc định nhưng giữ ngôn ngữ, phong cách đang chọn, bộ màu của phong cách kia, ghi log và cờ PawnIO.</summary>
+    /// <summary>Thêm vào danh sách "luôn hiện" và bỏ khỏi "không bao giờ".</summary>
+    public OverlaySettings WithAlwaysShow(string exe) =>
+        this with { AlwaysShowApps = AlwaysShowApps.With(exe), NeverShowApps = NeverShowApps.Without(exe) };
+
+    /// <summary>Thêm vào danh sách "không bao giờ" và bỏ khỏi "luôn hiện".</summary>
+    public OverlaySettings WithNeverShow(string exe) =>
+        this with { NeverShowApps = NeverShowApps.With(exe), AlwaysShowApps = AlwaysShowApps.Without(exe) };
+
+    /// <summary>Bỏ khỏi cả hai danh sách.</summary>
+    public OverlaySettings WithoutApp(string exe) =>
+        this with { AlwaysShowApps = AlwaysShowApps.Without(exe), NeverShowApps = NeverShowApps.Without(exe) };
+
+    private static AppNames RemoveAll(AppNames from, AppNames remove)
+    {
+        var result = from;
+        foreach (var name in remove) result = result.Without(name);
+        return result;
+    }
+
+    /// <summary>Về mặc định nhưng giữ ngôn ngữ, phong cách đang chọn, bộ màu của phong cách kia, ghi log, cờ PawnIO và hai danh sách ứng dụng.</summary>
     public OverlaySettings ResetToDefaults()
     {
         var result = Defaults;
         foreach (var style in Enum.GetValues<OverlayStyle>())
             result = result.WithColors(style, style == Style ? Defaults.ColorsFor(style) : ColorsFor(style));
-        return result with { Style = Style, Language = Language, LoggingEnabled = LoggingEnabled, PawnIoOffered = PawnIoOffered };
+        return result with { Style = Style, Language = Language, LoggingEnabled = LoggingEnabled, PawnIoOffered = PawnIoOffered,
+            AlwaysShowApps = AlwaysShowApps, NeverShowApps = NeverShowApps };
     }
 
     private static double Clamp(double value, double min, double max, double fallback) =>

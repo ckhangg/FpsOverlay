@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using FpsOverlay.Core.GameOnly;
 using System.Text.Json.Serialization;
 
 namespace FpsOverlay.Core.Settings;
@@ -55,6 +56,9 @@ public static class SettingsStore
                 HotAlertSound = ReadBool(root, nameof(OverlaySettings.HotAlertSound), d.HotAlertSound),
                 LoggingEnabled = ReadBool(root, nameof(OverlaySettings.LoggingEnabled), d.LoggingEnabled),
                 PawnIoOffered = ReadBool(root, nameof(OverlaySettings.PawnIoOffered), d.PawnIoOffered),
+                ShowOnlyInGame = ReadBool(root, nameof(OverlaySettings.ShowOnlyInGame), d.ShowOnlyInGame),
+                AlwaysShowApps = ReadAppNames(root, nameof(OverlaySettings.AlwaysShowApps)),
+                NeverShowApps = ReadAppNames(root, nameof(OverlaySettings.NeverShowApps)),
                 ClassicColors = ReadColors(root, nameof(OverlaySettings.ClassicColors), d.ClassicColors),
                 CyberpunkColors = ReadColors(root, nameof(OverlaySettings.CyberpunkColors), d.CyberpunkColors),
                 NeonPurpleColors = ReadColors(root, nameof(OverlaySettings.NeonPurpleColors), d.NeonPurpleColors),
@@ -109,6 +113,12 @@ public static class SettingsStore
         obj.TryGetProperty(name, out var v) && v.ValueKind is JsonValueKind.True or JsonValueKind.False
             ? v.GetBoolean()
             : fallback;
+
+    // Mảng chuỗi; phần tử không phải chuỗi bị bỏ, kiểu sai thì rỗng.
+    private static AppNames ReadAppNames(JsonElement obj, string name) =>
+        TryGet(obj, name, JsonValueKind.Array, out var arr)
+            ? AppNames.From(arr.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String).Select(e => e.GetString()))
+            : AppNames.Empty;
 
     private static StyleColors ReadColors(JsonElement obj, string name, StyleColors fallback)
     {

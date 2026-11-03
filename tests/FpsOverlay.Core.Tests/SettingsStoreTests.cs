@@ -1,3 +1,4 @@
+using System.Text.Json;
 using FpsOverlay.Core.Settings;
 
 namespace FpsOverlay.Core.Tests;
@@ -169,5 +170,48 @@ public sealed class SettingsStoreTests : IDisposable
         var original = OverlaySettings.Defaults with { ShowGpuMemory = true, ShowGpuClock = true, ShowGpuPower = true, ShowGpuFan = true };
         SettingsStore.Save(PathIn(), original);
         Assert.Equal(original, SettingsStore.Load(PathIn()));
+    }
+
+    [Fact]
+    public void Old_file_gets_game_only_defaults()
+    {
+        Directory.CreateDirectory(_dir);
+        File.WriteAllText(PathIn(), "{\"Style\":\"Classic\"}");
+        var s = SettingsStore.Load(PathIn());
+        Assert.Equal(OverlayStyle.Classic, s.Style);
+        Assert.True(s.ShowOnlyInGame);
+        Assert.Empty(s.AlwaysShowApps);
+        Assert.Empty(s.NeverShowApps);
+    }
+
+    [Fact]
+    public void Store_round_trips_app_lists()
+    {
+        var original = (OverlaySettings.Defaults with { ShowOnlyInGame = false })
+            .WithAlwaysShow("celeste.exe").WithNeverShow("chrome.exe");
+        SettingsStore.Save(PathIn(), original);
+        Assert.Equal(original, SettingsStore.Load(PathIn()));
+
+        using var doc = JsonDocument.Parse(File.ReadAllText(PathIn()));
+        Assert.Equal(JsonValueKind.Array, doc.RootElement.GetProperty("AlwaysShowApps").ValueKind);
+        Assert.Equal("celeste.exe", doc.RootElement.GetProperty("AlwaysShowApps")[0].GetString());
+    }
+
+    [Fact]
+    public void Settings_with_same_lists_are_equal()
+    {
+        SettingsStore.Save(PathIn(), OverlaySettings.Defaults.WithAlwaysShow("a.exe").WithNeverShow("b.exe"));
+        Assert.Equal(SettingsStore.Load(PathIn()), SettingsStore.Load(PathIn()));
+        Assert.Equal(SettingsStore.Load(PathIn()).GetHashCode(), SettingsStore.Load(PathIn()).GetHashCode());
+    }
+
+    [Fact]
+    public void Broken_app_lists_load_as_empty_and_bad_items_are_ignored()
+    {
+        Directory.CreateDirectory(_dir);
+        File.WriteAllText(PathIn(), "{\"AlwaysShowApps\":\"oops\",\"NeverShowApps\":[1,\"x.exe\",null,{\"a\":1},\"\"]}");
+        var s = SettingsStore.Load(PathIn());
+        Assert.Empty(s.AlwaysShowApps);
+        Assert.Equal(["x.exe"], s.NeverShowApps);
     }
 }
