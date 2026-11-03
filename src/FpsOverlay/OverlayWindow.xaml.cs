@@ -22,19 +22,30 @@ public partial class OverlayWindow : Window
     /// <summary>App đặt: trả handle cửa sổ cài đặt khi đang xem trước (overlay theo màn hình đó), ngược lại null/Zero.</summary>
     public Func<IntPtr?>? PreviewWindow { get; set; }
 
-    // Viền tối quanh chữ (Outline) và ánh sáng quanh số FPS (Glow); phong cách chọn dùng cái nào.
+    /// <summary>Lề trong suốt quanh khối khi có viền phát sáng (DIP), cũng là độ toả của ánh sáng viền.</summary>
+    const double FrameGlowPad = 8;
+
+    // Viền tối quanh chữ (Outline) và ánh sáng của viền Neon; phong cách chọn dùng cái nào.
     readonly DropShadowEffect _outline = new() { Color = Colors.Black, ShadowDepth = 0, BlurRadius = 3, Opacity = 1 };
-    readonly DropShadowEffect _fpsGlow = new() { ShadowDepth = 0, BlurRadius = 6, Opacity = 0.7 };
+    readonly DropShadowEffect _frameGlow = new() { ShadowDepth = 0, BlurRadius = FrameGlowPad, Opacity = 1 };
+
+    // Chữ phát sáng cùng màu chữ: một hiệu ứng đã Freeze cho mỗi brush (brush đều được cache),
+    // nên đổi màu theo mức FPS hay nhịp nháy chỉ tra từ điển, không tạo đối tượng mới. Xoá khi áp phong cách.
+    readonly Dictionary<Brush, Effect> _glows = new();
 
     // Mục FPS: dấu nhắc (rỗng ở Cổ điển/Cyberpunk) + nhãn + khoảng cách + số. Số nằm trong InlineUIContainer để phát sáng được.
+    // Phong cách có nhãn phát sáng thì dấu nhắc + nhãn chuyển vào _fpsLabelBox (cũng trong InlineUIContainer).
     readonly Run _prompt = new(""), _fpsLabel = new("FPS"), _fpsGap = new(" ");
     readonly TextBlock _fpsValue = new() { Text = "--" };
+    readonly TextBlock _fpsItem = new() { VerticalAlignment = VerticalAlignment.Center };
+    readonly TextBlock _fpsLabelBox = new();
+    readonly InlineUIContainer _fpsLabelHost, _fpsValueHost;
+    bool? _fpsLabelBoxed;
 
     OverlaySettings _settings = OverlaySettings.Defaults;
     OverlayVisuals _visuals = OverlayTheme.Visuals(OverlaySettings.Defaults.Style);
     double? _lastFps;
     string _lastText = "--";
-    bool _glowOn;
     double? _lastOnePercentLow;
     SensorSnapshot _lastSensors;
     readonly RowView[] _rows;
@@ -49,18 +60,28 @@ public partial class OverlayWindow : Window
     /// <summary>
     /// Đối tượng chữ của một <see cref="StatRow"/>, tạo một lần: dấu ngăn + nhãn + ô First + ô Second.
     /// Ở bố cục ngang tất cả là Run trong một TextBlock (chung đường chân chữ); ẩn mục là ẩn cả dấu ngăn.
+    /// Phần nào phát sáng (nhãn kèm dấu ngăn, từng ô giá trị) thì Run của nó chuyển vào TextBlock riêng trong
+    /// InlineUIContainer (vẫn theo đường chân chữ) để mang hiệu ứng đúng màu của chính nó.
     /// </summary>
     sealed class RowView
     {
         public readonly StatRow Row;
         public readonly TextBlock Item = new() { VerticalAlignment = VerticalAlignment.Center };
         public readonly Run Sep = new(), Label, Gap = new(" "), First = new("--"), Gap2 = new(""), Second = new("");
+        readonly TextBlock _labelBox = new(), _firstBox = new(), _secondBox = new();
+        readonly InlineUIContainer _labelHost, _firstHost, _secondHost;
+        readonly Func<Brush, Effect?> _glow;
+        bool? _glowLabel, _glowValues;
 
-        public RowView(StatRow row)
+        public RowView(StatRow row, Func<Brush, Effect?> glow)
         {
             Row = row;
+            _glow = glow;
             Label = new Run(StatRows.Label(row));
-            Item.Inlines.AddRange(new Inline[] { Sep, Label, Gap, First, Gap2, Second });
+            _labelHost = Host(_labelBox);
+            _firstHost = Host(_firstBox);
+            _secondHost = Host(_secondBox);
+            Rebuild(glowLabel: false, glowValues: false);
         }
 
         public void ApplyStyle(OverlayVisuals v, string separator, Brush labelBrush)
@@ -70,7 +91,7 @@ public partial class OverlayWindow : Window
             {
                 r.FontFamily = v.LabelFont;
                 r.FontSize = v.StatLabelSize;
-                r.FontWeight = FontWeights.Bold;
+                r.FontWeight = v.TextWeight;
                 r.Foreground = labelBrush;
             }
             Gap.FontSize = v.StatGapSize;
@@ -79,9 +100,35 @@ public partial class OverlayWindow : Window
             {
                 r.FontFamily = v.ValueFont;
                 r.FontSize = v.StatValueSize;
-                r.FontWeight = FontWeights.Bold;
-                r.Foreground = null;   // ép gán lại màu ở lần SetStats kế tiếp
+                r.FontWeight = v.TextWeight;
+                r.Foreground = null;   // ép gán lại màu (và ánh sáng) ở lần SetStats kế tiếp
             }
+
+            Rebuild(glowLabel: v.Glow is TextGlow.LabelsAndFps or TextGlow.All, glowValues: v.Glow == TextGlow.All);
+            SetBoxFont(_labelBox, v.LabelFont, v.StatLabelSize, v.TextWeight);
+            SetBoxFont(_firstBox, v.ValueFont, v.StatValueSize, v.TextWeight);
+            SetBoxFont(_secondBox, v.ValueFont, v.StatValueSize, v.TextWeight);
+            _labelBox.Effect = _glowLabel == true ? _glow(labelBrush) : null;
+            _firstBox.Effect = null;
+            _secondBox.Effect = null;
+        }
+
+        // Xếp lại các Run: thẳng trong Item, hoặc trong TextBlock riêng khi phần đó phát sáng. Chỉ chạy khi đổi phong cách.
+        void Rebuild(bool glowLabel, bool glowValues)
+        {
+            if (_glowLabel == glowLabel && _glowValues == glowValues)
+                return;
+            _glowLabel = glowLabel;
+            _glowValues = glowValues;
+            Item.Inlines.Clear();
+            _labelBox.Inlines.Clear();
+            _firstBox.Inlines.Clear();
+            _secondBox.Inlines.Clear();
+            Place(Item.Inlines, _labelBox, _labelHost, glowLabel, Sep, Label);
+            Item.Inlines.Add(Gap);
+            Place(Item.Inlines, _firstBox, _firstHost, glowValues, First);
+            Item.Inlines.Add(Gap2);
+            Place(Item.Inlines, _secondBox, _secondHost, glowValues, Second);
         }
 
         public void SetVisible(bool visible)
@@ -93,16 +140,41 @@ public partial class OverlayWindow : Window
         /// <summary>Hai ô giá trị; ô thứ hai rỗng thì bỏ luôn khoảng cách trước nó, không để khoảng trống thừa.</summary>
         public void SetValues(string first, Brush firstBrush, string second, Brush secondBrush)
         {
-            Set(First, first, firstBrush);
-            Set(Gap2, second.Length > 0 ? " " : "", null);
-            Set(Second, second, secondBrush);
+            Set(First, _glowValues == true ? _firstBox : null, first, firstBrush);
+            Set(Gap2, null, second.Length > 0 ? " " : "", null);
+            Set(Second, _glowValues == true ? _secondBox : null, second, secondBrush);
         }
 
-        static void Set(Run run, string text, Brush? brush)
+        // Ánh sáng (nếu ô phát sáng) đổi cùng lúc với màu chữ, lấy từ cache nên không cấp phát.
+        void Set(Run run, TextBlock? glowBox, string text, Brush? brush)
         {
             if (run.Text != text) run.Text = text;
-            if (brush is not null && !ReferenceEquals(run.Foreground, brush)) run.Foreground = brush;
+            if (brush is null || ReferenceEquals(run.Foreground, brush)) return;
+            run.Foreground = brush;
+            if (glowBox is not null) glowBox.Effect = _glow(brush);
         }
+    }
+
+    static InlineUIContainer Host(TextBlock box) => new(box) { BaselineAlignment = BaselineAlignment.Baseline };
+
+    // Đặt các Run vào target: thẳng, hoặc gói trong box (đã nằm trong host) khi cần mang hiệu ứng riêng.
+    static void Place(InlineCollection target, TextBlock box, InlineUIContainer host, bool boxed, params Run[] runs)
+    {
+        if (boxed)
+        {
+            box.Inlines.AddRange(runs);
+            target.Add(host);
+        }
+        else
+            target.AddRange(runs);
+    }
+
+    // Box có cùng font với Run bên trong để chiều cao dòng (kể cả khi rỗng) giống hệt.
+    static void SetBoxFont(TextBlock box, FontFamily family, double size, FontWeight weight)
+    {
+        box.FontFamily = family;
+        box.FontSize = size;
+        box.FontWeight = weight;
     }
 
     public OverlayWindow()
@@ -115,13 +187,12 @@ public partial class OverlayWindow : Window
         _topmostTimer.Tick += (_, _) => KeepOnTop();
         _blinkTimer.Tick += (_, _) => OnBlinkTick();
 
-        var fpsItem = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
-        fpsItem.Inlines.AddRange(new Inline[]
-        {
-            _prompt, _fpsLabel, _fpsGap, new InlineUIContainer(_fpsValue) { BaselineAlignment = BaselineAlignment.Baseline },
-        });
-        Items.Children.Add(fpsItem);
-        _rows = StatRows.Order.Select(row => new RowView(row)).ToArray();
+        _fpsLabelHost = Host(_fpsLabelBox);
+        _fpsValueHost = Host(_fpsValue);
+        RebuildFpsItem(boxLabel: false);
+        Items.Children.Add(_fpsItem);
+        Func<Brush, Effect?> glow = GlowFor;
+        _rows = StatRows.Order.Select(row => new RowView(row, glow)).ToArray();
         foreach (var row in _rows)
             Items.Children.Add(row.Item);
         Apply(_settings);
@@ -134,6 +205,7 @@ public partial class OverlayWindow : Window
         var style = settings.Style;
         var spec = StyleSpecs.For(style);
         var v = _visuals = OverlayTheme.Visuals(style);
+        _glows.Clear();   // độ toả/độ đậm ánh sáng theo phong cách mới
         var labelBrush = OverlayTheme.FromHex(settings.ColorsFor(style).Label);   // dấu nhắc và dấu ngăn cũng dùng màu nhãn
 
         if (_prompt.Text != spec.Prompt) _prompt.Text = spec.Prompt;
@@ -141,29 +213,32 @@ public partial class OverlayWindow : Window
         {
             r.FontFamily = v.LabelFont;
             r.FontSize = v.FpsLabelSize;
-            r.FontWeight = FontWeights.Bold;
+            r.FontWeight = v.TextWeight;
             r.Foreground = labelBrush;
         }
         _fpsGap.FontFamily = v.LabelFont;
         _fpsGap.FontSize = v.FpsGapSize;
         _fpsValue.FontFamily = v.ValueFont;
         _fpsValue.FontSize = v.FpsValueSize;
-        _fpsValue.FontWeight = FontWeights.Bold;
+        _fpsValue.FontWeight = v.TextWeight;
+        var glowLabels = v.Glow is TextGlow.LabelsAndFps or TextGlow.All;
+        RebuildFpsItem(glowLabels);
+        SetBoxFont(_fpsLabelBox, v.LabelFont, v.FpsLabelSize, v.TextWeight);
+        _fpsLabelBox.Effect = glowLabels ? GlowFor(labelBrush) : null;
 
         foreach (var row in _rows)
             row.ApplyStyle(v, spec.Separator, labelBrush);
 
         var background = OverlayTheme.ColorFromHex(spec.Background);
         background.A = (byte)Math.Round(settings.BackgroundOpacity * 255);
-        var backgroundBrush = new SolidColorBrush(background);
-        backgroundBrush.Freeze();
-        Chrome.Background = backgroundBrush;
+        Chrome.Background = v.Scanlines ? ScanlineBrush(background, settings.BackgroundOpacity) : Frozen(new SolidColorBrush(background));
         Chrome.CornerRadius = v.CornerRadius;
         Chrome.BorderBrush = v.BorderBrush;
         Chrome.BorderThickness = v.BorderThickness;
         Chrome.Padding = v.Padding;
         Items.Effect = v.Outline ? _outline : null;
         UpdateChamfer();
+        UpdateFrameGlow(v, settings.Scale);
 
         Zoom.ScaleX = settings.Scale;
         Zoom.ScaleY = settings.Scale;
@@ -188,19 +263,87 @@ public partial class OverlayWindow : Window
 
         var brush = FpsBrush(fps, settings);
 
-        // Số FPS phát sáng nhẹ cùng màu (phong cách có Glow); "--" không phát sáng.
-        var glow = OverlayTheme.Visuals(settings.Style).Glow != TextGlow.None && fps is not null;
-        if (ReferenceEquals(_fpsValue.Foreground, brush) && glow == _glowOn)
+        // Số FPS phát sáng cùng màu (mọi phong cách có Glow); "--" không phát sáng.
+        var glow = OverlayTheme.Visuals(settings.Style).Glow != TextGlow.None && fps is not null ? GlowFor(brush) : null;
+        if (ReferenceEquals(_fpsValue.Foreground, brush) && ReferenceEquals(_fpsValue.Effect, glow))
             return;
         _fpsValue.Foreground = brush;
-        _glowOn = glow;
-        if (glow && brush is SolidColorBrush solid)
+        _fpsValue.Effect = glow;
+    }
+
+    // Hiệu ứng phát sáng cùng màu với brush, theo độ toả/độ đậm của phong cách hiện tại; tạo một lần cho mỗi brush.
+    Effect? GlowFor(Brush brush)
+    {
+        if (brush is not SolidColorBrush solid)
+            return null;
+        if (!_glows.TryGetValue(brush, out var effect))
         {
-            _fpsGlow.Color = solid.Color;
-            _fpsValue.Effect = _fpsGlow;
+            var shadow = new DropShadowEffect
+            {
+                Color = solid.Color, ShadowDepth = 0, BlurRadius = _visuals.GlowBlur, Opacity = _visuals.GlowOpacity,
+            };
+            shadow.Freeze();
+            _glows[brush] = effect = shadow;
+        }
+        return effect;
+    }
+
+    // Mục FPS: dấu nhắc + nhãn thẳng trong _fpsItem, hoặc gói trong _fpsLabelBox khi nhãn phát sáng.
+    void RebuildFpsItem(bool boxLabel)
+    {
+        if (_fpsLabelBoxed == boxLabel)
+            return;
+        _fpsLabelBoxed = boxLabel;
+        _fpsItem.Inlines.Clear();
+        _fpsLabelBox.Inlines.Clear();
+        Place(_fpsItem.Inlines, _fpsLabelBox, _fpsLabelHost, boxLabel, _prompt, _fpsLabel);
+        _fpsItem.Inlines.Add(_fpsGap);
+        _fpsItem.Inlines.Add(_fpsValueHost);
+    }
+
+    // Viền phát sáng (Neon): GlowFrame trùng khung Chrome, nằm ngoài LayoutTransform nên tự nhân Scale;
+    // Root có lề FrameGlowPad để ánh sáng không bị mép cửa sổ cắt (UpdatePosition trừ lại lề này).
+    void UpdateFrameGlow(OverlayVisuals v, double scale)
+    {
+        if (v.BorderGlow && v.BorderBrush is SolidColorBrush frame)
+        {
+            var t = v.BorderThickness;
+            var r = v.CornerRadius;
+            GlowFrame.BorderBrush = frame;
+            GlowFrame.BorderThickness = new Thickness(t.Left * scale, t.Top * scale, t.Right * scale, t.Bottom * scale);
+            GlowFrame.CornerRadius = new CornerRadius(r.TopLeft * scale, r.TopRight * scale, r.BottomRight * scale, r.BottomLeft * scale);
+            _frameGlow.Color = frame.Color;
+            GlowFrame.Effect = _frameGlow;
+            GlowFrame.Visibility = Visibility.Visible;
+            Root.Margin = new Thickness(FrameGlowPad);
         }
         else
-            _fpsValue.Effect = null;
+        {
+            GlowFrame.Effect = null;
+            GlowFrame.Visibility = Visibility.Collapsed;
+            Root.Margin = new Thickness(0);
+        }
+    }
+
+    // Nền kèm vạch CRT: DrawingBrush lặp chu kỳ 3 DIP, 1 DIP trên cùng tối hơn (đen 25%, nhân độ mờ nền để nền 0% vẫn trong suốt).
+    static Brush ScanlineBrush(Color background, double opacity)
+    {
+        var line = Color.FromArgb((byte)Math.Round(0.25 * opacity * 255), 0, 0, 0);
+        var tile = new DrawingGroup();
+        tile.Children.Add(new GeometryDrawing(new SolidColorBrush(background), null, new RectangleGeometry(new Rect(0, 0, 1, 3))));
+        tile.Children.Add(new GeometryDrawing(new SolidColorBrush(line), null, new RectangleGeometry(new Rect(0, 0, 1, 1))));
+        return Frozen(new DrawingBrush(tile)
+        {
+            TileMode = TileMode.Tile, Stretch = Stretch.Fill,
+            Viewport = new Rect(0, 0, 1, 3), ViewportUnits = BrushMappingMode.Absolute,
+            Viewbox = new Rect(0, 0, 1, 3), ViewboxUnits = BrushMappingMode.Absolute,
+        });
+    }
+
+    static Brush Frozen(Brush brush)
+    {
+        brush.Freeze();
+        return brush;
     }
 
     // Màu theo mốc FPS, dùng cho cả số FPS và 1% low. "--" luôn dùng màu giá trị thường.
@@ -372,8 +515,10 @@ public partial class OverlayWindow : Window
         if (NativeMethods.GetDpiForMonitor(monitor, NativeMethods.MDT_EFFECTIVE_DPI, out var dpiX, out _) == 0 && dpiX > 0)
             dpi = dpiX;
         var m = info.rcMonitor;
+        // Lề trong suốt của Root (ánh sáng viền) được trừ ra để khung vẫn cách mép ScreenMargin.
+        var margin = ScreenMargin - Root.Margin.Left;
         var (x, y) = OverlayPlacement.Compute(new PixelRect(m.Left, m.Top, m.Right, m.Bottom),
-            self.Right - self.Left, self.Bottom - self.Top, _settings.Corner, (int)Math.Round(ScreenMargin * dpi / 96.0));
+            self.Right - self.Left, self.Bottom - self.Top, _settings.Corner, (int)Math.Round(margin * dpi / 96.0));
         // So với vị trí thật của cửa sổ (WPF có thể đã dời khi DPI đổi); chỉ đặt khi khác, để không vòng lặp với DpiChanged.
         if (self.Left == x && self.Top == y)
             return;

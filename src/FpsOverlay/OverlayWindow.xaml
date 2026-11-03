@@ -14,12 +14,18 @@
         SizeToContent="WidthAndHeight"
         WindowStartupLocation="Manual"
         UseLayoutRounding="True">
-    <!-- Kích cỡ: phóng cả dải (chữ, lề, nền) bằng LayoutTransform để cửa sổ SizeToContent co giãn theo. -->
-    <Border x:Name="Chrome">
-        <Border.LayoutTransform>
-            <ScaleTransform x:Name="Zoom" ScaleX="1" ScaleY="1" />
-        </Border.LayoutTransform>
-        <!-- Hàng ngang các mục nhãn + giá trị; các mục được dựng trong code (mục FPS rồi một mục cho mỗi StatRow). -->
-        <StackPanel x:Name="Items" Orientation="Horizontal" />
-    </Border>
+    <!-- Root có lề trong suốt chỉ khi viền phát sáng, để ánh sáng không bị mép cửa sổ cắt. -->
+    <Grid x:Name="Root">
+        <!-- Viền phát sáng (Neon): Border riêng phía sau nội dung mang DropShadowEffect, để chữ không bị nhoè.
+             Nằm ngoài LayoutTransform nên độ toả tính bằng DIP; độ dày và bo góc nhân Scale trong code. -->
+        <Border x:Name="GlowFrame" Visibility="Collapsed" />
+        <!-- Kích cỡ: phóng cả dải (chữ, lề, nền) bằng LayoutTransform để cửa sổ SizeToContent co giãn theo. -->
+        <Border x:Name="Chrome">
+            <Border.LayoutTransform>
+                <ScaleTransform x:Name="Zoom" ScaleX="1" ScaleY="1" />
+            </Border.LayoutTransform>
+            <!-- Hàng ngang các mục nhãn + giá trị; các mục được dựng trong code (mục FPS rồi một mục cho mỗi StatRow). -->
+            <StackPanel x:Name="Items" Orientation="Horizontal" />
+        </Border>
+    </Grid>
 </Window>

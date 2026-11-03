@@ -92,6 +92,8 @@ public partial class SettingsWindow : Window
             LanguageEn.IsChecked = s.Language == AppLanguage.English;
             StyleClassic.IsChecked = s.Style == OverlayStyle.Classic;
             StyleCyberpunk.IsChecked = s.Style == OverlayStyle.Cyberpunk;
+            StyleNeonPurple.IsChecked = s.Style == OverlayStyle.NeonPurple;
+            StyleTerminalGreen.IsChecked = s.Style == OverlayStyle.TerminalGreen;
             CornerTopLeft.IsChecked = s.Corner == OverlayCorner.TopLeft;
             CornerTopRight.IsChecked = s.Corner == OverlayCorner.TopRight;
             CornerBottomLeft.IsChecked = s.Corner == OverlayCorner.BottomLeft;
@@ -218,6 +220,8 @@ public partial class SettingsWindow : Window
         StyleLabel.Text = T(StringKey.Style);
         StyleClassic.Content = T(StringKey.StyleClassic);
         StyleCyberpunk.Content = T(StringKey.StyleCyberpunk);
+        StyleNeonPurple.Content = T(StringKey.StyleNeonPurple);
+        StyleTerminalGreen.Content = T(StringKey.StyleTerminalGreen);
         CornerLabel.Text = T(StringKey.Corner);
         CornerTopLeft.Content = T(StringKey.CornerTopLeft);
         CornerTopRight.Content = T(StringKey.CornerTopRight);

@@ -79,6 +79,10 @@
                          Tag="{x:Static s:OverlayStyle.Classic}" Checked="OnStyleChecked" />
             <RadioButton x:Name="StyleCyberpunk" GroupName="Style" Style="{StaticResource Cp.Segment}"
                          Tag="{x:Static s:OverlayStyle.Cyberpunk}" Checked="OnStyleChecked" />
+            <RadioButton x:Name="StyleNeonPurple" GroupName="Style" Style="{StaticResource Cp.Segment}"
+                         Tag="{x:Static s:OverlayStyle.NeonPurple}" Checked="OnStyleChecked" />
+            <RadioButton x:Name="StyleTerminalGreen" GroupName="Style" Style="{StaticResource Cp.Segment}"
+                         Tag="{x:Static s:OverlayStyle.TerminalGreen}" Checked="OnStyleChecked" />
         </StackPanel>
 
         <TextBlock x:Name="CornerLabel" Grid.Row="3" Style="{StaticResource Cp.FieldLabel}" />

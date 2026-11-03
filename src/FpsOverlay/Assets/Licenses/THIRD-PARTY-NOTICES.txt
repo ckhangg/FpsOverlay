@@ -37,3 +37,5 @@ Full license texts are in the files named below (same folder).
 4. Fonts - SIL Open Font License 1.1
    Chakra Petch: OFL-ChakraPetch.txt
    JetBrains Mono: OFL-JetBrainsMono.txt
+   Orbitron: OFL-Orbitron.txt
+   VT323: OFL-VT323.txt
