@@ -26,7 +26,7 @@
 | 3–4 | Cảnh báo PresentMon, tiết kiệm khi ẩn, 1% low, GPU/CPU/RAM/nhiệt độ, log mỗi buổi chơi, overlay theo màn hình có game, **một file tự cài vào Program Files**, PawnIO | merge vào master |
 | 5 | Phiên bản **1.1.0**: bảng kiểu + mô hình hàng (refactor); VRAM/CLK/PWR/FAN (mặc định tắt, log thêm 4 cột); cảnh báo quá nhiệt (ngưỡng GPU 85/CPU 90, N giây mặc định 10, nháy bật, bíp tắt, nút "Thử cảnh báo", mục `// CẢNH BÁO`); hai kiểu mới **Neon tím** (Orbitron) và **Terminal xanh** (VT323); bố cục dọc; mục khay "Di chuyển overlay" (kéo thả; Enter/bấm đúp lưu, Esc huỷ, trả focus về game); cửa sổ cài đặt cuộn được | merge vào master, người dùng đã kiểm tay OK (2026-11-03) |
 | 6 | Phiên bản **1.2.0**: "Chỉ hiện khi chơi game" (mặc định bật; overlay hiện khi cửa sổ phía trước phủ kín màn hình, hoặc exe nằm trong `\steamapps\common\` hay `\XboxGames\`, hoặc nằm trong "Luôn hiện"; "Không bao giờ hiện" thắng; kiểm mỗi 250 ms); mục khay "Luôn hiện cho …"/"Không bao giờ hiện cho …"; cài đặt: danh sách thông số thu gọn sau nút "Chọn thông số hiển thị ▾" kèm "Đang hiện N/10", danh sách ứng dụng thu gọn có nút Xoá | merge vào master, chưa kiểm tay |
-| 7 | Phiên bản **1.3.0**: cài đặt có các mục màu/FPS/cảnh báo thu gọn được và nhãn phiên bản; kho GitHub công khai `ckhangg/FpsOverlay` (README song ngữ, giấy phép MIT); `scripts/release.ps1` phát hành lên GitHub Releases; cài bằng một dòng `curl` | merge vào master, phát hành v1.3.0 trên GitHub, chưa kiểm tay |
+| 7 | Phiên bản **1.3.0**: cài đặt có các mục màu/FPS/cảnh báo thu gọn được và nhãn phiên bản; kho GitHub công khai `ckhangg/FpsOverlay` (README song ngữ, giấy phép MIT); `scripts/release.ps1` phát hành lên GitHub Releases; cài bằng một dòng `curl` | chờ phát hành v1.3.0 lên GitHub, chưa kiểm tay |
 
 Hoãn theo ý người dùng: **biểu đồ FPS/frametime** (làm sau).
 
@@ -40,12 +40,12 @@ Hoãn theo ý người dùng: **biểu đồ FPS/frametime** (làm sau).
 - `docs/superpowers/plans/*.md` — kế hoạch tương ứng (đợt 3–4 có thêm Task 9b; đợt 5: `2026-11-03-gpu-alerts-themes-layout.md`; đợt 6: `2026-11-03-game-only-overlay.md`; đợt 7: `2026-11-03-collapse-version-install.md`)
 
 ## 5. Trạng thái hiện tại
-- **Đợt 7 (1.3.0) merge vào master, phát hành v1.3.0 trên GitHub, chưa kiểm tay.** `dotnet test`: 292/292 pass, `dotnet build src/FpsOverlay`: 0 cảnh báo. Cần kiểm tay mục "Đợt 7" ở mục 9.
+- **Đợt 7 (1.3.0) chờ phát hành v1.3.0 lên GitHub, chưa kiểm tay.** `dotnet test`: 292/292 pass, `dotnet build src/FpsOverlay`: 0 cảnh báo. Cần kiểm tay mục "Đợt 7" ở mục 9.
 - **Kho GitHub:** https://github.com/ckhangg/FpsOverlay (công khai, tài khoản `ckhangg`; tác giả mọi commit là `CKhang <39177627+ckhangg@users.noreply.github.com>`). Bản sao lưu lịch sử cũ: `%USERPROFILE%\Downloads\FPS-history-backup.bundle`.
 - **Phát hành bản mới:** đổi `<Version>` trong `src/FpsOverlay/FpsOverlay.csproj`, merge vào `master`, rồi chạy `.\scripts\release.ps1` (cần `gh` đã đăng nhập). Script kiểm cây sạch + đang ở master + thẻ chưa có, chạy test, publish, tạo `publish\FpsOverlay.exe.sha256`, đẩy thẻ `vX.Y.Z` rồi tạo release kèm hai file.
 - **Lệnh cài một dòng** (cmd, không phải PowerShell; chạy lại để cập nhật):
   ```
-  curl -L -o "%TEMP%\FpsOverlay.exe" https://github.com/ckhangg/FpsOverlay/releases/latest/download/FpsOverlay.exe && start "" "%TEMP%\FpsOverlay.exe"
+  curl -fL -o "%TEMP%\FpsOverlay.exe" https://github.com/ckhangg/FpsOverlay/releases/latest/download/FpsOverlay.exe && start "" "%TEMP%\FpsOverlay.exe"
   ```
 - **Đợt 6 (1.2.0) đã merge vào master, chưa kiểm tay** (nhánh `feat/game-only-overlay` đã xoá; người dùng chọn merge trước khi kiểm tay, lỗi tìm thấy sửa trên nhánh mới từ master). `dotnet test`: 287/287 pass, `dotnet build src/FpsOverlay`: 0 cảnh báo. Cần kiểm tay mục "Đợt 6" ở mục 9.
 - **Đợt 5 (1.1.0) đã merge vào master** (nhánh `feat/gpu-alerts-themes-layout` đã xoá; người dùng chọn merge trước khi kiểm tay, lỗi tìm thấy sửa trên nhánh mới từ master). Code xong, `dotnet test`: 256/256 pass, `dotnet build src/FpsOverlay`: 0 cảnh báo, `dotnet publish` chạy được. Người dùng đã cài bản 1.1.0 và kiểm tay đợt 5 trên máy thật: OK (2026-11-03).

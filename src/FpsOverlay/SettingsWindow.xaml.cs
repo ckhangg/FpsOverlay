@@ -338,12 +338,6 @@ public partial class SettingsWindow : Window
     // Tag của nút / thanh tiêu đề là tên panel cần xổ/thu.
     void OnToggleClick(object sender, RoutedEventArgs e) => ToggleSection((UIElement)FindName((string)((FrameworkElement)sender).Tag));
 
-    void OnHeaderMouseUp(object sender, MouseButtonEventArgs e)
-    {
-        ToggleSection((UIElement)FindName((string)((FrameworkElement)sender).Tag));
-        e.Handled = true;
-    }
-
     void RefreshToggleTitles(AppLanguage language)
     {
         string Title(StringKey key, UIElement panel) => $"{Loc.Get(key, language)} {Arrow(panel)}";

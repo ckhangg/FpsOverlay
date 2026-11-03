@@ -200,6 +200,28 @@
         </Setter>
     </Style>
 
+    <!-- Tiêu đề mục thu gọn: nút phẳng, giữ nguyên giao diện cũ, thao tác được bằng bàn phím -->
+    <Style x:Key="Cp.HeaderButton" TargetType="Button">
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd" Background="Transparent" BorderBrush="Transparent" BorderThickness="1">
+                        <ContentPresenter HorizontalAlignment="Stretch" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Cp.Dashed}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- ===== Nút phân đoạn (RadioButton): chọn = nền vàng chữ đen ===== -->
     <Style x:Key="Cp.Segment" TargetType="RadioButton">
         <Setter Property="Foreground" Value="{StaticResource Cp.Text}" />

@@ -20,7 +20,7 @@ FPS Overlay là app Windows hiện FPS và các thông số máy (1% low, tải 
 Mở **Command Prompt** (cmd), dán lệnh sau rồi Enter:
 
 ```
-curl -L -o "%TEMP%\FpsOverlay.exe" https://github.com/ckhangg/FpsOverlay/releases/latest/download/FpsOverlay.exe && start "" "%TEMP%\FpsOverlay.exe"
+curl -fL -o "%TEMP%\FpsOverlay.exe" https://github.com/ckhangg/FpsOverlay/releases/latest/download/FpsOverlay.exe && start "" "%TEMP%\FpsOverlay.exe"
 ```
 
 Hộp thoại cài sẽ hiện (và đòi quyền Admin). Chạy lại đúng lệnh này để cập nhật lên bản mới nhất; cài đặt của bạn được giữ nguyên.
@@ -72,7 +72,7 @@ FPS Overlay is a Windows app that shows FPS and system stats (1% low, GPU/CPU lo
 Open **Command Prompt** (cmd), paste this and press Enter:
 
 ```
-curl -L -o "%TEMP%\FpsOverlay.exe" https://github.com/ckhangg/FpsOverlay/releases/latest/download/FpsOverlay.exe && start "" "%TEMP%\FpsOverlay.exe"
+curl -fL -o "%TEMP%\FpsOverlay.exe" https://github.com/ckhangg/FpsOverlay/releases/latest/download/FpsOverlay.exe && start "" "%TEMP%\FpsOverlay.exe"
 ```
 
 The installer dialog appears (and asks for Administrator rights). Run the same command again to update to the latest version; your settings are kept.

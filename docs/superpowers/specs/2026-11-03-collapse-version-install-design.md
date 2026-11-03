@@ -28,7 +28,7 @@
 - **Lịch sử git** (người dùng chọn hướng 1):
   - đổi tác giả và người commit của mọi commit thành `CKhang <39177627+ckhangg@users.noreply.github.com>`;
   - đặt cấu hình git riêng cho kho này (`user.name`, `user.email`) như trên;
-  - email công ty `<email công ty cũ>` và tên `<tài khoản công ty cũ>` không còn trong lịch sử đẩy lên.
+  - danh tính công ty cũ (email và tên tài khoản) không còn trong lịch sử đẩy lên.
   - Trước khi đổi, lưu một bản sao toàn bộ lịch sử cũ thành file `%USERPROFILE%\Downloads\FPS-history-backup.bundle` (ngoài thư mục dự án) để khôi phục được nếu cần.
 - **Phát hành:** mỗi bản là một GitHub Release có tag `vX.Y.Z`, kèm hai file:
   - `FpsOverlay.exe` (bản đóng gói một file);
@@ -42,7 +42,7 @@
   5. `gh release create v<Version> …` với ghi chú ngắn.
 - **Lệnh cài cho người khác** (dán vào cmd, Windows 10/11 có sẵn `curl`):
   ```
-  curl -L -o "%TEMP%\FpsOverlay.exe" https://github.com/ckhangg/FpsOverlay/releases/latest/download/FpsOverlay.exe && start "" "%TEMP%\FpsOverlay.exe"
+  curl -fL -o "%TEMP%\FpsOverlay.exe" https://github.com/ckhangg/FpsOverlay/releases/latest/download/FpsOverlay.exe && start "" "%TEMP%\FpsOverlay.exe"
   ```
   `start` mở bằng ShellExecute nên Windows hỏi UAC, rồi hiện hộp thoại cài như hiện nay. Chạy lại lệnh này về sau là cập nhật lên bản mới nhất.
 - **README.md** (tiếng Việt và tiếng Anh) ở gốc kho:
@@ -68,7 +68,7 @@
 - Cách 3: winget (để sau). Cần duyệt từ Microsoft và chế độ cài im lặng.
 
 ## Ràng buộc
-- **Đổi lịch sử git** chỉ làm trên master, sau khi merge nhánh của đợt này, **trước** lần đẩy đầu tiên. Kiểm `git log` không còn `<tên miền cũ>` hay `<tài khoản công ty cũ>`. Test vẫn qua sau khi đổi.
+- **Đổi lịch sử git** chỉ làm trên master, sau khi merge nhánh của đợt này, **trước** lần đẩy đầu tiên. Kiểm `git log` không còn danh tính công ty cũ (email, tên tài khoản). Test vẫn qua sau khi đổi.
 - **Tạo kho, đẩy mã, tạo release:** dùng tài khoản `ckhangg` (đã đăng nhập `gh`, đang active).
 - **Không đưa lên kho:** thư mục `publish/`, `.superpowers/`, file `.pdb`. Kiểm `.gitignore` trước khi đẩy.
 - Mọi chữ mới trong app có tiếng Việt và tiếng Anh. Build 0 cảnh báo, mọi test qua.

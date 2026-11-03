@@ -29,7 +29,7 @@
 - Release: tag `vX.Y.Z`, file `FpsOverlay.exe` và `FpsOverlay.exe.sha256`.
 - Lệnh cài:
   ```
-  curl -L -o "%TEMP%\FpsOverlay.exe" https://github.com/ckhangg/FpsOverlay/releases/latest/download/FpsOverlay.exe && start "" "%TEMP%\FpsOverlay.exe"
+  curl -fL -o "%TEMP%\FpsOverlay.exe" https://github.com/ckhangg/FpsOverlay/releases/latest/download/FpsOverlay.exe && start "" "%TEMP%\FpsOverlay.exe"
   ```
 - Giấy phép MIT.
 - Không đưa `publish/`, `.superpowers/`, `*.pdb` lên kho.
@@ -126,7 +126,7 @@ public void Missing_version_shows_question_mark(string? v) => Assert.Equal("v?",
 - [ ] **Step 1:** Merge nhánh vào master (`--ff-only`), xoá nhánh, `dotnet test` qua.
 - [ ] **Step 2:** Sao lưu: `git bundle create %USERPROFILE%\Downloads\FPS-history-backup.bundle --all`, rồi `git bundle verify` báo ổn.
 - [ ] **Step 3:** Đổi tác giả và người commit của mọi commit thành `CKhang <39177627+ckhangg@users.noreply.github.com>`. Dùng `git filter-branch --env-filter` trên mọi nhánh và tag, không đụng nội dung file. Sau đó xoá `refs/original` và đặt `git config user.name "CKhang"`, `git config user.email "39177627+ckhangg@users.noreply.github.com"` (cấu hình riêng của kho).
-- [ ] **Step 4:** Kiểm: `git log --all --format='%an %ae %cn %ce' | sort -u` chỉ còn CKhang/noreply; `git log --all -p -S <tên miền cũ>` rỗng (nếu có thì báo người dùng trước khi đẩy). `dotnet test` vẫn qua.
+- [ ] **Step 4:** Kiểm: `git log --all --format='%an %ae %cn %ce' | sort -u` chỉ còn CKhang/noreply; kiểm `git log --all -p -S <tên miền email cũ>` rỗng (lấy chuỗi từ bản sao lưu, không ghi vào kho) (nếu có thì báo người dùng trước khi đẩy). `dotnet test` vẫn qua.
 - [ ] **Step 5:** `gh auth status` cho thấy `ckhangg` đang active.
 - [ ] **Step 6:** Kiểm file sẽ đẩy: `git ls-files` không có `publish/`, `.superpowers/`, `*.pdb`, `bin/`, `obj/`.
 - [ ] **Step 7:** `gh repo create ckhangg/FpsOverlay --public --source . --remote origin --push --description "FPS overlay for Windows games (PresentMon + sensors)"`.

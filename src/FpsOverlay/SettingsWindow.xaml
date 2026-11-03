@@ -117,8 +117,8 @@
         <StackPanel x:Name="AppListsPanel" Grid.Row="9" Grid.ColumnSpan="3" Visibility="Collapsed" Margin="0,2,0,8" />
 
         <!-- // MÀU SẮC (của phong cách đang chọn): thanh tiêu đề bấm được, tóm tắt là ba ô màu nhỏ. -->
-        <Grid Grid.Row="10" Grid.ColumnSpan="3" Background="Transparent" Cursor="Hand" Tag="ColorsPanel"
-              MouseLeftButtonUp="OnHeaderMouseUp">
+        <Button Grid.Row="10" Grid.ColumnSpan="3" Style="{StaticResource Cp.HeaderButton}" Tag="ColorsPanel" Click="OnToggleClick">
+            <Grid Background="Transparent">
             <Label x:Name="ColorsSection" Style="{StaticResource Cp.Section}" />
             <StackPanel x:Name="ColorsSummary" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top"
                         Margin="0,11,0,0" IsHitTestVisible="False">
@@ -129,7 +129,8 @@
                 <Border x:Name="FpsSummarySwatch" Width="14" Height="14" Margin="3,0,0,0" BorderThickness="1"
                         BorderBrush="{StaticResource Cp.Dashed}" />
             </StackPanel>
-        </Grid>
+            </Grid>
+        </Button>
         <Grid x:Name="ColorsPanel" Grid.Row="11" Grid.ColumnSpan="3" Visibility="Collapsed">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="140" />
@@ -159,12 +160,13 @@
         </Grid>
 
         <!-- // MÀU THEO FPS -->
-        <Grid Grid.Row="12" Grid.ColumnSpan="3" Background="Transparent" Cursor="Hand" Tag="FpsColorPanel"
-              MouseLeftButtonUp="OnHeaderMouseUp">
+        <Button Grid.Row="12" Grid.ColumnSpan="3" Style="{StaticResource Cp.HeaderButton}" Tag="FpsColorPanel" Click="OnToggleClick">
+            <Grid Background="Transparent">
             <Label x:Name="FpsColorSection" Style="{StaticResource Cp.Section}" />
             <TextBlock x:Name="FpsColorSummary" Style="{StaticResource Cp.FieldLabel}" FontSize="11" HorizontalAlignment="Right"
                        VerticalAlignment="Top" Margin="0,12,0,0" Foreground="{StaticResource Cp.KnobOff}" IsHitTestVisible="False" />
-        </Grid>
+            </Grid>
+        </Button>
         <Grid x:Name="FpsColorPanel" Grid.Row="13" Grid.ColumnSpan="3" Visibility="Collapsed">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="140" />
@@ -239,12 +241,13 @@
         </StackPanel>
 
         <!-- // CẢNH BÁO -->
-        <Grid Grid.Row="18" Grid.ColumnSpan="3" Background="Transparent" Cursor="Hand" Tag="AlertsPanel"
-              MouseLeftButtonUp="OnHeaderMouseUp">
+        <Button Grid.Row="18" Grid.ColumnSpan="3" Style="{StaticResource Cp.HeaderButton}" Tag="AlertsPanel" Click="OnToggleClick">
+            <Grid Background="Transparent">
             <Label x:Name="AlertsSection" Style="{StaticResource Cp.Section}" />
             <TextBlock x:Name="AlertsSummary" Style="{StaticResource Cp.FieldLabel}" FontSize="11" HorizontalAlignment="Right"
                        VerticalAlignment="Top" Margin="0,12,0,0" Foreground="{StaticResource Cp.KnobOff}" IsHitTestVisible="False" />
-        </Grid>
+            </Grid>
+        </Button>
         <Grid x:Name="AlertsPanel" Grid.Row="19" Grid.ColumnSpan="3" Visibility="Collapsed">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="140" />
