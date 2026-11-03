@@ -4,6 +4,8 @@ public enum OverlayStyle { Classic, Cyberpunk }
 
 public enum OverlayCorner { TopLeft, TopRight, BottomLeft, BottomRight }
 
+public enum OverlayLayout { Horizontal, Vertical }
+
 public enum AppLanguage { Vietnamese, English }
 
 /// <summary>Cài đặt của overlay. Bất biến; dùng <c>with</c> hoặc các hàm <c>With*</c> để đổi.</summary>
