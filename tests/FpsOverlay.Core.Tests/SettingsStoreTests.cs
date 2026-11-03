@@ -214,4 +214,13 @@ public sealed class SettingsStoreTests : IDisposable
         Assert.Empty(s.AlwaysShowApps);
         Assert.Equal(["x.exe"], s.NeverShowApps);
     }
+
+    [Fact]
+    public void Skipped_version_round_trips()
+    {
+        SettingsStore.Save(PathIn(), OverlaySettings.Defaults with { SkippedVersion = "1.4.1" });
+        Assert.Equal("1.4.1", SettingsStore.Load(PathIn()).SkippedVersion);
+        SettingsStore.Save(PathIn(), OverlaySettings.Defaults);
+        Assert.Null(SettingsStore.Load(PathIn()).SkippedVersion);
+    }
 }

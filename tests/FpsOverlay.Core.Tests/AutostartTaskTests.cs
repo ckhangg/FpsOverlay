@@ -50,4 +50,21 @@ public class AutostartTaskTests
     [InlineData("not xml")]
     [InlineData("<Task xmlns=\"http://schemas.microsoft.com/windows/2004/02/mit/task\" />")]
     public void Read_command_of_unusable_xml_is_null(string xml) => Assert.Null(AutostartTask.ReadCommand(xml));
+
+    [Fact]
+    public void Xml_has_autostart_argument() =>
+        Assert.Equal("--autostart", AutostartTask.ReadArguments(AutostartTask.BuildXml(@"C:\FpsOverlay.exe", "u")));
+
+    [Fact]
+    public void Task_without_autostart_argument_needs_repair()
+    {
+        const string path = @"C:\Games\FpsOverlay.exe";
+        var old = AutostartTask.BuildXml(path, "u").Replace("<Arguments>--autostart</Arguments>", "");
+        Assert.Null(AutostartTask.ReadArguments(old));
+        Assert.True(AutostartTask.NeedsRepair(old, path));
+        var current = AutostartTask.BuildXml(path, "u");
+        Assert.False(AutostartTask.NeedsRepair(current, path.ToUpperInvariant()));
+        Assert.True(AutostartTask.NeedsRepair(current, @"C:\Other\FpsOverlay.exe"));
+        Assert.True(AutostartTask.NeedsRepair("not xml", path));
+    }
 }

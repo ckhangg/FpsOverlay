@@ -10,6 +10,8 @@ namespace FpsOverlay.Core.Autostart;
 public static class AutostartTask
 {
     public const string TaskName = "FpsOverlay";
+    /// <summary>Tham số tác vụ truyền cho app: phân biệt khởi động cùng Windows với người dùng tự mở.</summary>
+    public const string AutostartArgument = "--autostart";
 
     static readonly XNamespace Ns = "http://schemas.microsoft.com/windows/2004/02/mit/task";
 
@@ -48,6 +50,7 @@ public static class AutostartTask
             E("Actions", new XAttribute("Context", "Author"),
                 E("Exec",
                     E("Command", exePath),
+                    E("Arguments", AutostartArgument),
                     E("WorkingDirectory", Path.GetDirectoryName(exePath) ?? ""))));
 
         return new XDeclaration("1.0", "UTF-16", null) + Environment.NewLine + task;
@@ -65,4 +68,22 @@ public static class AutostartTask
             return null;
         }
     }
+
+    /// <summary>Tham số trong XML của tác vụ, hoặc null nếu không có/không đọc được.</summary>
+    public static string? ReadArguments(string xml)
+    {
+        try
+        {
+            return XDocument.Parse(xml).Root?.Element(Ns + "Actions")?.Element(Ns + "Exec")?.Element(Ns + "Arguments")?.Value;
+        }
+        catch (XmlException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Tác vụ cần tạo lại: trỏ exe khác (không phân biệt hoa thường) hoặc thiếu/sai tham số <see cref="AutostartArgument"/>.</summary>
+    public static bool NeedsRepair(string xml, string exePath) =>
+        !string.Equals(ReadCommand(xml), exePath, StringComparison.OrdinalIgnoreCase) ||
+        !string.Equals(ReadArguments(xml)?.Trim(), AutostartArgument, StringComparison.Ordinal);
 }

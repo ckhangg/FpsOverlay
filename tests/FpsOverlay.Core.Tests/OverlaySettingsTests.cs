@@ -290,4 +290,8 @@ public class OverlaySettingsTests
         Assert.Equal(["a.exe"], reset.AlwaysShowApps);
         Assert.Equal(["b.exe"], reset.NeverShowApps);
     }
+
+    [Fact]
+    public void Skipped_version_survives_reset() =>
+        Assert.Equal("1.4.1", (OverlaySettings.Defaults with { SkippedVersion = "1.4.1" }).ResetToDefaults().SkippedVersion);
 }

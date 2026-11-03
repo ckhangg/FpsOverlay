@@ -56,6 +56,7 @@ public static class SettingsStore
                 HotAlertSound = ReadBool(root, nameof(OverlaySettings.HotAlertSound), d.HotAlertSound),
                 LoggingEnabled = ReadBool(root, nameof(OverlaySettings.LoggingEnabled), d.LoggingEnabled),
                 PawnIoOffered = ReadBool(root, nameof(OverlaySettings.PawnIoOffered), d.PawnIoOffered),
+                SkippedVersion = TryGet(root, nameof(OverlaySettings.SkippedVersion), JsonValueKind.String, out var skipped) ? skipped.GetString() : d.SkippedVersion,
                 ShowOnlyInGame = ReadBool(root, nameof(OverlaySettings.ShowOnlyInGame), d.ShowOnlyInGame),
                 AlwaysShowApps = ReadAppNames(root, nameof(OverlaySettings.AlwaysShowApps)),
                 NeverShowApps = ReadAppNames(root, nameof(OverlaySettings.NeverShowApps)),

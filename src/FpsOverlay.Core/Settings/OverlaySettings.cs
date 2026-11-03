@@ -65,6 +65,8 @@ public sealed record OverlaySettings
     // Ghi log phiên và cờ đã mời cài PawnIO: không thuộc phần giao diện nên Khôi phục mặc định không đụng tới.
     public bool LoggingEnabled { get; init; } = true;
     public bool PawnIoOffered { get; init; }
+    // Bản người dùng chọn "bỏ qua" ở hộp báo cập nhật (chỉ chặn báo tự động); không thuộc giao diện nên Khôi phục mặc định giữ nguyên.
+    public string? SkippedVersion { get; init; }
     // Chỉ hiện overlay khi đang chơi game; hai danh sách exe do người dùng thêm từ menu khay ("không bao giờ" thắng "luôn hiện").
     public bool ShowOnlyInGame { get; init; } = true;
     public AppNames AlwaysShowApps { get; init; } = AppNames.Empty;
@@ -171,7 +173,7 @@ public sealed record OverlaySettings
         foreach (var style in Enum.GetValues<OverlayStyle>())
             result = result.WithColors(style, style == Style ? Defaults.ColorsFor(style) : ColorsFor(style));
         return result with { Style = Style, Language = Language, LoggingEnabled = LoggingEnabled, PawnIoOffered = PawnIoOffered,
-            AlwaysShowApps = AlwaysShowApps, NeverShowApps = NeverShowApps };
+            SkippedVersion = SkippedVersion, AlwaysShowApps = AlwaysShowApps, NeverShowApps = NeverShowApps };
     }
 
     private static double Clamp(double value, double min, double max, double fallback) =>

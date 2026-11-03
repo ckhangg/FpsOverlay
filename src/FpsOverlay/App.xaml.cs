@@ -66,14 +66,14 @@ public partial class App : Application
         base.OnStartup(e);
 
         // Cài/gỡ chạy trước mutex một bản chạy: bản cài có thể đang chạy (và đang giữ mutex).
-        bool HasArg(string name) => e.Args.Any(a => string.Equals(a, name, StringComparison.OrdinalIgnoreCase));
-        if (HasArg("--uninstall"))
+        var args = FpsOverlay.Core.CommandLine.Parse(e.Args);
+        if (args.Uninstall)
         {
             RunUninstall();
             Shutdown();
             return;
         }
-        var noInstall = HasArg("--no-install");
+        var noInstall = args.NoInstall;
         if (!noInstall && !Installer.IsRunningInstalled)
         {
             RunSetup();   // tự Shutdown khi xong hoặc huỷ
@@ -97,7 +97,7 @@ public partial class App : Application
         var settings = _settings = new SettingsService(SettingsStore.DefaultPath);
         // Bản setup vừa hỏi người dùng về PawnIO (tick hay không): nhớ lại để lần cập nhật sau không hỏi nữa.
         // Cờ này chỉ đến từ bản setup; Task Scheduler chạy bản cài không kèm tham số nào.
-        if (HasArg(PawnIoSetup.OfferedArgument) && !settings.Current.PawnIoOffered)
+        if (args.PawnIoOffered && !settings.Current.PawnIoOffered)
             settings.Update(s => s with { PawnIoOffered = true });
         var overlay = _overlay = new OverlayWindow
         {

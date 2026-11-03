@@ -88,7 +88,7 @@ sealed class AutostartService
         var (exitCode, output, _) = Run($"/Query /TN \"{AutostartTask.TaskName}\" /XML");
         var exists = exitCode == 0;
         // Tạo lại lỗi thì tác vụ cũ vẫn còn, nên vẫn tính là đang bật.
-        if (exists && !string.Equals(AutostartTask.ReadCommand(output), _exePath, StringComparison.OrdinalIgnoreCase))
+        if (exists && AutostartTask.NeedsRepair(output, _exePath))
             TryCreate(_exePath, out _);
         return exists;
     }

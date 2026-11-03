@@ -25,7 +25,7 @@ static class PawnIoSetup
     /// Bản setup truyền cho bản đã cài nó khởi chạy khi đã hỏi người dùng về PawnIO (tick hay không): bản đã cài (chủ của
     /// file cài đặt) đặt <c>PawnIoOffered = true</c>. Bản setup không bao giờ tự ghi file cài đặt.
     /// </summary>
-    public const string OfferedArgument = "--pawnio-offered";
+    public const string OfferedArgument = FpsOverlay.Core.CommandLine.PawnIoOfferedArgument;
 
     const string UninstallKeyPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\PawnIO";
     const string ServiceKeyPath = @"SYSTEM\CurrentControlSet\Services\PawnIO";
