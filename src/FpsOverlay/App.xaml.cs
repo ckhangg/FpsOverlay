@@ -217,17 +217,25 @@ public partial class App : Application
                 MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
-        try
-        {
-            Installer.Uninstall();   // bước cuối hẹn xoá thư mục cài sau khi app thoát
-        }
+        Exception? failure = null;
+        try { Installer.Uninstall(); }
+        catch (Exception ex) { failure = ex; }
+
+        // Thông báo trước: hộp thông báo giữ app sống (và khoá file trong thư mục cài).
+        if (failure is null)
+            MessageBox.Show(Loc.Get(StringKey.UninstallDone, language), "FPS Overlay",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+        else
+            ShowError(StringKey.UninstallFailed, failure, language);
+
+        // Việc cuối cùng trước Shutdown (OnStartup gọi ngay sau): bản cài tự gỡ thì hẹn cmd chờ app thoát rồi xoá thư mục,
+        // xoá xong mới xoá mục gỡ cài đặt. Không hẹn được thì mục gỡ còn nguyên, gỡ lại được.
+        try { Installer.FinishUninstall(); }
         catch (Exception ex)
         {
-            ShowError(StringKey.UninstallFailed, ex, language);
-            return;
+            Trace.TraceWarning($"Không hẹn xoá được thư mục cài: {ex.Message}");
+            if (failure is null) ShowError(StringKey.UninstallFailed, ex, language);
         }
-        MessageBox.Show(Loc.Get(StringKey.UninstallDone, language), "FPS Overlay",
-            MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     static void ShowError(StringKey key, Exception ex, AppLanguage language) =>

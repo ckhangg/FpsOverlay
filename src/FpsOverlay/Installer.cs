@@ -131,10 +131,13 @@ static class Installer
         catch (Exception ex) { Trace.TraceWarning($"Không ghi được mục gỡ cài đặt: {ex.Message}"); }
     }
 
+    // Bản cài đang tự gỡ: thư mục cài (đã kiểm bằng SafeInstallDirectory) chờ FinishUninstall hẹn xoá.
+    static string? _pendingSelfDelete;
+
     /// <summary>
     /// Gỡ: xoá tác vụ khởi động cùng Windows, lối tắt, mục đăng ký và thư mục cài. Giữ cài đặt (%AppData%) và log.
     /// Làm hết các bước dù có bước lỗi; lỗi gom lại ném ở cuối. Exe đang chạy từ thư mục cài thì không tự xoá được:
-    /// khởi chạy ẩn một cmd chờ app thoát rồi xoá thư mục — gọi ngay trước khi thoát.
+    /// bước thư mục và mục đăng ký để dành cho <see cref="FinishUninstall"/> (gọi sau hộp thông báo, ngay trước khi thoát).
     /// </summary>
     public static void Uninstall()
     {
@@ -155,16 +158,32 @@ static class Installer
         {
             if (File.Exists(ShortcutPath)) File.Delete(ShortcutPath);
         });
-        // Mục gỡ cài đặt xoá sau cùng, và chỉ khi đã xoá (hoặc hẹn xoá) được thư mục: còn sót file thì vẫn gỡ lại được từ Settings → Apps.
-        if (Step(DeleteInstallDirectory))
-            Step(() =>
-            {
-                using var hklm = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
-                hklm.DeleteSubKeyTree(UninstallKeyPath, throwOnMissingSubKey: false);
-            });
+        // Mục gỡ cài đặt xoá sau cùng, và chỉ khi đã xoá được thư mục: còn sót file thì vẫn gỡ lại được từ Settings → Apps.
+        // Bản cài tự gỡ thì cả hai để cho cmd của FinishUninstall (xoá mục đăng ký sau khi rmdir xong).
+        if (Step(DeleteInstallDirectory) && _pendingSelfDelete is null)
+            Step(DeleteUninstallEntry);
 
         if (errors.Count > 0)
             throw new InvalidOperationException(string.Join("\n", errors));
+    }
+
+    /// <summary>
+    /// Bước cuối của gỡ cài đặt khi bản cài tự gỡ (không thì không làm gì): gọi SAU hộp thông báo xong/lỗi, ngay trước
+    /// Shutdown. Thứ tự: thông báo → hẹn cmd → app thoát → cmd thấy tiến trình này đã thoát mới rmdir → rmdir xong mới xoá
+    /// mục đăng ký. Hộp thông báo không còn giữ app sống (và khoá file) trong lúc cmd đếm lượt thử; rmdir không được thì
+    /// mục gỡ vẫn còn, gỡ lại được từ Settings → Apps.
+    /// </summary>
+    public static void FinishUninstall()
+    {
+        if (_pendingSelfDelete is not { } dir) return;
+        _pendingSelfDelete = null;
+        ScheduleSelfDelete(dir);
+    }
+
+    static void DeleteUninstallEntry()
+    {
+        using var hklm = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
+        hklm.DeleteSubKeyTree(UninstallKeyPath, throwOnMissingSubKey: false);
     }
 
     /// <summary>
@@ -219,17 +238,16 @@ static class Installer
         }
 
         // Bản cài nhiều file đang chạy khoá cả exe lẫn các dll đã nạp (coreclr, wpfgfx, ...): không xoá trước được gì,
-        // để cmd xoá cả thư mục sau khi app thoát.
-        ScheduleSelfDelete(dir);
+        // để cmd xoá cả thư mục sau khi app thoát (FinishUninstall hẹn, sau hộp thông báo).
+        _pendingSelfDelete = dir;
     }
 
-    // cmd /s /c "...": bỏ đúng cặp ngoặc kép ngoài cùng, giữ nguyên ngoặc kép quanh đường dẫn bên trong.
-    // Chờ ~2 giây (ping) rồi rmdir; app còn chạy (vd. đang hiện hộp thông báo) thì thử lại, tối đa ~30 lần.
+    // Cmd chờ tiến trình này thoát rồi mới rmdir, xoá xong thư mục mới xoá mục gỡ cài đặt (xem SelfDeleteCommand).
     static void ScheduleSelfDelete(string dir)
     {
         var system = Environment.SystemDirectory;
-        var ping = Path.Combine(system, "PING.EXE");
-        var command = $"for /l %i in (1,1,30) do (\"{ping}\" -n 3 127.0.0.1 >nul & rmdir /s /q \"{dir}\" 2>nul & if not exist \"{dir}\" exit)";
+        var command = SelfDeleteCommand.Build(system, Environment.ProcessId, Path.GetFileName(RunningExePath), dir,
+            $@"HKLM\{UninstallKeyPath}");
         using var _ = Process.Start(new ProcessStartInfo(Path.Combine(system, "cmd.exe"), $"/d /s /c \"{command}\"")
         {
             UseShellExecute = false,
