@@ -20,7 +20,11 @@ static class ForegroundWindowInfo
     static readonly char[] PathBuffer = new char[1024];
     static readonly (int Pid, string? Path, long SeenAt)[] PathCache = new (int, string?, long)[CacheSize];
 
-    /// <summary>Zero → None; cửa sổ của app này → Own; màn hình nền, taskbar/shell → Desktop; còn lại → Other.</summary>
+    /// <summary>
+    /// Zero → None; cửa sổ của app này → Own; giao diện shell thoáng qua (taskbar, khay ẩn, Alt-Tab/Task View) cũng → Own:
+    /// người dùng đi qua chúng để tới menu khay nên giữ quyết định hiện/ẩn trước và không đổi app đích ở khay;
+    /// màn hình nền (shell window, Progman, WorkerW) → Desktop; còn lại → Other.
+    /// </summary>
     public static ForegroundKind Kind(IntPtr hwnd)
     {
         if (hwnd == IntPtr.Zero)
@@ -32,11 +36,17 @@ static class ForegroundWindowInfo
             return ForegroundKind.Desktop;
         ClassName.Clear();
         NativeMethods.GetClassName(hwnd, ClassName, ClassName.Capacity);
-        return IsDesktopClass(ClassName) ? ForegroundKind.Desktop : ForegroundKind.Other;
+        if (IsDesktopClass(ClassName))
+            return ForegroundKind.Desktop;
+        return IsTransientShellClass(ClassName) ? ForegroundKind.Own : ForegroundKind.Other;
     }
 
     // So trực tiếp trên StringBuilder để không cấp phát chuỗi mỗi lần dò.
     static bool IsDesktopClass(StringBuilder name) => name.Equals("Progman") || name.Equals("WorkerW");
+
+    static bool IsTransientShellClass(StringBuilder name) =>
+        name.Equals("Shell_TrayWnd") || name.Equals("Shell_SecondaryTrayWnd") || name.Equals("NotifyIconOverflowWindow") ||
+        name.Equals("TopLevelWindowForOverflowXamlIsland") || name.Equals("XamlExplorerHostIslandWindow");
 
     /// <summary>Cửa sổ phủ kín màn hình chứa nó (game toàn màn hình hoặc borderless); không có cửa sổ hay màn hình nền thì không tính.</summary>
     public static bool CoversMonitor(IntPtr hwnd)

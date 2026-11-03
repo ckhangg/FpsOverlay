@@ -9,7 +9,7 @@ public class GameWindowRuleTests
     [Theory]
     [InlineData(@"D:\SteamLibrary\steamapps\common\ELDEN RING\Game\eldenring.exe", true)]
     [InlineData(@"C:\XboxGames\Forza Horizon 5\Content\ForzaHorizon5.exe", true)]
-    [InlineData(@"C:\Program Files\WindowsApps\Microsoft.X_1.0\game.exe", true)]
+    [InlineData(@"C:\Program Files\WindowsApps\Microsoft.WindowsNotepad_11.0\Notepad\Notepad.exe", false)]
     [InlineData(@"C:\Program Files\Google\Chrome\Application\chrome.exe", false)]
     public void Game_folders(string path, bool expected) =>
         Assert.Equal(expected, GameWindowRule.IsGameFolder(path));
@@ -36,7 +36,7 @@ public class GameWindowRuleTests
     [Fact]
     public void Frame_host_candidates_are_all_checked() =>
         Assert.True(GameWindowRule.IsGame(false,
-            [@"C:\Windows\System32\ApplicationFrameHost.exe", @"C:\Program Files\WindowsApps\G_1\g.exe"],
+            [@"C:\Windows\System32\ApplicationFrameHost.exe", @"C:\XboxGames\G\Content\g.exe"],
             AppNames.Empty, AppNames.Empty));
 
     [Fact]

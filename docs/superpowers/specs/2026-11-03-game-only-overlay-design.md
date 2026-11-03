@@ -7,7 +7,7 @@ Khi không chơi game, overlay vẫn nằm trên desktop. Lúc đó FPS là `--`
 - Tuỳ chọn mới **"Chỉ hiện khi chơi game"** (en "Only show while gaming"): một công tắc trong "// GIAO DIỆN", mặc định **bật**.
 - Khi bật, overlay hiện khi cửa sổ phía trước là game. Bỏ qua cửa sổ của chính app, desktop và shell (`Progman`, `WorkerW`, shell window). Một cửa sổ là game khi thoả một trong ba điều kiện:
   1. cửa sổ **phủ kín màn hình** chứa nó (cùng phép kiểm đang dùng cho log: `SessionLogger.ForegroundCoversMonitor`);
-  2. file `.exe` của tiến trình sở hữu cửa sổ nằm trong thư mục game: đường dẫn chứa `\steamapps\common\`, `\XboxGames\` hoặc `\WindowsApps\` (không phân biệt hoa thường);
+  2. file `.exe` của tiến trình sở hữu cửa sổ nằm trong thư mục game: đường dẫn chứa `\steamapps\common\` hoặc `\XboxGames\` (không tính `\WindowsApps\` vì mọi app Store như Notepad cũng nằm đó; không phân biệt hoa thường);
   3. tên `.exe` có trong danh sách **"Luôn hiện"**.
 
   Danh sách **"Không bao giờ hiện"** thắng cả ba điều kiện.

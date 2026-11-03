@@ -1,12 +1,15 @@
 namespace FpsOverlay.Core.GameOnly;
 
-/// <summary>Cửa sổ đang ở trước: không có, chính overlay, màn hình nền/taskbar, hay ứng dụng khác.</summary>
+/// <summary>
+/// Cửa sổ đang ở trước: không có; chính app này hoặc giao diện shell thoáng qua (taskbar, khay ẩn, Alt-Tab) — giữ quyết định trước;
+/// màn hình nền; hay ứng dụng khác.
+/// </summary>
 public enum ForegroundKind { None, Own, Desktop, Other }
 
 /// <summary>Quy tắc nhận ra game và quyết định hiện/ẩn overlay. Thuần logic, không đụng Win32.</summary>
 public static class GameWindowRule
 {
-    private static readonly string[] GameFolders = [@"\steamapps\common\", @"\XboxGames\", @"\WindowsApps\"];
+    private static readonly string[] GameFolders = [@"\steamapps\common\", @"\XboxGames\"];
 
     public static bool IsGameFolder(string? exePath)
     {
