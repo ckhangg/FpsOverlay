@@ -13,9 +13,7 @@
         ResizeMode="NoResize"
         SizeToContent="WidthAndHeight"
         WindowStartupLocation="Manual"
-        UseLayoutRounding="True"
-        Left="8"
-        Top="8">
+        UseLayoutRounding="True">
     <!-- Kích cỡ: phóng cả dải (chữ, lề, nền) bằng LayoutTransform để cửa sổ SizeToContent co giãn theo. -->
     <Border x:Name="Chrome">
         <Border.LayoutTransform>

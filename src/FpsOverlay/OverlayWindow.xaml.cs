@@ -24,7 +24,6 @@ public partial class OverlayWindow : Window
 
     readonly DispatcherTimer _topmostTimer = new() { Interval = TimeSpan.FromSeconds(1) };
     IntPtr _hwnd;
-    (int X, int Y)? _lastPos;
 
     /// <summary>App đặt: trả handle cửa sổ cài đặt khi đang xem trước (overlay theo màn hình đó), ngược lại null/Zero.</summary>
     public Func<IntPtr?>? PreviewWindow { get; set; }
@@ -282,10 +281,9 @@ public partial class OverlayWindow : Window
         var m = info.rcMonitor;
         var (x, y) = OverlayPlacement.Compute(new PixelRect(m.Left, m.Top, m.Right, m.Bottom),
             self.Right - self.Left, self.Bottom - self.Top, _settings.Corner, (int)Math.Round(ScreenMargin * dpi / 96.0));
-        // Chỉ đặt khi đổi, để gọi định kỳ không làm cửa sổ di chuyển thừa (và không vòng lặp với DpiChanged).
-        if (_lastPos == (x, y))
+        // So với vị trí thật của cửa sổ (WPF có thể đã dời khi DPI đổi); chỉ đặt khi khác, để không vòng lặp với DpiChanged.
+        if (self.Left == x && self.Top == y)
             return;
-        _lastPos = (x, y);
         NativeMethods.SetWindowPos(_hwnd, IntPtr.Zero, x, y, 0, 0,
             NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE | NativeMethods.SWP_NOZORDER);
     }
