@@ -23,7 +23,7 @@
 | 1 | Bản đầu: FPS xanh lá góc trái, `--` ở desktop, khay bật/tắt/thoát | merge vào master |
 | UI | Overlay 1 dòng, 2 phong cách Cổ điển/Cyberpunk, cửa sổ cài đặt Cyberpunk, kích cỡ/độ mờ/màu/màu theo FPS, xem trước số mẫu, tiếng Việt/Anh, icon khay | merge vào master |
 | 2 | Khởi động cùng Windows (Task Scheduler, quyền cao nhất), đo game Store/UWP (ApplicationFrameHost), dọn lỗi nhỏ. **Bỏ phím tắt** (người dùng chỉnh ở khay) | merge vào master |
-| 3–4 | Cảnh báo PresentMon, tiết kiệm khi ẩn, 1% low, GPU/CPU/RAM/nhiệt độ, log mỗi buổi chơi, overlay theo màn hình có game, **một file tự cài vào Program Files**, PawnIO | nhánh **`feat/stats-install`**, CHƯA merge |
+| 3–4 | Cảnh báo PresentMon, tiết kiệm khi ẩn, 1% low, GPU/CPU/RAM/nhiệt độ, log mỗi buổi chơi, overlay theo màn hình có game, **một file tự cài vào Program Files**, PawnIO | merge vào master |
 
 Hoãn theo ý người dùng: **biểu đồ FPS/frametime** (làm sau).
 
@@ -33,18 +33,17 @@ Hoãn theo ý người dùng: **biểu đồ FPS/frametime** (làm sau).
 - `docs/superpowers/specs/2026-11-03-stats-logging-install-design.md` — đợt 3–4 (kèm mục "Rủi ro còn lại (đã chấp nhận)")
 - `docs/superpowers/plans/*.md` — kế hoạch tương ứng (đợt 3–4 có thêm Task 9b)
 
-## 5. Trạng thái hiện tại (nhánh `feat/stats-install`)
-- 22 commit trên master. `dotnet test`: 196/196 pass. `dotnet build src/FpsOverlay`: 0 cảnh báo.
+## 5. Trạng thái hiện tại (master)
+- Đã merge vào master (nhánh `feat/stats-install` đã xoá). `dotnet test`: 196/196 pass. `dotnet build src/FpsOverlay`: 0 cảnh báo.
 - Review: mỗi task có review riêng + review toàn nhánh + một đợt sửa sau review cuối, đã qua.
-- **Chưa chạy thật với quyền Admin** (cài vào Program Files, PawnIO, đọc cảm biến thật, gỡ cài đặt). Cần làm danh sách kiểm tay ở mục 9 trước khi merge.
-- Việc còn chờ người dùng quyết: **merge `feat/stats-install` vào master** hay giữ nhánh (sau khi kiểm tay).
+- **Chưa chạy thật với quyền Admin** (cài vào Program Files, PawnIO, đọc cảm biến thật, gỡ cài đặt). Cần làm danh sách kiểm tay ở mục 9 trước khi dùng thật.
+- Người dùng đã chọn merge trước khi kiểm tay; nếu kiểm tay phát hiện lỗi thì sửa trên một nhánh mới từ master.
 
 ## 6. Cách làm việc với app trên máy mới
 1. Cài **.NET 10 SDK** (x64).
 2. Giải nén, mở terminal ở thư mục dự án:
    ```
    git status
-   git checkout feat/stats-install
    dotnet test
    dotnet build src/FpsOverlay
    ```
@@ -65,7 +64,7 @@ Hoãn theo ý người dùng: **biểu đồ FPS/frametime** (làm sau).
 - Chuyển thẳng sang game khác → đóng buổi log cũ, mở buổi mới. Alt-tab < 1 phút: cùng buổi, ô FPS trống.
 
 ## 8. Việc nên làm tiếp
-1. **Kiểm tay** theo mục 9 trên máy thật (hoặc máy ảo), rồi quyết merge.
+1. **Kiểm tay** theo mục 9 trên máy thật (hoặc máy ảo); lỗi tìm thấy sửa trên nhánh mới.
 2. Sửa nhỏ về bảo mật (một dòng): đặt `COMSPEC` = `System32\cmd.exe` cho tiến trình cmd tự xoá khi gỡ cài đặt (`Installer.cs`, chỗ chạy `SelfDeleteCommand`).
 3. Kiểm tra log khi `Documents` bị chuyển hướng/junction (hiện chỉ chặn một phần; tác động giới hạn ở việc tạo file mới, không ghi đè).
 4. Các lỗi nhỏ đã hoãn (không chặn việc dùng): GPU tích hợp bận hơn ở desktop nên nhiệt GPU hiện `--`; dòng ghi chú PawnIO nháy ~1 s lúc mở app; ẩn overlay khi tắt log có thể đứng giao diện vài giây; file `.pdb` trong `publish\`.
