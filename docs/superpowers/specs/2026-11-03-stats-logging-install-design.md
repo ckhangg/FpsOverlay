@@ -129,3 +129,8 @@ Các điểm sau người dùng chưa nói tới; đây là lựa chọn của n
 - Phiên bản tăng tay; cùng phiên bản mà khác nội dung vẫn cập nhật.
 - Cột `Fps` trong CSV là số khung hình trong đúng giây đó; `OnePercentLow` giống overlay (10 giây).
 - Chuyển thẳng sang game khác thì đóng buổi cũ, mở buổi mới.
+
+## Rủi ro còn lại (đã chấp nhận)
+Hai điểm sau trái tinh thần mục "Không được phép" (chạy quyền Admin mà nạp thứ người dùng thường ghi được) nhưng không sửa được trong phạm vi app; đã chấp nhận:
+- **Biến môi trường profiler của .NET** (`CORECLR_ENABLE_PROFILING`, `CORECLR_PROFILER`, `CORECLR_PROFILER_PATH`, và dạng `DOTNET_...` tương ứng) đặt ở `HKCU\Environment` (người dùng thường ghi được) làm runtime nạp dll của profiler vào tiến trình Admin, kể cả bản cài do tác vụ khởi động cùng Windows chạy. Runtime đọc các biến này trước khi code của app chạy nên không chặn được từ bên trong; bọc app trong một lệnh cmd xoá biến rồi mới chạy cũng không được chọn (thêm một lớp chạy quyền Admin, dễ sai, tác vụ khởi động phải trỏ thẳng vào exe). `DOTNET_STARTUP_HOOKS` thì đã tắt (`StartupHookSupport=false`, runtimeconfig có `System.StartupHookProvider.IsSupported: false`, áp cả bản cài).
+- **Bản mang đi (exe single-file) bung thư viện native vào `%TEMP%`** lúc chạy (`IncludeNativeLibrariesForSelfExtract`), với quyền Admin, khi cài/cập nhật hoặc chạy `--no-install`: chương trình thường có thể tráo dll trong thư mục đó. Bản cài nhiều file trong `C:\Program Files\FpsOverlay` (bản tác vụ khởi động chạy) không bung gì; chỉ bản người dùng tự mở (và tự xác nhận UAC) còn rủi ro này.
