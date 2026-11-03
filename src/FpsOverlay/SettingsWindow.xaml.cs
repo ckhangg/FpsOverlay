@@ -1,11 +1,13 @@
 using System.Diagnostics;
 using System.IO;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using FpsOverlay.Core;
 using FpsOverlay.Core.GameOnly;
 using FpsOverlay.Core.Localization;
 using FpsOverlay.Core.PawnIo;
@@ -71,6 +73,8 @@ public partial class SettingsWindow : Window
         Icon = CreateWindowIcon();
         CommandBindings.Add(new CommandBinding(SystemCommands.CloseWindowCommand, (_, _) => Close()));
         BuildSwatches();
+        VersionText.Text = AppVersion.Display(
+            Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion);
 
         Refresh(service.Current);
         service.Changed += Refresh;
@@ -116,6 +120,7 @@ public partial class SettingsWindow : Window
             OpacityValue.Text = $"{opacity}%";
 
             RefreshColors(s);
+            RefreshSectionSummaries(s);
 
             OnePercentCheck.IsChecked = s.ShowOnePercentLow;
             GpuLoadCheck.IsChecked = s.ShowGpuLoad;
@@ -226,8 +231,6 @@ public partial class SettingsWindow : Window
 
         Title = T(StringKey.SettingsTitle);
         AppearanceSection.Content = T(StringKey.SectionAppearance);
-        ColorsSection.Content = T(StringKey.SectionColors);
-        FpsColorSection.Content = T(StringKey.SectionFpsColor);
 
         LanguageLabel.Text = T(StringKey.Language);
         StyleLabel.Text = T(StringKey.Style);
@@ -265,16 +268,14 @@ public partial class SettingsWindow : Window
         CpuLoadCheck.Content = T(StringKey.StatCpuLoad);
         CpuTempCheck.Content = T(StringKey.StatCpuTemp);
         RamCheck.Content = T(StringKey.StatRam);
-        StatsButton.Content = $"{T(StringKey.ChooseStats)} {Arrow(StatsPanel)}";
         PawnIoNote.Text = T(StringKey.PawnIoNeeded);
         PawnIoInstallButton.Content = T(StringKey.PawnIoInstallButton);
         RefreshPawnIoStatus(language);
 
         OnlyInGameLabel.Text = T(StringKey.OnlyInGame);
-        AppListsButton.Content = $"{T(StringKey.AppLists)} {Arrow(AppListsPanel)}";
+        RefreshToggleTitles(language);
         RefreshStatsSummary(language);
 
-        AlertsSection.Content = T(StringKey.SectionAlerts);
         GpuHotLabel.Text = T(StringKey.GpuHotThreshold);
         CpuHotLabel.Text = T(StringKey.CpuHotThreshold);
         HotSecondsLabel.Text = T(StringKey.HotAlertSeconds);
@@ -323,20 +324,48 @@ public partial class SettingsWindow : Window
         }
     }
 
-    // ---------- Ô thu gọn: thông số và danh sách ứng dụng ----------
+    // ---------- Ô thu gọn: màu, màu theo FPS, thông số, danh sách ứng dụng, cảnh báo ----------
+    // Một cơ chế chung: panel đổi Visible/Collapsed, tiêu đề (nút hoặc nhãn mục) hiện mũi tên ▾/▴.
 
     static string Arrow(UIElement panel) => panel.Visibility == Visibility.Visible ? "▴" : "▾";
 
-    void OnStatsToggleClick(object sender, RoutedEventArgs e)
+    void ToggleSection(UIElement panel)
     {
-        StatsPanel.Visibility = StatsPanel.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
-        StatsButton.Content = $"{Loc.Get(StringKey.ChooseStats, _service.Current.Language)} {Arrow(StatsPanel)}";
+        panel.Visibility = panel.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
+        RefreshToggleTitles(_service.Current.Language);
     }
 
-    void OnAppListsToggleClick(object sender, RoutedEventArgs e)
+    // Tag của nút / thanh tiêu đề là tên panel cần xổ/thu.
+    void OnToggleClick(object sender, RoutedEventArgs e) => ToggleSection((UIElement)FindName((string)((FrameworkElement)sender).Tag));
+
+    void OnHeaderMouseUp(object sender, MouseButtonEventArgs e)
     {
-        AppListsPanel.Visibility = AppListsPanel.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
-        AppListsButton.Content = $"{Loc.Get(StringKey.AppLists, _service.Current.Language)} {Arrow(AppListsPanel)}";
+        ToggleSection((UIElement)FindName((string)((FrameworkElement)sender).Tag));
+        e.Handled = true;
+    }
+
+    void RefreshToggleTitles(AppLanguage language)
+    {
+        string Title(StringKey key, UIElement panel) => $"{Loc.Get(key, language)} {Arrow(panel)}";
+        StatsButton.Content = Title(StringKey.ChooseStats, StatsPanel);
+        AppListsButton.Content = Title(StringKey.AppLists, AppListsPanel);
+        ColorsSection.Content = Title(StringKey.SectionColors, ColorsPanel);
+        FpsColorSection.Content = Title(StringKey.SectionFpsColor, FpsColorPanel);
+        AlertsSection.Content = Title(StringKey.SectionAlerts, AlertsPanel);
+    }
+
+    // Tóm tắt của ba mục mới thu gọn: ba ô màu, "Bật · tốt/kém" (hoặc "Tắt"), "GPU x° · CPU y° · zs".
+    void RefreshSectionSummaries(OverlaySettings s)
+    {
+        var colors = s.ColorsFor(s.Style);
+        LabelSummarySwatch.Background = OverlayTheme.FromHex(colors.Label);
+        ValueSummarySwatch.Background = OverlayTheme.FromHex(colors.Value);
+        FpsSummarySwatch.Background = OverlayTheme.FromHex(colors.Fps);
+        FpsColorSummary.Text = s.ColorByFps
+            ? string.Format(Loc.Get(StringKey.FpsColorSummaryOn, s.Language), s.GoodThreshold, s.BadThreshold)
+            : Loc.Get(StringKey.FpsColorSummaryOff, s.Language);
+        AlertsSummary.Text = string.Format(Loc.Get(StringKey.AlertsSummary, s.Language),
+            s.GpuHotThreshold, s.CpuHotThreshold, s.HotAlertSeconds);
     }
 
     void RefreshStatsSummary(AppLanguage? language = null) =>
