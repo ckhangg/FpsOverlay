@@ -261,6 +261,27 @@ public void IsStalled(double sinceStart, double? sinceFrame, bool expected) =>
 
 ---
 
+### Task 9b: Bản cài nhiều file (không bung thư viện vào %TEMP%)
+
+*(Thêm sau review Task 8, người dùng chọn "Cài bản nhiều file". Lý do: single-file với `IncludeNativeLibrariesForSelfExtract` bung thư viện native của WPF vào `%TEMP%\.net\...` — chỗ người dùng thường ghi được — và dùng lại file có sẵn, nên bản cài chạy với quyền Admin lúc đăng nhập có thể nạp thư viện bị tráo.)*
+
+**Files:**
+- Modify: `src/FpsOverlay/FpsOverlay.csproj`, `src/FpsOverlay/EmbeddedFiles.cs`, `src/FpsOverlay/Installer.cs`, `src/FpsOverlay/App.xaml.cs`, `src/FpsOverlay.Core/Install/InstallDecision.cs`
+- Test: `tests/FpsOverlay.Core.Tests/InstallDecisionTests.cs`
+
+**Interfaces / quyết định:**
+- Lệnh đóng gói vẫn là `dotnet publish src/FpsOverlay -c Release -o publish` → **một** file `FpsOverlay.exe` (bản mang đi). Bên trong nhúng thêm tài nguyên `Payload.zip`: bản publish **nhiều file**, self-contained, win-x64 (không single-file) của chính app, kèm `PresentMon.exe` và giấy phép. Tạo bằng một MSBuild target chạy publish lồng (thuộc tính riêng, ví dụ `FpsPayload=true`, để bản lồng không tự nhúng payload), nén thành zip, rồi nhúng `LogicalName="Payload.zip"`. `dotnet build` / `dotnet test` thường không cần payload.
+- Cài/cập nhật: giải nén `Payload.zip` vào thư mục tạm **bên trong** `InstallDirectory` (thừa hưởng ACL của Program Files), rồi thay các file vào `InstallDirectory` (xoá file cũ không còn trong payload, trừ thư mục `Temp` và file đánh dấu). Ghi `InstallDirectory\payload.sha256` (SHA-256 của `Payload.zip`).
+- `InstallDecision.Decide(Version running, string runningPayloadHash, Version? installed, string? installedPayloadHash)` — so sánh hash **payload**, không so hash exe (exe của bản cài khác exe bản mang đi). Bản cài cũ kiểu single-file (không có `payload.sha256`) → coi như hash khác → `Update`.
+- Bản cài (nhiều file) không chứa `Payload.zip`; thư viện native nằm cạnh exe trong Program Files. `IsRunningInstalled`, `RepairEntries`, tự khởi động, gỡ cài đặt giữ nguyên hành vi.
+- Bản cài không bung PresentMon nữa nếu payload đã có sẵn `PresentMon.exe` cạnh exe (chỉ kiểm tra tồn tại, `EmbeddedFiles.ExtractAll` vẫn dùng cho `--no-install`).
+- `--no-install` (chỉ lúc phát triển) giữ single-file như cũ.
+
+- [ ] **Step 1: Test** `InstallDecision` với hash payload: chưa cài → Install; payload khác → Update; giống → RunInstalled; bản cài thiếu `payload.sha256` (null) → Update; phiên bản mới hơn → Update; cũ hơn → RunInstalled.
+- [ ] **Step 2:** FAIL. **Step 3:** cài đặt. **Step 4:** PASS, build 0 cảnh báo; `dotnet publish` ra đúng một file, liệt kê tài nguyên có `Payload.zip`; giải nén thử `Payload.zip` vào scratch (không cài) và kiểm tra có `FpsOverlay.exe`, `wpfgfx_cor3.dll`, `PresentMon.exe`.
+- [ ] **Step 5: Commit** `build: install a multi-file copy so native libraries never load from %TEMP%`
+
+---
 ### Task 10: Đóng gói và danh sách kiểm tay
 
 **Files:** không đổi code (trừ sửa lỗi phát hiện ra).
