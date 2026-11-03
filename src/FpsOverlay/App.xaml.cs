@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using System.Media;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -30,6 +31,8 @@ public partial class App : Application
     SettingsService? _settings;
     PresentMonRunner? _runner;
     OverlayWindow? _overlay;
+    // Theo dõi đợt nóng của GPU và CPU để báo động (nháy, tiếng).
+    readonly HeatAlarm _gpuAlarm = new(), _cpuAlarm = new();
     TrayIcon? _tray;
     SettingsWindow? _settingsWindow;
     // Hộp báo lỗi đang mở mà bấm tiếp ở khay thì bỏ qua, không chạy schtasks và hiện hộp thứ hai.
@@ -351,7 +354,37 @@ public partial class App : Application
             onePercentLow = _history.OnePercentLow(ForegroundProcess.GetCandidates());
             sensors = _sensors.Latest;
         }
-        _overlay.SetStats(onePercentLow, sensors, _settings.Current);
+        var settings = _settings.Current;
+        _overlay.SetStats(onePercentLow, sensors, settings);
+        UpdateAlerts(sensors, settings);
+    }
+
+    // Xem trước không báo động; ngược lại mỗi đợt nóng đủ lâu báo một lần (tiếng) và số nhiệt nháy tới khi hạ nhiệt.
+    void UpdateAlerts(SensorSnapshot sensors, OverlaySettings settings)
+    {
+        if (_overlay is null) return;
+        bool started = false;
+        if (IsPreviewing)
+        {
+            _gpuAlarm.Reset();
+            _cpuAlarm.Reset();
+        }
+        else
+        {
+            var now = _clock.Elapsed.TotalSeconds;
+            if (settings.ShowGpuTemp)
+                started |= _gpuAlarm.Update(sensors.GpuTemp, settings.GpuHotThreshold, settings.HotAlertSeconds, now);
+            else
+                _gpuAlarm.Reset();
+            if (settings.ShowCpuTemp)
+                started |= _cpuAlarm.Update(sensors.CpuTemp, settings.CpuHotThreshold, settings.HotAlertSeconds, now);
+            else
+                _cpuAlarm.Reset();
+        }
+        if (started && settings.HotAlertSound)
+            SystemSounds.Exclamation.Play();
+        _overlay.SetAlerts(settings.HotAlertBlink && _gpuAlarm.State == HeatState.Alarming,
+            settings.HotAlertBlink && _cpuAlarm.State == HeatState.Alarming);
     }
 
     void ToggleOverlay()
@@ -359,7 +392,13 @@ public partial class App : Application
         if (_overlay is null || _settings is null) return;
         // Ẩn thì ngừng đăng ký vẽ mỗi khung hình; hiện lại thì đăng ký một lần (luôn gỡ trước để không bao giờ trùng).
         CompositionTarget.Rendering -= OnRendering;
-        if (_overlay.IsVisible) _overlay.Hide();
+        if (_overlay.IsVisible)
+        {
+            _overlay.Hide();
+            _gpuAlarm.Reset();
+            _cpuAlarm.Reset();
+            _overlay.SetAlerts(false, false);
+        }
         else
         {
             _overlay.Show();
@@ -383,10 +422,19 @@ public partial class App : Application
 
         _ = _autostart.RefreshAsync();
         _settingsWindow = new SettingsWindow(_settings, _autostart, SetAutostart, () => _sensors?.CpuTemperatureAvailable ?? true,
-            InstallPawnIo, _pawnIoInstall is not null);
+            InstallPawnIo, _pawnIoInstall is not null, TestAlert);
         _settingsWindow.Closed += (_, _) => _settingsWindow = null;   // đóng bằng cách nào cũng về FPS thật
         _settingsWindow.Show();
         _settingsWindow.Activate();
+    }
+
+    // Nút "Thử cảnh báo": hai số nhiệt hiện và nháy 3 giây trên overlay, kèm tiếng nếu bật.
+    void TestAlert()
+    {
+        if (_overlay is not { IsVisible: true } || _settings is null) return;
+        _overlay.RunAlertTest(TimeSpan.FromSeconds(3));
+        if (_settings.Current.HotAlertSound)
+            SystemSounds.Exclamation.Play();
     }
 
     // Nút "Cài PawnIO" trong cài đặt (bản đã cài hoặc --no-install; App luôn chạy với quyền Admin). Một lần cài một lúc:

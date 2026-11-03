@@ -7,13 +7,27 @@
         SizeToContent="Height"
         WindowStartupLocation="CenterScreen">
     <!-- Mọi chữ được đặt từ code theo ngôn ngữ (Loc); các thứ trong XAML chỉ là bố cục. -->
-    <Grid Margin="18,10,18,18">
+    <!-- Nội dung cuộn được; hai nút Khôi phục/Xong nằm ngoài vùng cuộn nên luôn thấy. -->
+    <Grid>
+    <Grid.RowDefinitions>
+        <RowDefinition Height="*" />
+        <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <Grid Margin="18,10,18,8">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="140" />
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="76" />
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -182,21 +196,55 @@
         <TextBlock x:Name="RamLabel" Grid.Row="25" Style="{StaticResource Cp.FieldLabel}" />
         <ToggleButton x:Name="RamSwitch" Grid.Row="25" Grid.Column="1" Style="{StaticResource Cp.Switch}"
                       Checked="OnStatChanged" Unchecked="OnStatChanged" />
-        <!-- // HỆ THỐNG -->
-        <Label x:Name="SystemSection" Grid.Row="26" Grid.ColumnSpan="3" Style="{StaticResource Cp.Section}" />
+        <!-- // CẢNH BÁO -->
+        <Label x:Name="AlertsSection" Grid.Row="26" Grid.ColumnSpan="3" Style="{StaticResource Cp.Section}" />
 
-        <TextBlock x:Name="AutostartLabel" Grid.Row="27" Style="{StaticResource Cp.FieldLabel}" />
-        <ToggleButton x:Name="AutostartSwitch" Grid.Row="27" Grid.Column="1" Style="{StaticResource Cp.Switch}"
+        <TextBlock x:Name="GpuHotLabel" Grid.Row="27" Style="{StaticResource Cp.FieldLabel}" />
+        <Slider x:Name="GpuHotSlider" Grid.Row="27" Grid.Column="1" Style="{StaticResource Cp.Slider}"
+                Minimum="50" Maximum="110" TickFrequency="1" SmallChange="1" LargeChange="5"
+                ValueChanged="OnGpuHotChanged" />
+        <TextBlock x:Name="GpuHotValue" Grid.Row="27" Grid.Column="2" Style="{StaticResource Cp.Value}" />
+
+        <TextBlock x:Name="CpuHotLabel" Grid.Row="28" Style="{StaticResource Cp.FieldLabel}" />
+        <Slider x:Name="CpuHotSlider" Grid.Row="28" Grid.Column="1" Style="{StaticResource Cp.Slider}"
+                Minimum="50" Maximum="110" TickFrequency="1" SmallChange="1" LargeChange="5"
+                ValueChanged="OnCpuHotChanged" />
+        <TextBlock x:Name="CpuHotValue" Grid.Row="28" Grid.Column="2" Style="{StaticResource Cp.Value}" />
+
+        <TextBlock x:Name="HotSecondsLabel" Grid.Row="29" Style="{StaticResource Cp.FieldLabel}" />
+        <Slider x:Name="HotSecondsSlider" Grid.Row="29" Grid.Column="1" Style="{StaticResource Cp.Slider}"
+                Minimum="0" Maximum="60" TickFrequency="1" SmallChange="1" LargeChange="5"
+                ValueChanged="OnHotSecondsChanged" />
+        <TextBlock x:Name="HotSecondsValue" Grid.Row="29" Grid.Column="2" Style="{StaticResource Cp.Value}" />
+
+        <TextBlock x:Name="HotBlinkLabel" Grid.Row="30" Style="{StaticResource Cp.FieldLabel}" />
+        <ToggleButton x:Name="HotBlinkSwitch" Grid.Row="30" Grid.Column="1" Style="{StaticResource Cp.Switch}"
+                      Checked="OnHotAlertToggled" Unchecked="OnHotAlertToggled" />
+
+        <TextBlock x:Name="HotSoundLabel" Grid.Row="31" Style="{StaticResource Cp.FieldLabel}" />
+        <ToggleButton x:Name="HotSoundSwitch" Grid.Row="31" Grid.Column="1" Style="{StaticResource Cp.Switch}"
+                      Checked="OnHotAlertToggled" Unchecked="OnHotAlertToggled" />
+
+        <Button x:Name="TestAlertButton" Grid.Row="32" Grid.ColumnSpan="3" HorizontalAlignment="Left" Margin="0,4,0,0"
+                Style="{StaticResource Cp.GhostButton}" Click="OnTestAlertClick" />
+
+        <!-- // HỆ THỐNG -->
+        <Label x:Name="SystemSection" Grid.Row="33" Grid.ColumnSpan="3" Style="{StaticResource Cp.Section}" />
+
+        <TextBlock x:Name="AutostartLabel" Grid.Row="34" Style="{StaticResource Cp.FieldLabel}" />
+        <ToggleButton x:Name="AutostartSwitch" Grid.Row="34" Grid.Column="1" Style="{StaticResource Cp.Switch}"
                       Checked="OnAutostartChanged" Unchecked="OnAutostartChanged" />
 
-        <TextBlock x:Name="LogLabel" Grid.Row="28" Style="{StaticResource Cp.FieldLabel}" />
-        <ToggleButton x:Name="LogSwitch" Grid.Row="28" Grid.Column="1" Style="{StaticResource Cp.Switch}"
+        <TextBlock x:Name="LogLabel" Grid.Row="35" Style="{StaticResource Cp.FieldLabel}" />
+        <ToggleButton x:Name="LogSwitch" Grid.Row="35" Grid.Column="1" Style="{StaticResource Cp.Switch}"
                       Checked="OnLogChanged" Unchecked="OnLogChanged" />
 
-        <Button x:Name="OpenLogButton" Grid.Row="29" Grid.ColumnSpan="3" HorizontalAlignment="Left" Margin="0,4,0,0"
+        <Button x:Name="OpenLogButton" Grid.Row="36" Grid.ColumnSpan="3" HorizontalAlignment="Left" Margin="0,4,0,0"
                 Style="{StaticResource Cp.GhostButton}" Click="OnOpenLogFolderClick" />
 
-        <DockPanel Grid.Row="30" Grid.ColumnSpan="3" Margin="0,14,0,0" LastChildFill="False">
+    </Grid>
+    </ScrollViewer>
+        <DockPanel Grid.Row="1" Margin="18,10,18,18" LastChildFill="False">
             <Button x:Name="ResetButton" DockPanel.Dock="Left" Style="{StaticResource Cp.GhostButton}" Click="OnResetClick" />
             <Button x:Name="DoneButton" DockPanel.Dock="Right" Style="{StaticResource Cp.PrimaryButton}" IsCancel="True"
                     Click="OnDoneClick" />

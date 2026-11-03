@@ -24,6 +24,7 @@ public partial class SettingsWindow : Window
     readonly SettingsService _service;
     readonly AutostartService _autostart;
     readonly Action<bool> _setAutostart;
+    readonly Action _testAlert;
     readonly Func<bool> _cpuTempAvailable;
     readonly Func<Task<PawnIoResult>> _installPawnIo;
     readonly RadioButton[][] _swatches = new RadioButton[Rows][];
@@ -40,17 +41,21 @@ public partial class SettingsWindow : Window
     /// <param name="setAutostart">Bật/tắt khởi động cùng Windows (App lo báo lỗi); kết quả về qua <see cref="AutostartService.Changed"/>.</param>
     /// <param name="cpuTempAvailable">Đọc được nhiệt độ CPU chưa; chưa thì hiện ghi chú cần PawnIO dưới công tắc.</param>
     /// <param name="installPawnIo">Tải + kiểm chữ ký + cài PawnIO (App lo đọc lại cảm biến; đang cài thì trả về lần đang chạy).</param>
+    /// <param name="testAlert">Chạy thử cảnh báo trên overlay (App lo nháy 3 giây và tiếng).</param>
     /// <param name="pawnIoInstalling">App đang cài PawnIO (vd. bắt đầu từ cửa sổ trước đã đóng).</param>
     internal SettingsWindow(SettingsService service, AutostartService autostart, Action<bool> setAutostart, Func<bool> cpuTempAvailable,
-        Func<Task<PawnIoResult>> installPawnIo, bool pawnIoInstalling)
+        Func<Task<PawnIoResult>> installPawnIo, bool pawnIoInstalling, Action testAlert)
     {
         _service = service;
         _autostart = autostart;
         _setAutostart = setAutostart;
         _cpuTempAvailable = cpuTempAvailable;
         _installPawnIo = installPawnIo;
+        _testAlert = testAlert;
         _pawnIoInstalled = PawnIoSetup.IsInstalled();
-        InitializeComponent();   // _refreshing = true: giá trị mặc định trong XAML không ghi vào cài đặt
+        InitializeComponent();
+        // Màn hình thấp thì phần giữa cuộn, tiêu đề và hai nút dưới vẫn thấy.
+        MaxHeight = SystemParameters.WorkArea.Height;   // _refreshing = true: giá trị mặc định trong XAML không ghi vào cài đặt
         // Bản không cài không được tạo/sửa tác vụ: công tắc mờ đi, tooltip (đặt trong ApplyLanguage) giải thích lý do.
         AutostartSwitch.IsEnabled = autostart.CanManage;
         if (!autostart.CanManage) AutostartSwitch.Opacity = AutostartLabel.Opacity = 0.45;
@@ -112,6 +117,15 @@ public partial class SettingsWindow : Window
             CpuTempSwitch.IsChecked = s.ShowCpuTemp;
             RamSwitch.IsChecked = s.ShowRam;
             RefreshSensorNote();
+
+            GpuHotSlider.Value = s.GpuHotThreshold;
+            GpuHotValue.Text = $"{s.GpuHotThreshold}°";
+            CpuHotSlider.Value = s.CpuHotThreshold;
+            CpuHotValue.Text = $"{s.CpuHotThreshold}°";
+            HotSecondsSlider.Value = s.HotAlertSeconds;
+            HotSecondsValue.Text = $"{s.HotAlertSeconds}s";
+            HotBlinkSwitch.IsChecked = s.HotAlertBlink;
+            HotSoundSwitch.IsChecked = s.HotAlertSound;
 
             LogSwitch.IsChecked = s.LoggingEnabled;
             ColorByFpsSwitch.IsChecked = s.ColorByFps;
@@ -235,6 +249,14 @@ public partial class SettingsWindow : Window
         PawnIoInstallButton.Content = T(StringKey.PawnIoInstallButton);
         RefreshPawnIoStatus(language);
 
+        AlertsSection.Content = T(StringKey.SectionAlerts);
+        GpuHotLabel.Text = T(StringKey.GpuHotThreshold);
+        CpuHotLabel.Text = T(StringKey.CpuHotThreshold);
+        HotSecondsLabel.Text = T(StringKey.HotAlertSeconds);
+        HotBlinkLabel.Text = T(StringKey.HotAlertBlink);
+        HotSoundLabel.Text = T(StringKey.HotAlertSound);
+        TestAlertButton.Content = T(StringKey.TestAlert);
+
         SystemSection.Content = T(StringKey.SectionSystem);
         AutostartLabel.Text = T(StringKey.Autostart);
         AutostartSwitch.ToolTip = _autostart.CanManage ? null : T(StringKey.AutostartInstalledOnly);
@@ -335,6 +357,36 @@ public partial class SettingsWindow : Window
             ShowCpuLoad = cpuLoad, ShowCpuTemp = cpuTemp, ShowRam = ram,
         });
     }
+
+    void OnGpuHotChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_refreshing) return;
+        var value = (int)Math.Round(e.NewValue);
+        _service.Update(s => s with { GpuHotThreshold = value });
+    }
+
+    void OnCpuHotChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_refreshing) return;
+        var value = (int)Math.Round(e.NewValue);
+        _service.Update(s => s with { CpuHotThreshold = value });
+    }
+
+    void OnHotSecondsChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_refreshing) return;
+        var value = (int)Math.Round(e.NewValue);
+        _service.Update(s => s with { HotAlertSeconds = value });
+    }
+
+    void OnHotAlertToggled(object sender, RoutedEventArgs e)
+    {
+        if (_refreshing) return;
+        bool blink = HotBlinkSwitch.IsChecked == true, sound = HotSoundSwitch.IsChecked == true;
+        _service.Update(s => s with { HotAlertBlink = blink, HotAlertSound = sound });
+    }
+
+    void OnTestAlertClick(object sender, RoutedEventArgs e) => _testAlert();
 
     void OnAutostartChanged(object sender, RoutedEventArgs e)
     {

@@ -39,6 +39,13 @@ public partial class OverlayWindow : Window
     SensorSnapshot _lastSensors;
     readonly RowView[] _rows;
 
+    // Nháy số nhiệt (~2 Hz): bộ hẹn 250 ms chỉ chạy khi có ô đang nháy; chỉ đổi brush, không đổi kích thước.
+    readonly DispatcherTimer _blinkTimer = new() { Interval = TimeSpan.FromMilliseconds(250) };
+    readonly Dictionary<Color, Brush> _dimBrushes = new();
+    bool _gpuBlinking, _cpuBlinking;
+    bool _blinkDim;
+    long _testUntilTick;   // Environment.TickCount64 lúc hết lần thử cảnh báo; 0 = không thử
+
     /// <summary>
     /// Đối tượng chữ của một <see cref="StatRow"/>, tạo một lần: dấu ngăn + nhãn + ô First + ô Second.
     /// Ở bố cục ngang tất cả là Run trong một TextBlock (chung đường chân chữ); ẩn mục là ẩn cả dấu ngăn.
@@ -106,6 +113,7 @@ public partial class OverlayWindow : Window
         DpiChanged += (_, _) => UpdatePosition();
         Chrome.SizeChanged += (_, _) => UpdateChamfer();
         _topmostTimer.Tick += (_, _) => KeepOnTop();
+        _blinkTimer.Tick += (_, _) => OnBlinkTick();
 
         var fpsItem = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
         fpsItem.Inlines.AddRange(new Inline[]
@@ -216,6 +224,9 @@ public partial class OverlayWindow : Window
         _lastOnePercentLow = onePercentLow;
         _lastSensors = sensors;
         var style = settings.Style;
+        var testing = IsTesting;
+        if (testing)   // đang thử cảnh báo: hai số nhiệt luôn hiện dù công tắc tắt
+            settings = settings with { ShowGpuTemp = true, ShowCpuTemp = true };
         var normal = OverlayTheme.FromHex(settings.ColorsFor(style).Value);
         var hot = OverlayTheme.FromHex(StyleSpecs.For(style).Bad);
 
@@ -232,13 +243,91 @@ public partial class OverlayWindow : Window
                 firstBrush = FpsBrush(onePercentLow, settings);   // 1% low tô màu theo cùng mốc với FPS
             // Ô mang nhiệt độ đổi sang màu "nóng" khi vượt ngưỡng.
             var tempCell = StatRows.TempCell(row, settings);
-            if (tempCell != 0 && IsHot(row, sensors, settings))
+            if (tempCell != 0)
             {
-                if (tempCell == 1) firstBrush = hot;
-                else secondBrush = hot;
+                Brush? tempBrush = null;
+                if (IsBlinking(row, testing))
+                    tempBrush = _blinkDim ? DimBrush(hot) : hot;
+                else if (IsHot(row, sensors, settings))
+                    tempBrush = hot;
+                if (tempBrush is not null)
+                {
+                    if (tempCell == 1) firstBrush = tempBrush;
+                    else secondBrush = tempBrush;
+                }
             }
             view.SetValues(first, firstBrush, second, secondBrush);
         }
+    }
+
+    bool IsTesting => _testUntilTick != 0 && Environment.TickCount64 < _testUntilTick;
+
+    bool IsBlinking(StatRow row, bool testing) => testing || row switch
+    {
+        StatRow.Gpu => _gpuBlinking,
+        StatRow.Cpu => _cpuBlinking,
+        _ => false,
+    };
+
+    // Bản 25% alpha của màu, đóng băng và nhớ theo màu để mỗi nhịp nháy không tạo brush mới.
+    Brush DimBrush(Brush hot)
+    {
+        var color = ((SolidColorBrush)hot).Color;
+        if (!_dimBrushes.TryGetValue(color, out var dim))
+        {
+            color.A = (byte)Math.Round(color.A * 0.25);
+            var brush = new SolidColorBrush(color);
+            brush.Freeze();
+            _dimBrushes[((SolidColorBrush)hot).Color] = dim = brush;
+        }
+        return dim;
+    }
+
+    /// <summary>
+    /// App gọi mỗi giây: ô nhiệt GPU/CPU có đang báo động (nháy) không. Hết nháy thì trả brush thường/nóng như <see cref="SetStats"/> chọn.
+    /// Lần thử cảnh báo đang chạy thì thắng: cờ được OR với trạng thái thử.
+    /// </summary>
+    public void SetAlerts(bool gpuBlinking, bool cpuBlinking)
+    {
+        if (gpuBlinking == _gpuBlinking && cpuBlinking == _cpuBlinking)
+            return;
+        _gpuBlinking = gpuBlinking;
+        _cpuBlinking = cpuBlinking;
+        _blinkDim = false;
+        SetStats(_lastOnePercentLow, _lastSensors, _settings);
+        UpdateBlinkTimer();
+    }
+
+    /// <summary>Thử cảnh báo: trong <paramref name="duration"/> hai số nhiệt hiện ra (dù đang tắt) và nháy bằng màu nóng.</summary>
+    public void RunAlertTest(TimeSpan duration)
+    {
+        _testUntilTick = Environment.TickCount64 + (long)duration.TotalMilliseconds;
+        _blinkDim = false;
+        SetStats(_lastOnePercentLow, _lastSensors, _settings);
+        UpdateBlinkTimer();
+    }
+
+    void UpdateBlinkTimer()
+    {
+        var needed = _gpuBlinking || _cpuBlinking || IsTesting;
+        if (needed && !_blinkTimer.IsEnabled) _blinkTimer.Start();
+        else if (!needed && _blinkTimer.IsEnabled) _blinkTimer.Stop();
+    }
+
+    void OnBlinkTick()
+    {
+        if (_testUntilTick != 0 && !IsTesting)
+        {
+            // Hết lần thử: ô nhiệt về trạng thái thật (có thể lại ẩn).
+            _testUntilTick = 0;
+            _blinkDim = false;
+            SetStats(_lastOnePercentLow, _lastSensors, _settings);
+            UpdateBlinkTimer();
+            return;
+        }
+        if (!_blinkTimer.IsEnabled) return;
+        _blinkDim = !_blinkDim;
+        SetStats(_lastOnePercentLow, _lastSensors, _settings);
     }
 
     static bool IsHot(StatRow row, SensorSnapshot s, OverlaySettings settings) => row switch
@@ -333,6 +422,7 @@ public partial class OverlayWindow : Window
     protected override void OnClosed(EventArgs e)
     {
         _topmostTimer.Stop();
+        _blinkTimer.Stop();
         base.OnClosed(e);
     }
 }
