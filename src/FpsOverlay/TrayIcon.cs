@@ -1,11 +1,11 @@
-using System.Windows.Forms;
+﻿using System.Windows.Forms;
 using FpsOverlay.Core.Localization;
 using FpsOverlay.Core.Settings;
 using Icon = System.Drawing.Icon;
 
 namespace FpsOverlay;
 
-/// <summary>Biểu tượng ở khay hệ thống: Ẩn/Hiện FPS, Cài đặt..., Góc hiển thị, Thoát.</summary>
+/// <summary>Biểu tượng ở khay hệ thống: Ẩn/Hiện FPS, Cài đặt..., Góc hiển thị, Khởi động cùng Windows, Thoát.</summary>
 sealed class TrayIcon : IDisposable
 {
     static readonly (OverlayCorner Corner, StringKey Key)[] Corners =
@@ -21,12 +21,15 @@ sealed class TrayIcon : IDisposable
     readonly ToolStripMenuItem _toggleItem;
     readonly ToolStripMenuItem _settingsItem;
     readonly ToolStripMenuItem _cornerItem;
+    readonly ToolStripMenuItem _autostartItem;
     readonly ToolStripMenuItem _exitItem;
     readonly ToolStripMenuItem[] _cornerItems;
 
     public event Action? ToggleRequested;
     public event Action? SettingsRequested;
     public event Action<OverlayCorner>? CornerRequested;
+    /// <summary>Tham số là trạng thái muốn chuyển sang.</summary>
+    public event Action<bool>? AutostartRequested;
     public event Action? ExitRequested;
 
     public TrayIcon()
@@ -37,12 +40,14 @@ sealed class TrayIcon : IDisposable
             .Select(c => new ToolStripMenuItem("", null, (_, _) => CornerRequested?.Invoke(c.Corner)))
             .ToArray();
         _cornerItem = new ToolStripMenuItem("", null, _cornerItems);
+        _autostartItem = new ToolStripMenuItem("", null, (sender, _) => AutostartRequested?.Invoke(!((ToolStripMenuItem)sender!).Checked));
         _exitItem = new ToolStripMenuItem("", null, (_, _) => ExitRequested?.Invoke());
 
         var menu = new ContextMenuStrip();
         menu.Items.Add(_toggleItem);
         menu.Items.Add(_settingsItem);
         menu.Items.Add(_cornerItem);
+        menu.Items.Add(_autostartItem);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_exitItem);
 
@@ -64,6 +69,7 @@ sealed class TrayIcon : IDisposable
         _toggleItem.Text = Loc.Get(overlayVisible ? StringKey.TrayHide : StringKey.TrayShow, language);
         _settingsItem.Text = Loc.Get(StringKey.TraySettings, language);
         _cornerItem.Text = Loc.Get(StringKey.TrayCorner, language);
+        _autostartItem.Text = Loc.Get(StringKey.TrayAutostart, language);
         _exitItem.Text = Loc.Get(StringKey.TrayExit, language);
         for (int i = 0; i < Corners.Length; i++)
         {
@@ -71,6 +77,9 @@ sealed class TrayIcon : IDisposable
             _cornerItems[i].Checked = Corners[i].Corner == settings.Corner;
         }
     }
+
+    /// <summary>Dấu tick ở mục Khởi động cùng Windows.</summary>
+    public void SetAutostart(bool enabled) => _autostartItem.Checked = enabled;
 
     public void Dispose()
     {

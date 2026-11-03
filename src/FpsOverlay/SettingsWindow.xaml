@@ -1,4 +1,4 @@
-<Window x:Class="FpsOverlay.SettingsWindow"
+﻿<Window x:Class="FpsOverlay.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:s="clr-namespace:FpsOverlay.Core.Settings;assembly=FpsOverlay.Core"
@@ -14,6 +14,8 @@
             <ColumnDefinition Width="76" />
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -113,7 +115,14 @@
                 ValueChanged="OnBadChanged" />
         <TextBlock x:Name="BadValue" Grid.Row="13" Grid.Column="2" Style="{StaticResource Cp.Value}" />
 
-        <DockPanel Grid.Row="14" Grid.ColumnSpan="3" Margin="0,14,0,0" LastChildFill="False">
+        <!-- // HỆ THỐNG -->
+        <Label x:Name="SystemSection" Grid.Row="14" Grid.ColumnSpan="3" Style="{StaticResource Cp.Section}" />
+
+        <TextBlock x:Name="AutostartLabel" Grid.Row="15" Style="{StaticResource Cp.FieldLabel}" />
+        <ToggleButton x:Name="AutostartSwitch" Grid.Row="15" Grid.Column="1" Style="{StaticResource Cp.Switch}"
+                      Checked="OnAutostartChanged" Unchecked="OnAutostartChanged" />
+
+        <DockPanel Grid.Row="16" Grid.ColumnSpan="3" Margin="0,14,0,0" LastChildFill="False">
             <Button x:Name="ResetButton" DockPanel.Dock="Left" Style="{StaticResource Cp.GhostButton}" Click="OnResetClick" />
             <Button x:Name="DoneButton" DockPanel.Dock="Right" Style="{StaticResource Cp.PrimaryButton}" IsCancel="True"
                     Click="OnDoneClick" />

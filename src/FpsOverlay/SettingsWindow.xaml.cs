@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
@@ -25,6 +25,8 @@ public partial class SettingsWindow : Window
     const string InvalidTag = "invalid";
 
     readonly SettingsService _service;
+    readonly AutostartService _autostart;
+    readonly Action<bool> _setAutostart;
     readonly RadioButton[][] _swatches = new RadioButton[Rows][];
     readonly TextBox[] _hexBoxes;
     OverlayStyle? _swatchStyle;
@@ -32,9 +34,12 @@ public partial class SettingsWindow : Window
     // Đang đẩy giá trị từ cài đặt vào control: sự kiện của control không được gọi Update ngược lại.
     bool _refreshing = true;
 
-    internal SettingsWindow(SettingsService service)
+    /// <param name="setAutostart">Bật/tắt khởi động cùng Windows (App lo báo lỗi); kết quả về qua <see cref="AutostartService.Changed"/>.</param>
+    internal SettingsWindow(SettingsService service, AutostartService autostart, Action<bool> setAutostart)
     {
         _service = service;
+        _autostart = autostart;
+        _setAutostart = setAutostart;
         InitializeComponent();   // _refreshing = true: giá trị mặc định trong XAML không ghi vào cài đặt
         _hexBoxes = [LabelHex, ValueHex, FpsHex];
         Icon = CreateWindowIcon();
@@ -43,11 +48,14 @@ public partial class SettingsWindow : Window
 
         Refresh(service.Current);
         service.Changed += Refresh;
+        RefreshAutostart(autostart.IsEnabled);
+        autostart.Changed += RefreshAutostart;
     }
 
     protected override void OnClosed(EventArgs e)
     {
         _service.Changed -= Refresh;
+        _autostart.Changed -= RefreshAutostart;
         base.OnClosed(e);
     }
 
@@ -91,6 +99,20 @@ public partial class SettingsWindow : Window
         }
     }
 
+    void RefreshAutostart(bool enabled)
+    {
+        var previous = _refreshing;
+        _refreshing = true;
+        try
+        {
+            AutostartSwitch.IsChecked = enabled;
+        }
+        finally
+        {
+            _refreshing = previous;
+        }
+    }
+
     void ApplyLanguage(AppLanguage language)
     {
         string T(StringKey key) => Loc.Get(key, language);
@@ -119,6 +141,9 @@ public partial class SettingsWindow : Window
         ColorByFpsLabel.Text = T(StringKey.ColorByFps);
         GoodLabel.Text = T(StringKey.GoodThreshold);
         BadLabel.Text = T(StringKey.BadThreshold);
+
+        SystemSection.Content = T(StringKey.SectionSystem);
+        AutostartLabel.Text = T(StringKey.Autostart);
 
         ResetButton.Content = T(StringKey.ResetDefaults);
         DoneButton.Content = T(StringKey.Done);
@@ -199,6 +224,13 @@ public partial class SettingsWindow : Window
         _service.Update(s => s with { ColorByFps = on });
     }
 
+    void OnAutostartChanged(object sender, RoutedEventArgs e)
+    {
+        if (_refreshing) return;
+        _setAutostart(AutostartSwitch.IsChecked == true);
+        RefreshAutostart(_autostart.IsEnabled);   // lỗi thì công tắc về đúng trạng thái thật
+    }
+
     void OnGoodChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         if (_refreshing) return;
@@ -239,6 +271,7 @@ public partial class SettingsWindow : Window
     {
         var box = (TextBox)sender;
         var current = ColorAt(_service.Current.ColorsFor(_service.Current.Style), Array.IndexOf(_hexBoxes, box));
+        var previous = _refreshing;
         _refreshing = true;
         try
         {
@@ -247,7 +280,7 @@ public partial class SettingsWindow : Window
         }
         finally
         {
-            _refreshing = false;
+            _refreshing = previous;
         }
     }
 

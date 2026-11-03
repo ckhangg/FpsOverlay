@@ -4,13 +4,14 @@ namespace FpsOverlay.Core.Localization;
 
 public enum StringKey
 {
-    TrayTooltip, TrayHide, TrayShow, TraySettings, TrayCorner, TrayExit,
+    TrayTooltip, TrayHide, TrayShow, TraySettings, TrayCorner, TrayAutostart, TrayExit,
     CornerTopLeft, CornerTopRight, CornerBottomLeft, CornerBottomRight,
     SettingsTitle, SectionAppearance, SectionColors, SectionFpsColor,
     Language, Style, StyleClassic, StyleCyberpunk, Corner, Scale, BackgroundOpacity,
     LabelColor, ValueColor, FpsColor, ColorByFps, GoodThreshold, BadThreshold,
+    SectionSystem, Autostart,
     ResetDefaults, Done,
-    AlreadyRunning, PresentMonStopped, PresentMonStartFailed, Details,
+    AlreadyRunning, PresentMonStopped, PresentMonStartFailed, AutostartFailed, Details,
 }
 
 /// <summary>Chuỗi giao diện hai ngôn ngữ. Khoá thiếu ném <see cref="KeyNotFoundException"/>.</summary>
@@ -23,6 +24,7 @@ public static class Loc
         [StringKey.TrayShow] = ("Hiện FPS", "Show FPS"),
         [StringKey.TraySettings] = ("Cài đặt...", "Settings..."),
         [StringKey.TrayCorner] = ("Góc hiển thị", "Position"),
+        [StringKey.TrayAutostart] = ("Khởi động cùng Windows", "Start with Windows"),
         [StringKey.TrayExit] = ("Thoát", "Exit"),
         [StringKey.CornerTopLeft] = ("Trên trái", "Top left"),
         [StringKey.CornerTopRight] = ("Trên phải", "Top right"),
@@ -45,11 +47,14 @@ public static class Loc
         [StringKey.ColorByFps] = ("Đổi màu theo FPS", "Color by FPS"),
         [StringKey.GoodThreshold] = ("Tốt từ", "Good from"),
         [StringKey.BadThreshold] = ("Kém dưới", "Bad below"),
+        [StringKey.SectionSystem] = ("// HỆ THỐNG", "// SYSTEM"),
+        [StringKey.Autostart] = ("Khởi động cùng Windows", "Start with Windows"),
         [StringKey.ResetDefaults] = ("KHÔI PHỤC MẶC ĐỊNH", "RESTORE DEFAULTS"),
         [StringKey.Done] = ("XONG", "DONE"),
         [StringKey.AlreadyRunning] = ("FPS Overlay đang chạy rồi (xem biểu tượng ở khay hệ thống).", "FPS Overlay is already running (see the tray icon)."),
         [StringKey.PresentMonStopped] = ("PresentMon đã dừng bất ngờ nên không đo được FPS.\nHãy chắc rằng app đang chạy với quyền Administrator.", "PresentMon stopped unexpectedly, so FPS can't be measured.\nMake sure the app is running as Administrator."),
         [StringKey.PresentMonStartFailed] = ("Không khởi động được PresentMon.\nFile PresentMon.exe phải nằm cùng thư mục với FpsOverlay.exe.", "Couldn't start PresentMon.\nPresentMon.exe must be in the same folder as FpsOverlay.exe."),
+        [StringKey.AutostartFailed] = ("Không đổi được chế độ khởi động cùng Windows.", "Couldn't change Start with Windows."),
         [StringKey.Details] = ("Chi tiết", "Details"),
     };
 

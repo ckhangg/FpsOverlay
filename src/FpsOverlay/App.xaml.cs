@@ -11,6 +11,7 @@ public partial class App : Application
 {
     readonly FpsCalculator _calculator = new();
     readonly Stopwatch _previewClock = Stopwatch.StartNew();
+    readonly AutostartService _autostart = new();
     SettingsService? _settings;
     PresentMonRunner? _runner;
     OverlayWindow? _overlay;
@@ -51,9 +52,13 @@ public partial class App : Application
         tray.ToggleRequested += ToggleOverlay;
         tray.SettingsRequested += OpenSettings;
         tray.CornerRequested += corner => settings.Update(s => s with { Corner = corner });
+        tray.AutostartRequested += SetAutostart;
         tray.ExitRequested += Shutdown;
         // Đổi ngôn ngữ hay góc (kể cả từ cửa sổ cài đặt) thì menu khay đổi theo ngay.
         settings.Changed += s => tray.Apply(s, overlay.IsVisible);
+        _autostart.Changed += tray.SetAutostart;
+        _autostart.Refresh();
+        tray.SetAutostart(_autostart.IsEnabled);
 
         _runner = new PresentMonRunner();
         _runner.Exited += stderr => Dispatcher.BeginInvoke(() => Fail(
@@ -107,10 +112,19 @@ public partial class App : Application
             return;
         }
 
-        _settingsWindow = new SettingsWindow(_settings);
+        _settingsWindow = new SettingsWindow(_settings, _autostart, SetAutostart);
         _settingsWindow.Closed += (_, _) => _settingsWindow = null;   // đóng bằng cách nào cũng về FPS thật
         _settingsWindow.Show();
         _settingsWindow.Activate();
+    }
+
+    void SetAutostart(bool enable)
+    {
+        if (_autostart.TrySet(enable, out var error))
+            return;
+        var message = Loc.Get(StringKey.AutostartFailed, Language) +
+                      (error.Length > 0 ? $"\n\n{Loc.Get(StringKey.Details, Language)}: {error}" : "");
+        MessageBox.Show(message, "FPS Overlay", MessageBoxButton.OK, MessageBoxImage.Warning);
     }
 
     void Fail(string message)
