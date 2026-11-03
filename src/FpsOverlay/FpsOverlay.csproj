@@ -9,6 +9,9 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <Version>1.0.0</Version>
+    <!-- App chạy quyền Admin (cả tác vụ khởi động cùng Windows): tắt DOTNET_STARTUP_HOOKS, không thì biến môi trường
+         người dùng (HKCU\Environment, ghi được không cần Admin) nạp được dll lạ vào tiến trình Admin. Áp cả payload. -->
+    <StartupHookSupport>false</StartupHookSupport>
     <!-- Bản mang đi: một file exe tự chứa: dotnet publish src/FpsOverlay -c Release -o publish.
          Bên trong nhúng Payload.zip = bản nhiều file để cài vào Program Files (xem target FpsBuildPayload). -->
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>

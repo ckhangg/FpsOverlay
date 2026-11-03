@@ -135,7 +135,9 @@ sealed class AutostartService
     {
         try
         {
-            using var process = Process.Start(new ProcessStartInfo("schtasks.exe", arguments)
+            // Đường dẫn đầy đủ trong System32: tên trần thì CreateProcess tìm trong thư mục exe trước (bản setup chạy
+            // quyền Admin từ Downloads, ai đặt schtasks.exe giả cạnh nó cũng được chạy với quyền Admin).
+            using var process = Process.Start(new ProcessStartInfo(Path.Combine(Environment.SystemDirectory, "schtasks.exe"), arguments)
             {
                 UseShellExecute = false,
                 CreateNoWindow = true,

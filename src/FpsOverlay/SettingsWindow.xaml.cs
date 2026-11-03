@@ -351,7 +351,9 @@ public partial class SettingsWindow : Window
         try
         {
             Directory.CreateDirectory(SessionLogger.LogDirectory);
-            using var _ = Process.Start("explorer.exe", $"\"{SessionLogger.LogDirectory}\"");
+            // Đường dẫn đầy đủ: tên trần thì CreateProcess tìm trong thư mục exe trước (chỗ người dùng ghi được).
+            var explorer = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "explorer.exe");
+            using var _ = Process.Start(explorer, $"\"{SessionLogger.LogDirectory}\"");
         }
         catch (Exception ex)
         {
