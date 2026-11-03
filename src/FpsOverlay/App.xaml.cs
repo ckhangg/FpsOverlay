@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Threading;
 using FpsOverlay.Core;
+using FpsOverlay.Core.Install;
 using FpsOverlay.Core.Localization;
 using FpsOverlay.Core.Settings;
 
@@ -46,8 +47,23 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        // Cài/gỡ chạy trước mutex một bản chạy: bản cài có thể đang chạy (và đang giữ mutex).
+        bool HasArg(string name) => e.Args.Any(a => string.Equals(a, name, StringComparison.OrdinalIgnoreCase));
+        if (HasArg("--uninstall"))
+        {
+            RunUninstall();
+            Shutdown();
+            return;
+        }
+        var noInstall = HasArg("--no-install");
+        if (!noInstall && !Installer.IsRunningInstalled)
+        {
+            RunSetup();   // tự Shutdown khi xong hoặc huỷ
+            return;
+        }
+
         // Hai bản chạy cùng lúc sẽ tranh nhau một phiên PresentMon và làm bản kia dừng.
-        _singleInstance = new Mutex(true, @"Local\FpsOverlay.SingleInstance", out var isFirst);
+        _singleInstance = new Mutex(true, Installer.SingleInstanceMutexName, out var isFirst);
         if (!isFirst)
         {
             // Chỉ đọc ngôn ngữ, không mở SettingsService (bản này không được ghi file cài đặt).
@@ -84,15 +100,19 @@ public partial class App : Application
             tray.Apply(s, overlay.IsVisible);
             if (_stalled) tray.SetWarning(Loc.Get(StringKey.PresentMonNoData, s.Language));   // đổi chữ theo ngôn ngữ mới
         };
+        tray.SetAutostartLocked(!_autostart.CanManage);
         _autostart.Changed += tray.SetAutostart;
         // Đọc lại mỗi lần mở menu: tác vụ có thể bị xoá/sửa trong Task Scheduler lúc app đang chạy.
         tray.MenuOpening += () => _ = _autostart.RefreshAsync();
         _ = _autostart.RefreshAsync();
 
-        // Tạm thời bung vào thư mục chứa exe (Task 8 đổi sang thư mục cài). Thư mục chỉ đọc không được làm app chết im lặng.
+        // Bản cài: bung vào thư mục cài (thiếu hoặc khác bản nhúng thì ghi lại). --no-install: vào thư mục chứa exe.
+        // Thư mục chỉ đọc không được làm app chết im lặng.
         try
         {
-            _toolDirectory = Path.GetDirectoryName(Environment.ProcessPath)!;
+            _toolDirectory = Installer.IsRunningInstalled
+                ? Installer.InstallDirectory
+                : Path.GetDirectoryName(Environment.ProcessPath)!;
             EmbeddedFiles.ExtractAll(_toolDirectory);
         }
         catch (Exception ex)
@@ -117,6 +137,73 @@ public partial class App : Application
         _overlay.Show();
         CompositionTarget.Rendering += OnRendering;
     }
+
+    // Chạy từ ngoài thư mục cài: cài mới/cập nhật qua hộp thoại, hoặc chạy luôn bản đã cài (không hỏi). Xong thì thoát.
+    void RunSetup()
+    {
+        // Chỉ đọc ngôn ngữ, không mở SettingsService (bản này không chạy overlay).
+        var language = SettingsStore.Load(SettingsStore.DefaultPath).Language;
+        InstallAction action;
+        try
+        {
+            action = Installer.Decide();
+            if (action == InstallAction.RunInstalled)
+            {
+                Installer.LaunchInstalled();
+                Shutdown();
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError(StringKey.InstallFailed, ex, language);
+            Shutdown();
+            return;
+        }
+
+        var window = new InstallWindow(action, language);
+        window.Closed += (_, _) =>
+        {
+            if (window.Succeeded)
+            {
+                try { Installer.LaunchInstalled(); }
+                catch (Exception ex) { ShowError(StringKey.InstallFailed, ex, language); }
+            }
+            Shutdown();
+        };
+        window.Show();
+        window.Activate();
+    }
+
+    // --uninstall (lệnh gỡ trong Settings → Apps): hỏi xác nhận rồi gỡ. Bản cài đang chạy thì báo thoát nó trước, không tự giết.
+    static void RunUninstall()
+    {
+        var language = SettingsStore.Load(SettingsStore.DefaultPath).Language;
+        if (MessageBox.Show(Loc.Get(StringKey.UninstallConfirm, language), "FPS Overlay",
+                MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes)
+            return;
+        if (Installer.IsInstalledCopyRunning())
+        {
+            MessageBox.Show(Loc.Get(StringKey.InstalledCopyRunning, language), "FPS Overlay",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+        try
+        {
+            Installer.Uninstall();   // bước cuối hẹn xoá thư mục cài sau khi app thoát
+        }
+        catch (Exception ex)
+        {
+            ShowError(StringKey.UninstallFailed, ex, language);
+            return;
+        }
+        MessageBox.Show(Loc.Get(StringKey.UninstallDone, language), "FPS Overlay",
+            MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    static void ShowError(StringKey key, Exception ex, AppLanguage language) =>
+        MessageBox.Show($"{Loc.Get(key, language)}\n\n{Loc.Get(StringKey.Details, language)}: {ex.Message}", "FPS Overlay",
+            MessageBoxButton.OK, MessageBoxImage.Error);
 
     // Chạy PresentMon mới (bộ tính FPS và lịch sử frametime làm mới theo). Trả về false nếu không chạy được (đã báo lỗi và thoát).
     bool StartPresentMon()
@@ -265,7 +352,7 @@ public partial class App : Application
 
     void SetAutostart(bool enable)
     {
-        if (_settingAutostart) return;
+        if (_settingAutostart || !_autostart.CanManage) return;   // bản không cài: công tắc đã mờ, phòng hờ
         _settingAutostart = true;
         try
         {

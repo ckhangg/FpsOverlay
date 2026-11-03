@@ -46,6 +46,10 @@ public partial class SettingsWindow : Window
         _setAutostart = setAutostart;
         _cpuTempAvailable = cpuTempAvailable;
         InitializeComponent();   // _refreshing = true: giá trị mặc định trong XAML không ghi vào cài đặt
+        // Bản không cài không được tạo/sửa tác vụ: công tắc mờ đi, tooltip (đặt trong ApplyLanguage) giải thích lý do.
+        AutostartSwitch.IsEnabled = autostart.CanManage;
+        if (!autostart.CanManage) AutostartSwitch.Opacity = AutostartLabel.Opacity = 0.45;
+        ToolTipService.SetShowOnDisabled(AutostartSwitch, true);
         _hexBoxes = [LabelHex, ValueHex, FpsHex];
         Icon = CreateWindowIcon();
         CommandBindings.Add(new CommandBinding(SystemCommands.CloseWindowCommand, (_, _) => Close()));
@@ -174,6 +178,7 @@ public partial class SettingsWindow : Window
 
         SystemSection.Content = T(StringKey.SectionSystem);
         AutostartLabel.Text = T(StringKey.Autostart);
+        AutostartSwitch.ToolTip = _autostart.CanManage ? null : T(StringKey.AutostartInstalledOnly);
         LogLabel.Text = T(StringKey.LogFps);
         OpenLogButton.Content = T(StringKey.OpenLogFolder);
 
@@ -390,7 +395,7 @@ public partial class SettingsWindow : Window
         _ => colors with { Fps = hex },
     };
 
-    static BitmapSource CreateWindowIcon()
+    internal static BitmapSource CreateWindowIcon()
     {
         using var icon = TrayIconImage.Create();
         var source = Imaging.CreateBitmapSourceFromHIcon(icon.Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());

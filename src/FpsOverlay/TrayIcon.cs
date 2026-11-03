@@ -28,6 +28,8 @@ sealed class TrayIcon : IDisposable
     // Chữ cảnh báo đang hiện (null = không có); Apply giữ lại để đổi cài đặt không làm mất cảnh báo.
     string? _warning;
     AppLanguage _language = AppLanguage.Vietnamese;
+    // Bản không cài: mục Khởi động cùng Windows mờ đi, kèm tooltip giải thích.
+    bool _autostartLocked;
 
     public event Action? ToggleRequested;
     public event Action? SettingsRequested;
@@ -49,7 +51,7 @@ sealed class TrayIcon : IDisposable
         _autostartItem = new ToolStripMenuItem("", null, (sender, _) => AutostartRequested?.Invoke(!((ToolStripMenuItem)sender!).Checked));
         _exitItem = new ToolStripMenuItem("", null, (_, _) => ExitRequested?.Invoke());
 
-        var menu = new ContextMenuStrip();
+        var menu = new ContextMenuStrip { ShowItemToolTips = true };
         menu.Opening += (_, _) => MenuOpening?.Invoke();
         menu.Items.Add(_warningItem);
         menu.Items.Add(_toggleItem);
@@ -78,6 +80,7 @@ sealed class TrayIcon : IDisposable
         _settingsItem.Text = Loc.Get(StringKey.TraySettings, language);
         _cornerItem.Text = Loc.Get(StringKey.TrayCorner, language);
         _autostartItem.Text = Loc.Get(StringKey.TrayAutostart, language);
+        ApplyAutostartLock();
         _exitItem.Text = Loc.Get(StringKey.TrayExit, language);
         for (int i = 0; i < Corners.Length; i++)
         {
@@ -97,6 +100,19 @@ sealed class TrayIcon : IDisposable
 
     /// <summary>Dấu tick ở mục Khởi động cùng Windows.</summary>
     public void SetAutostart(bool enabled) => _autostartItem.Checked = enabled;
+
+    /// <summary>Khoá mục Khởi động cùng Windows (chỉ bản đã cài mới được tạo/sửa tác vụ).</summary>
+    public void SetAutostartLocked(bool locked)
+    {
+        _autostartLocked = locked;
+        ApplyAutostartLock();
+    }
+
+    void ApplyAutostartLock()
+    {
+        _autostartItem.Enabled = !_autostartLocked;
+        _autostartItem.ToolTipText = _autostartLocked ? Loc.Get(StringKey.AutostartInstalledOnly, _language) : null;
+    }
 
     public void Dispose()
     {

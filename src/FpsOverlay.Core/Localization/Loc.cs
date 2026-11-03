@@ -14,6 +14,8 @@ public enum StringKey
     SummaryDuration, SummaryAvgFps, SummaryOnePercentLow, SummaryMinFps, SummaryMaxFps, SummaryGpuTempMax, SummaryCpuTempMax,
     ResetDefaults, Done,
     AlreadyRunning, PresentMonStopped, PresentMonStartFailed, AutostartFailed, Details, PresentMonNoData,
+    AutostartInstalledOnly, InstallTitle, InstallPrompt, UpdatePrompt, InstallVersion, InstallButton, UpdateButton, Cancel, InstallWorking,
+    InstalledCopyRunning, InstallFailed, UninstallConfirm, UninstallDone, UninstallFailed,
 }
 
 /// <summary>Chuỗi giao diện hai ngôn ngữ. Khoá thiếu ném <see cref="KeyNotFoundException"/>.</summary>
@@ -76,6 +78,20 @@ public static class Loc
         [StringKey.PresentMonNoData] = ("⚠ PresentMon không gửi dữ liệu. Thử chạy lại app với quyền Administrator.", "⚠ PresentMon isn't sending data. Try restarting the app as Administrator."),
         [StringKey.AutostartFailed] = ("Không đổi được chế độ khởi động cùng Windows.", "Couldn't change Start with Windows."),
         [StringKey.Details] = ("Chi tiết", "Details"),
+        [StringKey.AutostartInstalledOnly] = ("Chỉ bản đã cài mới bật được.", "Only the installed copy can enable this."),
+        [StringKey.InstallTitle] = ("CÀI VÀO MÁY", "SETUP"),
+        [StringKey.InstallPrompt] = ("Cài FPS Overlay vào máy này?\nỨng dụng sẽ được chép vào {0}, có lối tắt trong Start Menu và mục gỡ cài đặt trong Settings → Apps.", "Install FPS Overlay on this PC?\nThe app will be copied to {0}, with a Start menu shortcut and an entry in Settings → Apps to uninstall it."),
+        [StringKey.UpdatePrompt] = ("Cập nhật FPS Overlay đã cài trong {0}?\nCài đặt của bạn được giữ nguyên.", "Update the FPS Overlay installed in {0}?\nYour settings are kept."),
+        [StringKey.InstallVersion] = ("Phiên bản", "Version"),
+        [StringKey.InstallButton] = ("CÀI ĐẶT", "INSTALL"),
+        [StringKey.UpdateButton] = ("CẬP NHẬT", "UPDATE"),
+        [StringKey.Cancel] = ("HUỶ", "CANCEL"),
+        [StringKey.InstallWorking] = ("Đang cài...", "Installing..."),
+        [StringKey.InstalledCopyRunning] = ("Hãy thoát FPS Overlay đang chạy (biểu tượng ở khay) rồi thử lại.", "Please exit the running FPS Overlay (tray icon) and try again."),
+        [StringKey.InstallFailed] = ("Không cài được FPS Overlay.", "Couldn't install FPS Overlay."),
+        [StringKey.UninstallConfirm] = ("Gỡ FPS Overlay khỏi máy này?\nCài đặt và log FPS của bạn vẫn được giữ lại.", "Uninstall FPS Overlay from this PC?\nYour settings and FPS logs are kept."),
+        [StringKey.UninstallDone] = ("Đã gỡ FPS Overlay.", "FPS Overlay has been uninstalled."),
+        [StringKey.UninstallFailed] = ("Không gỡ được hết FPS Overlay.", "Couldn't fully uninstall FPS Overlay."),
     };
 
     public static string Get(StringKey key, AppLanguage language)
