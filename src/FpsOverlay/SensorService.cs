@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using FpsOverlay.Core;
 using LibreHardwareMonitor.Hardware;
+using SensorValue = FpsOverlay.Core.SensorValue;   // trùng tên với kiểu cùng tên của LibreHardwareMonitor
 
 namespace FpsOverlay;
 
@@ -13,7 +14,7 @@ sealed class SensorService : IDisposable
 {
     const int IntervalMs = 1000;
 
-    /// <summary>Hộp bất biến: <see cref="SensorSnapshot"/> có 5 double? nên gán thẳng có thể bị xé, gán tham chiếu thì nguyên tử.</summary>
+    /// <summary>Hộp bất biến: <see cref="SensorSnapshot"/> có nhiều double? nên gán thẳng có thể bị xé, gán tham chiếu thì nguyên tử.</summary>
     sealed class Box
     {
         public readonly SensorSnapshot Value;
@@ -27,6 +28,7 @@ sealed class SensorService : IDisposable
     volatile Box _latest = new(SensorSnapshot.Empty);
     volatile bool _reopen;
     volatile bool _cpuTempAvailable;
+    readonly HashSet<string> _gpuSensorsLogged = [];   // mỗi card chỉ ghi danh sách cảm biến một lần (chỉ đụng từ luồng đọc)
     string? _previousGpuId;                 // chỉ đụng từ luồng đọc
     bool _disposed;
 
@@ -133,6 +135,7 @@ sealed class SensorService : IDisposable
     SensorSnapshot ReadAll()
     {
         double? cpuLoad = null, cpuTemp = null, gpuLoad = null, gpuTemp = null;
+        double? gpuMem = null, gpuClock = null, gpuPower = null, gpuFan = null;
 
         var c = _computer;
         if (c is not null)
@@ -154,9 +157,16 @@ sealed class SensorService : IDisposable
                             case HardwareType.GpuNvidia:
                             case HardwareType.GpuAmd:
                             case HardwareType.GpuIntel:
-                                gpus.Add(new GpuReading(hw.Identifier.ToString(),
-                                    Pick(hw, SensorType.Load, "GPU Core"),
-                                    PositiveOrNull(Pick(hw, SensorType.Temperature, "GPU Core"))));
+                                var values = new List<SensorValue>();
+                                foreach (var s in hw.Sensors)
+                                    values.Add(new SensorValue(s.SensorType.ToString(), s.Name, s.Value));
+                                if (!_gpuSensorsLogged.Contains(hw.Identifier.ToString()))
+                                {
+                                    _gpuSensorsLogged.Add(hw.Identifier.ToString());
+                                    Trace.TraceInformation("SensorService GPU {0}: {1}", hw.Name,
+                                        string.Join("; ", values.Select(v => $"{v.Type}/{v.Name}")));
+                                }
+                                gpus.Add(GpuSensorPick.Read(hw.Identifier.ToString(), values));
                                 break;
                         }
                     }
@@ -169,17 +179,18 @@ sealed class SensorService : IDisposable
                     _previousGpuId = g.Id;
                     gpuLoad = g.Load;
                     gpuTemp = g.Temp;
+                    gpuMem = g.MemoryUsedGb;
+                    gpuClock = g.ClockMhz;
+                    gpuPower = g.PowerW;
+                    gpuFan = g.FanRpm;
                 }
             }
             catch (Exception ex) { Debug.WriteLine($"SensorService read: {ex.Message}"); }
         }
 
         _cpuTempAvailable = cpuTemp is not null;
-        return new SensorSnapshot(gpuLoad, gpuTemp, cpuLoad, cpuTemp, ReadRamUsedGb());
+        return new SensorSnapshot(gpuLoad, gpuTemp, cpuLoad, cpuTemp, ReadRamUsedGb(), gpuMem, gpuClock, gpuPower, gpuFan);
     }
-
-    // Nhiệt độ <= 0 là cảm biến chưa đọc được (như PickCpuTemp), không phải 0 °C thật.
-    static double? PositiveOrNull(double? value) => value > 0 ? value : null;
 
     static double? Pick(IHardware hw, SensorType type, string name)
     {

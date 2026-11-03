@@ -29,7 +29,7 @@ public static class StatRows
         _ => "",
     };
 
-    // Ba dòng GPU mới chưa có số liệu (Task 3) nên chưa hiện; Task 4 nối công tắc.
+    // Bốn dòng GPU mới có số liệu nhưng chưa hiện; Task 4 nối công tắc.
     public static bool IsVisible(StatRow row, OverlaySettings s) => row switch
     {
         StatRow.OnePercentLow => s.ShowOnePercentLow,
@@ -48,8 +48,11 @@ public static class StatRows
             case StatRow.Gpu: return LoadTemp(settings.ShowGpuLoad, settings.ShowGpuTemp, s.GpuLoad, s.GpuTemp);
             case StatRow.Cpu: return LoadTemp(settings.ShowCpuLoad, settings.ShowCpuTemp, s.CpuLoad, s.CpuTemp);
             case StatRow.Ram: return (StatFormat.Gigabytes(s.RamUsedGb), "");
-            // Chưa có số liệu (Task 3): chưa hiện dòng, nên trả "--".
-            default: return layout == OverlayLayout.Vertical ? (None, Unit(row)) : (None, "");
+            case StatRow.GpuMemory: return (StatFormat.Gigabytes(s.GpuMemoryUsedGb), "");
+            case StatRow.GpuClock: return WithUnit(StatFormat.Megahertz(s.GpuClockMhz, layout != OverlayLayout.Vertical), row, layout);
+            case StatRow.GpuPower: return WithUnit(StatFormat.Watts(s.GpuPowerW, layout != OverlayLayout.Vertical), row, layout);
+            case StatRow.GpuFan: return WithUnit(StatFormat.Rpm(s.GpuFanRpm, layout != OverlayLayout.Vertical), row, layout);
+            default: return (None, "");
         }
     }
 
@@ -67,6 +70,10 @@ public static class StatRows
         if (showTemp) return (StatFormat.Temperature(temp), "");
         return (StatFormat.Percent(load), "");
     }
+
+    // Ngang: đơn vị dính vào số; dọc: đơn vị nằm ở ô thứ hai.
+    private static (string, string) WithUnit(string first, StatRow row, OverlayLayout layout) =>
+        (first, layout == OverlayLayout.Vertical ? Unit(row) : "");
 
     private static string Unit(StatRow row) => row switch
     {

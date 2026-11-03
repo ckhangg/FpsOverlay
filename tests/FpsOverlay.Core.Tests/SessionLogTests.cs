@@ -8,15 +8,16 @@ public class SessionLogTests
     [Fact]
     public void Header_lists_all_columns()
     {
-        Assert.Equal("Time,Fps,OnePercentLow,GpuLoad,GpuTemp,CpuLoad,CpuTemp,RamUsedGb", SessionLog.Header);
+        Assert.Equal("Time,Fps,OnePercentLow,GpuLoad,GpuTemp,CpuLoad,CpuTemp,RamUsedGb,GpuMemUsedGb,GpuClockMhz,GpuPowerW,GpuFanRpm", SessionLog.Header);
     }
 
     [Fact]
     public void Row_formats_values()
     {
         var time = new DateTimeOffset(2026, 11, 3, 20, 15, 7, TimeSpan.FromHours(7));
-        var s = new SensorSnapshot(GpuLoad: 67.4, GpuTemp: 71.6, CpuLoad: 34, CpuTemp: 65, RamUsedGb: 9.234);
-        Assert.Equal("2026-11-03T20:15:07+07:00,87.3,61.0,67,72,34,65,9.23",
+        var s = new SensorSnapshot(GpuLoad: 67.4, GpuTemp: 71.6, CpuLoad: 34, CpuTemp: 65, RamUsedGb: 9.234,
+            GpuMemoryUsedGb: 3.104, GpuClockMhz: 1589.6, GpuPowerW: 47.5, GpuFanRpm: 0);
+        Assert.Equal("2026-11-03T20:15:07+07:00,87.3,61.0,67,72,34,65,9.23,3.10,1590,48,0",
             SessionLog.FormatRow(time, 87.349, 61.04, s));
     }
 
@@ -24,7 +25,7 @@ public class SessionLogTests
     public void Row_with_nulls_has_empty_cells()
     {
         var time = new DateTimeOffset(2026, 11, 3, 20, 15, 7, TimeSpan.Zero);
-        Assert.Equal("2026-11-03T20:15:07+00:00,,,,,,,", SessionLog.FormatRow(time, null, null, SensorSnapshot.Empty));
+        Assert.Equal("2026-11-03T20:15:07+00:00,,,,,,,,,,,", SessionLog.FormatRow(time, null, null, SensorSnapshot.Empty));
     }
 
     [Fact]
@@ -35,7 +36,7 @@ public class SessionLogTests
         {
             CultureInfo.CurrentCulture = new CultureInfo("vi-VN");
             var row = SessionLog.FormatRow(DateTimeOffset.UnixEpoch, 60.5, 50.3, new SensorSnapshot(null, null, null, null, 8.5));
-            Assert.EndsWith(",60.5,50.3,,,,,8.50", row);
+            Assert.EndsWith(",60.5,50.3,,,,,8.50,,,,", row);
         }
         finally { CultureInfo.CurrentCulture = old; }
     }

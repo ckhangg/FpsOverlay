@@ -62,4 +62,46 @@ public class StatRowsTests
         Assert.Equal(("--", ""), StatRows.Values(StatRow.GpuClock, null, Snap, s, OverlayLayout.Horizontal));
         Assert.Equal(0, StatRows.TempCell(StatRow.Ram, s));
     }
+
+    private static readonly SensorSnapshot Gpu4 = new(66.6, 70.6, 30, 50, 9.2,
+        GpuMemoryUsedGb: 3.1, GpuClockMhz: 1589.6, GpuPowerW: 47.5, GpuFanRpm: 2400);
+
+    [Fact]
+    public void Clock_row_horizontal_and_vertical()
+    {
+        var s = new OverlaySettings();
+        Assert.Equal(("1590MHz", ""), StatRows.Values(StatRow.GpuClock, null, Gpu4, s, OverlayLayout.Horizontal));
+        Assert.Equal(("1590", "MHz"), StatRows.Values(StatRow.GpuClock, null, Gpu4, s, OverlayLayout.Vertical));
+        Assert.Equal(("--", "MHz"), StatRows.Values(StatRow.GpuClock, null, SensorSnapshot.Empty, s, OverlayLayout.Vertical));
+    }
+
+    [Fact]
+    public void Power_and_fan_rows()
+    {
+        var s = new OverlaySettings();
+        Assert.Equal(("48W", ""), StatRows.Values(StatRow.GpuPower, null, Gpu4, s, OverlayLayout.Horizontal));
+        Assert.Equal(("48", "W"), StatRows.Values(StatRow.GpuPower, null, Gpu4, s, OverlayLayout.Vertical));
+        Assert.Equal(("2400RPM", ""), StatRows.Values(StatRow.GpuFan, null, Gpu4, s, OverlayLayout.Horizontal));
+        Assert.Equal(("2400", "RPM"), StatRows.Values(StatRow.GpuFan, null, Gpu4, s, OverlayLayout.Vertical));
+    }
+
+    [Fact]
+    public void Vram_has_no_unit_cell_in_either_layout()
+    {
+        var s = new OverlaySettings();
+        Assert.Equal(("3.1G", ""), StatRows.Values(StatRow.GpuMemory, null, Gpu4, s, OverlayLayout.Horizontal));
+        Assert.Equal(("3.1G", ""), StatRows.Values(StatRow.GpuMemory, null, Gpu4, s, OverlayLayout.Vertical));
+    }
+
+    [Fact]
+    public void Cpu_values_and_temp_cell()
+    {
+        var both = new OverlaySettings();
+        Assert.Equal(("30%", "50°"), StatRows.Values(StatRow.Cpu, null, Snap, both, OverlayLayout.Horizontal));
+        Assert.Equal(2, StatRows.TempCell(StatRow.Cpu, both));
+
+        var tempOnly = new OverlaySettings { ShowCpuLoad = false };
+        Assert.Equal(("50°", ""), StatRows.Values(StatRow.Cpu, null, Snap, tempOnly, OverlayLayout.Vertical));
+        Assert.Equal(1, StatRows.TempCell(StatRow.Cpu, tempOnly));
+    }
 }

@@ -6,7 +6,7 @@ namespace FpsOverlay.Core.Logging;
 /// <summary>Định dạng file log CSV của một buổi chơi. Luôn dùng dấu chấm thập phân, không theo văn hoá máy.</summary>
 public static class SessionLog
 {
-    public const string Header = "Time,Fps,OnePercentLow,GpuLoad,GpuTemp,CpuLoad,CpuTemp,RamUsedGb";
+    public const string Header = "Time,Fps,OnePercentLow,GpuLoad,GpuTemp,CpuLoad,CpuTemp,RamUsedGb,GpuMemUsedGb,GpuClockMhz,GpuPowerW,GpuFanRpm";
 
     static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
 
@@ -17,7 +17,8 @@ public static class SessionLog
             Cell(fps, "F1"), Cell(onePercentLow, "F1"),
             Cell(s.GpuLoad, "F0"), Cell(s.GpuTemp, "F0"),
             Cell(s.CpuLoad, "F0"), Cell(s.CpuTemp, "F0"),
-            Cell(s.RamUsedGb, "F2"));
+            Cell(s.RamUsedGb, "F2"),
+            Cell(s.GpuMemoryUsedGb, "F2"), Cell(s.GpuClockMhz, "F0"), Cell(s.GpuPowerW, "F0"), Cell(s.GpuFanRpm, "F0"));
 
     static string Cell(double? value, string format) => value?.ToString(format, Inv) ?? "";
 

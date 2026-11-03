@@ -47,4 +47,14 @@ public class HeatLevelsTests
 
     [Fact]
     public void Limits() => Assert.True(HeatLevels.GpuHotCelsius < HeatLevels.CpuHotCelsius);
+
+    [Fact]
+    public void Units_with_and_without_suffix()
+    {
+        Assert.Equal("1590MHz", StatFormat.Megahertz(1589.6, true));
+        Assert.Equal("1590", StatFormat.Megahertz(1589.6, false));
+        Assert.Equal("48W", StatFormat.Watts(47.5, true));
+        Assert.Equal("2400RPM", StatFormat.Rpm(2400, true));
+        Assert.Equal("--", StatFormat.Rpm(null, true));
+    }
 }

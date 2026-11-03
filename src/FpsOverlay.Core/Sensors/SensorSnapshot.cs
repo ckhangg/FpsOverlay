@@ -1,13 +1,17 @@
 namespace FpsOverlay.Core;
 
 /// <summary>Một lần đọc cảm biến; giá trị nào không đọc được thì là <c>null</c>.</summary>
-public readonly record struct SensorSnapshot(double? GpuLoad, double? GpuTemp, double? CpuLoad, double? CpuTemp, double? RamUsedGb)
+public readonly record struct SensorSnapshot(
+    double? GpuLoad, double? GpuTemp, double? CpuLoad, double? CpuTemp, double? RamUsedGb,
+    double? GpuMemoryUsedGb = null, double? GpuClockMhz = null, double? GpuPowerW = null, double? GpuFanRpm = null)
 {
     public static SensorSnapshot Empty => default;
 }
 
 /// <summary>Số đọc của một card đồ hoạ (Id ổn định giữa các lần đọc, thường là đường dẫn định danh phần cứng).</summary>
-public readonly record struct GpuReading(string Id, double? Load, double? Temp);
+public readonly record struct GpuReading(
+    string Id, double? Load, double? Temp,
+    double? MemoryUsedGb = null, double? ClockMhz = null, double? PowerW = null, double? FanRpm = null);
 
 public static class SensorMath
 {

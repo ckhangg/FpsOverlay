@@ -21,6 +21,18 @@ public static class StatFormat
         return Math.Round(v, 1, MidpointRounding.AwayFromZero).ToString("0.0", CultureInfo.InvariantCulture) + "G";
     }
 
+    public static string Megahertz(double? value, bool withUnit) => Whole(value, withUnit ? "MHz" : "");
+
+    public static string Watts(double? value, bool withUnit) => Whole(value, withUnit ? "W" : "");
+
+    public static string Rpm(double? value, bool withUnit) => Whole(value, withUnit ? "RPM" : "");
+
+    private static string Whole(double? value, string suffix)
+    {
+        if (value is not { } v || !double.IsFinite(v)) return None;
+        return Math.Round(v, MidpointRounding.AwayFromZero).ToString("0", CultureInfo.InvariantCulture) + suffix;
+    }
+
     private static string Lookup(double? value, string[] table, string suffix)
     {
         if (value is not { } v || !double.IsFinite(v)) return None;
