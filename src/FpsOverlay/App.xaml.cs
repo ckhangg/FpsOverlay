@@ -173,6 +173,7 @@ public partial class App : Application
 
     void Fail(string message)
     {
+        _watchdog?.Stop();
         CompositionTarget.Rendering -= OnRendering;
         _overlay?.Hide();   // không để con số cũ treo trên game
         // DefaultDesktopOnly: hộp thoại nổi lên trên cả game borderless
