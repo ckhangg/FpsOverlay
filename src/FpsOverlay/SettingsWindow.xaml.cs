@@ -1,4 +1,6 @@
-﻿using System.Windows;
+using System.Diagnostics;
+using System.IO;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
@@ -97,6 +99,7 @@ public partial class SettingsWindow : Window
             RamSwitch.IsChecked = s.ShowRam;
             RefreshSensorNote();
 
+            LogSwitch.IsChecked = s.LoggingEnabled;
             ColorByFpsSwitch.IsChecked = s.ColorByFps;
             // Mốc bị đẩy theo mốc kia (WithGood/BadThreshold) hiện ngay trên thanh của nó.
             GoodSlider.Value = s.GoodThreshold;
@@ -171,6 +174,8 @@ public partial class SettingsWindow : Window
 
         SystemSection.Content = T(StringKey.SectionSystem);
         AutostartLabel.Text = T(StringKey.Autostart);
+        LogLabel.Text = T(StringKey.LogFps);
+        OpenLogButton.Content = T(StringKey.OpenLogFolder);
 
         ResetButton.Content = T(StringKey.ResetDefaults);
         DoneButton.Content = T(StringKey.Done);
@@ -269,6 +274,27 @@ public partial class SettingsWindow : Window
         if (_refreshing) return;
         _setAutostart(AutostartSwitch.IsChecked == true);
         RefreshAutostart(_autostart.IsEnabled);   // lỗi thì công tắc về đúng trạng thái thật
+    }
+
+    void OnLogChanged(object sender, RoutedEventArgs e)
+    {
+        if (_refreshing) return;
+        var on = LogSwitch.IsChecked == true;
+        _service.Update(s => s with { LoggingEnabled = on });
+    }
+
+    // Mở thư mục log trong Explorer (tạo nếu chưa có). Lỗi chỉ ghi vết, không làm sập cửa sổ.
+    void OnOpenLogFolderClick(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            Directory.CreateDirectory(SessionLogger.LogDirectory);
+            using var _ = Process.Start("explorer.exe", $"\"{SessionLogger.LogDirectory}\"");
+        }
+        catch (Exception ex)
+        {
+            Trace.TraceWarning($"Không mở được thư mục log: {ex.Message}");
+        }
     }
 
     void OnGoodChanged(object sender, RoutedPropertyChangedEventArgs<double> e)

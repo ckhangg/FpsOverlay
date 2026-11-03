@@ -1,4 +1,4 @@
-﻿<Window x:Class="FpsOverlay.SettingsWindow"
+<Window x:Class="FpsOverlay.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:s="clr-namespace:FpsOverlay.Core.Settings;assembly=FpsOverlay.Core"
@@ -14,6 +14,8 @@
             <ColumnDefinition Width="76" />
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -161,7 +163,14 @@
         <ToggleButton x:Name="AutostartSwitch" Grid.Row="23" Grid.Column="1" Style="{StaticResource Cp.Switch}"
                       Checked="OnAutostartChanged" Unchecked="OnAutostartChanged" />
 
-        <DockPanel Grid.Row="24" Grid.ColumnSpan="3" Margin="0,14,0,0" LastChildFill="False">
+        <TextBlock x:Name="LogLabel" Grid.Row="24" Style="{StaticResource Cp.FieldLabel}" />
+        <ToggleButton x:Name="LogSwitch" Grid.Row="24" Grid.Column="1" Style="{StaticResource Cp.Switch}"
+                      Checked="OnLogChanged" Unchecked="OnLogChanged" />
+
+        <Button x:Name="OpenLogButton" Grid.Row="25" Grid.ColumnSpan="3" HorizontalAlignment="Left" Margin="0,4,0,0"
+                Style="{StaticResource Cp.GhostButton}" Click="OnOpenLogFolderClick" />
+
+        <DockPanel Grid.Row="26" Grid.ColumnSpan="3" Margin="0,14,0,0" LastChildFill="False">
             <Button x:Name="ResetButton" DockPanel.Dock="Left" Style="{StaticResource Cp.GhostButton}" Click="OnResetClick" />
             <Button x:Name="DoneButton" DockPanel.Dock="Right" Style="{StaticResource Cp.PrimaryButton}" IsCancel="True"
                     Click="OnDoneClick" />

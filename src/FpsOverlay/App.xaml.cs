@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -10,8 +10,10 @@ namespace FpsOverlay;
 
 public partial class App : Application
 {
-    readonly FpsCalculator _calculator = new();
-    readonly FrameTimeHistory _history = new();
+    // Mốc thời gian PresentMon tính từ lúc nó chạy nên mỗi lần chạy lại phải dùng bộ mới (xem StartPresentMon).
+    FpsCalculator _calculator = new();
+    FrameTimeHistory _history = new();
+    readonly SessionLogger _logger = new();
     readonly Stopwatch _previewClock = Stopwatch.StartNew();
     readonly AutostartService _autostart = new();
     readonly Stopwatch _clock = Stopwatch.StartNew();
@@ -20,6 +22,7 @@ public partial class App : Application
     bool _stalled;
     DispatcherTimer? _watchdog;
     DispatcherTimer? _statsTimer;
+    DispatcherTimer? _logTimer;
     SensorService? _sensors;
     SettingsService? _settings;
     PresentMonRunner? _runner;
@@ -59,8 +62,9 @@ public partial class App : Application
         overlay.Apply(settings.Current);
         settings.Changed += overlay.Apply;
         settings.Changed += _ => UpdateStats();   // bật/tắt mục thì hiện ngay, không chờ nhịp một giây
+        settings.Changed += _ => ApplyResourceState();   // bật/tắt ghi log lúc đang ẩn thì áp dụng ngay
         _sensors = new SensorService();
-        _sensors.Start();   // luồng nền đọc mỗi giây; dừng khi ẩn overlay là việc của đợt sau
+        _sensors.Start();   // luồng nền đọc mỗi giây; dừng khi ẩn overlay mà không ghi log (ApplyResourceState)
         var tray = _tray = new TrayIcon();
         tray.Apply(settings.Current, overlayVisible: true);
         tray.ToggleRequested += ToggleOverlay;
@@ -79,31 +83,81 @@ public partial class App : Application
         tray.MenuOpening += () => _ = _autostart.RefreshAsync();
         _ = _autostart.RefreshAsync();
 
-        _runner = new PresentMonRunner();
-        _runner.Exited += stderr => Dispatcher.BeginInvoke(() => Fail(
-            Loc.Get(StringKey.PresentMonStopped, Language) +
-            (stderr.Length > 0 ? $"\n\n{Loc.Get(StringKey.Details, Language)}:\n{stderr}" : "")));
-
-        try
-        {
-            _runner.Start(OnFrame);
-        }
-        catch (Exception ex)
-        {
-            Fail($"{Loc.Get(StringKey.PresentMonStartFailed, Language)}\n\n{Loc.Get(StringKey.Details, Language)}: {ex.Message}");
+        if (!StartPresentMon())
             return;
-        }
-
-        _presentMonStartedAt = _clock.Elapsed.TotalSeconds;
         _watchdog = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _watchdog.Tick += (_, _) => CheckPresentMon();
         _watchdog.Start();
         _statsTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _statsTimer.Tick += (_, _) => UpdateStats();
         _statsTimer.Start();
+        // Nhịp ghi log chạy riêng vì nhịp trên bỏ qua khi overlay ẩn mà log vẫn phải chạy.
+        _logTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        _logTimer.Tick += (_, _) => LogTick();
+        _logTimer.Start();
 
         _overlay.Show();
         CompositionTarget.Rendering += OnRendering;
+    }
+
+    // Chạy PresentMon mới (bộ tính FPS và lịch sử frametime làm mới theo). Trả về false nếu không chạy được (đã báo lỗi và thoát).
+    bool StartPresentMon()
+    {
+        _calculator = new FpsCalculator();
+        _history = new FrameTimeHistory();
+        var runner = new PresentMonRunner();
+        // Dispose chủ động không phát Exited (runner tự bỏ qua khi đã Dispose), nên chỉ lần thoát bất ngờ mới tới đây.
+        runner.Exited += stderr => Dispatcher.BeginInvoke(() => Fail(
+            Loc.Get(StringKey.PresentMonStopped, Language) +
+            (stderr.Length > 0 ? $"\n\n{Loc.Get(StringKey.Details, Language)}:\n{stderr}" : "")));
+
+        try
+        {
+            runner.Start(OnFrame);
+        }
+        catch (Exception ex)
+        {
+            runner.Dispose();
+            Fail($"{Loc.Get(StringKey.PresentMonStartFailed, Language)}\n\n{Loc.Get(StringKey.Details, Language)}: {ex.Message}");
+            return false;
+        }
+
+        _runner = runner;
+        _presentMonStartedAt = _clock.Elapsed.TotalSeconds;
+        return true;
+    }
+
+    // Dừng PresentMon có chủ ý: không còn dữ liệu là bình thường nên tắt cảnh báo "không gửi dữ liệu".
+    void StopPresentMon()
+    {
+        _runner?.Dispose();
+        _runner = null;
+        _presentMonStartedAt = null;
+        CheckPresentMon();
+    }
+
+    // Overlay đang hiện hoặc đang ghi log thì cần PresentMon và cảm biến; ẩn mà không ghi log thì dừng cả hai cho đỡ tốn máy.
+    void ApplyResourceState()
+    {
+        if (_overlay is null || _settings is null || _sensors is null) return;
+        if (_overlay.IsVisible || _settings.Current.LoggingEnabled)
+        {
+            _sensors.Start();
+            if (_runner is null) StartPresentMon();
+        }
+        else
+        {
+            StopPresentMon();
+            _sensors.Stop();
+        }
+    }
+
+    // Mỗi giây, kể cả khi overlay ẩn: đẩy trạng thái hiện tại cho bộ ghi log.
+    void LogTick()
+    {
+        if (_settings is null || _sensors is null) return;
+        _logger.Tick(_clock.Elapsed.TotalSeconds, _settings.Current.LoggingEnabled && _runner is not null,
+            _calculator, _history, ForegroundProcess.GetCandidates(), _sensors.Latest, Language);
     }
 
     // Chạy trên luồng đọc PresentMon cho mỗi khung hình: đưa vào cả hai bộ tính.
@@ -169,6 +223,7 @@ public partial class App : Application
             CompositionTarget.Rendering += OnRendering;
         }
         _tray?.Apply(_settings.Current, _overlay.IsVisible);
+        ApplyResourceState();
     }
 
     // Chỉ một cửa sổ cài đặt; mở lại thì đưa cửa sổ đang mở lên trước.
@@ -212,6 +267,7 @@ public partial class App : Application
     {
         _watchdog?.Stop();
         _statsTimer?.Stop();
+        _logTimer?.Stop();
         CompositionTarget.Rendering -= OnRendering;
         _overlay?.Hide();   // không để con số cũ treo trên game
         // DefaultDesktopOnly: hộp thoại nổi lên trên cả game borderless
@@ -224,7 +280,9 @@ public partial class App : Application
     {
         _watchdog?.Stop();
         _statsTimer?.Stop();
+        _logTimer?.Stop();
         CompositionTarget.Rendering -= OnRendering;
+        _logger.Dispose();   // ghi nốt log và tóm tắt trước khi dừng PresentMon
         _tray?.Dispose();
         _sensors?.Dispose();
         _runner?.Dispose();
