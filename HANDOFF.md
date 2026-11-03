@@ -11,7 +11,7 @@
 
 ## 2. Công nghệ và cấu trúc
 - C# / **.NET 10**, WPF (+ WinForms `NotifyIcon` cho khay), xUnit.
-- `src/FpsOverlay.Core`: logic thuần, có test (`tests/FpsOverlay.Core.Tests`, 287 test).
+- `src/FpsOverlay.Core`: logic thuần, có test (`tests/FpsOverlay.Core.Tests`, 292 test).
 - `src/FpsOverlay`: app WPF. Chạy với quyền **Administrator** (`app.manifest` requireAdministrator) vì PresentMon cần ETW.
 - Đo FPS: **PresentMon 2.6.0** (`tools/PresentMon.exe`), cửa sổ trượt 0,5 s, độ trễ cho phép 1,5 s (dữ liệu ETW về theo đợt ~1 s).
 - Cảm biến: **LibreHardwareMonitorLib 0.9.6** (GPU/CPU tải và nhiệt, VRAM, xung nhân, công suất, quạt GPU), RAM qua `GlobalMemoryStatusEx`. Nhiệt độ CPU cần driver **PawnIO** (người dùng tự đồng ý cài).
@@ -26,6 +26,7 @@
 | 3–4 | Cảnh báo PresentMon, tiết kiệm khi ẩn, 1% low, GPU/CPU/RAM/nhiệt độ, log mỗi buổi chơi, overlay theo màn hình có game, **một file tự cài vào Program Files**, PawnIO | merge vào master |
 | 5 | Phiên bản **1.1.0**: bảng kiểu + mô hình hàng (refactor); VRAM/CLK/PWR/FAN (mặc định tắt, log thêm 4 cột); cảnh báo quá nhiệt (ngưỡng GPU 85/CPU 90, N giây mặc định 10, nháy bật, bíp tắt, nút "Thử cảnh báo", mục `// CẢNH BÁO`); hai kiểu mới **Neon tím** (Orbitron) và **Terminal xanh** (VT323); bố cục dọc; mục khay "Di chuyển overlay" (kéo thả; Enter/bấm đúp lưu, Esc huỷ, trả focus về game); cửa sổ cài đặt cuộn được | merge vào master, người dùng đã kiểm tay OK (2026-11-03) |
 | 6 | Phiên bản **1.2.0**: "Chỉ hiện khi chơi game" (mặc định bật; overlay hiện khi cửa sổ phía trước phủ kín màn hình, hoặc exe nằm trong `\steamapps\common\` hay `\XboxGames\`, hoặc nằm trong "Luôn hiện"; "Không bao giờ hiện" thắng; kiểm mỗi 250 ms); mục khay "Luôn hiện cho …"/"Không bao giờ hiện cho …"; cài đặt: danh sách thông số thu gọn sau nút "Chọn thông số hiển thị ▾" kèm "Đang hiện N/10", danh sách ứng dụng thu gọn có nút Xoá | merge vào master, chưa kiểm tay |
+| 7 | Phiên bản **1.3.0**: cài đặt có các mục màu/FPS/cảnh báo thu gọn được và nhãn phiên bản; kho GitHub công khai `ckhangg/FpsOverlay` (README song ngữ, giấy phép MIT); `scripts/release.ps1` phát hành lên GitHub Releases; cài bằng một dòng `curl` | merge vào master, phát hành v1.3.0 trên GitHub, chưa kiểm tay |
 
 Hoãn theo ý người dùng: **biểu đồ FPS/frametime** (làm sau).
 
@@ -35,9 +36,17 @@ Hoãn theo ý người dùng: **biểu đồ FPS/frametime** (làm sau).
 - `docs/superpowers/specs/2026-11-03-stats-logging-install-design.md` — đợt 3–4 (kèm mục "Rủi ro còn lại (đã chấp nhận)")
 - `docs/superpowers/specs/2026-11-03-gpu-alerts-themes-layout-design.md` — đợt 5
 - `docs/superpowers/specs/2026-11-03-game-only-overlay-design.md` — đợt 6
-- `docs/superpowers/plans/*.md` — kế hoạch tương ứng (đợt 3–4 có thêm Task 9b; đợt 5: `2026-11-03-gpu-alerts-themes-layout.md`; đợt 6: `2026-11-03-game-only-overlay.md`)
+- `docs/superpowers/specs/2026-11-03-collapse-version-install-design.md` — đợt 7
+- `docs/superpowers/plans/*.md` — kế hoạch tương ứng (đợt 3–4 có thêm Task 9b; đợt 5: `2026-11-03-gpu-alerts-themes-layout.md`; đợt 6: `2026-11-03-game-only-overlay.md`; đợt 7: `2026-11-03-collapse-version-install.md`)
 
 ## 5. Trạng thái hiện tại
+- **Đợt 7 (1.3.0) merge vào master, phát hành v1.3.0 trên GitHub, chưa kiểm tay.** `dotnet test`: 292/292 pass, `dotnet build src/FpsOverlay`: 0 cảnh báo. Cần kiểm tay mục "Đợt 7" ở mục 9.
+- **Kho GitHub:** https://github.com/ckhangg/FpsOverlay (công khai, tài khoản `ckhangg`; tác giả mọi commit là `CKhang <39177627+ckhangg@users.noreply.github.com>`). Bản sao lưu lịch sử cũ: `%USERPROFILE%\Downloads\FPS-history-backup.bundle`.
+- **Phát hành bản mới:** đổi `<Version>` trong `src/FpsOverlay/FpsOverlay.csproj`, merge vào `master`, rồi chạy `.\scripts\release.ps1` (cần `gh` đã đăng nhập). Script kiểm cây sạch + đang ở master + thẻ chưa có, chạy test, publish, tạo `publish\FpsOverlay.exe.sha256`, đẩy thẻ `vX.Y.Z` rồi tạo release kèm hai file.
+- **Lệnh cài một dòng** (cmd, không phải PowerShell; chạy lại để cập nhật):
+  ```
+  curl -L -o "%TEMP%\FpsOverlay.exe" https://github.com/ckhangg/FpsOverlay/releases/latest/download/FpsOverlay.exe && start "" "%TEMP%\FpsOverlay.exe"
+  ```
 - **Đợt 6 (1.2.0) đã merge vào master, chưa kiểm tay** (nhánh `feat/game-only-overlay` đã xoá; người dùng chọn merge trước khi kiểm tay, lỗi tìm thấy sửa trên nhánh mới từ master). `dotnet test`: 287/287 pass, `dotnet build src/FpsOverlay`: 0 cảnh báo. Cần kiểm tay mục "Đợt 6" ở mục 9.
 - **Đợt 5 (1.1.0) đã merge vào master** (nhánh `feat/gpu-alerts-themes-layout` đã xoá; người dùng chọn merge trước khi kiểm tay, lỗi tìm thấy sửa trên nhánh mới từ master). Code xong, `dotnet test`: 256/256 pass, `dotnet build src/FpsOverlay`: 0 cảnh báo, `dotnet publish` chạy được. Người dùng đã cài bản 1.1.0 và kiểm tay đợt 5 trên máy thật: OK (2026-11-03).
 - Master (đợt 1–4): đã merge vào master (nhánh `feat/stats-install` đã xoá). `dotnet test` lúc đó: 196/196 pass.
@@ -47,13 +56,14 @@ Hoãn theo ý người dùng: **biểu đồ FPS/frametime** (làm sau).
 
 ## 6. Cách làm việc với app trên máy mới
 1. Cài **.NET 10 SDK** (x64).
-2. Giải nén, mở terminal ở thư mục dự án:
+2. Clone `https://github.com/ckhangg/FpsOverlay` (hoặc giải nén bản sao), mở terminal ở thư mục dự án:
    ```
    git status
    dotnet test
    dotnet build src/FpsOverlay
    ```
-3. Đóng gói ra **một file**: `dotnet publish src/FpsOverlay -c Release -o publish` → `publish\FpsOverlay.exe` (~158 MB, có sẵn .NET; bản 1.1.0 đo được 158,4 MB).
+3. Phát hành bản mới: xem mục 5 (`.\scripts\release.ps1`).
+   Đóng gói ra **một file**: `dotnet publish src/FpsOverlay -c Release -o publish` → `publish\FpsOverlay.exe` (~158 MB, có sẵn .NET; bản 1.1.0 đo được 158,4 MB).
 4. Chạy thử khi phát triển mà không cài: `FpsOverlay.exe --no-install` (chuột phải → Run as administrator). Chạy không tham số thì app đòi cài vào `C:\Program Files\FpsOverlay`.
 5. Gỡ: Settings → Apps → FPS Overlay (giữ lại `%AppData%\FpsOverlay\settings.json` và `Documents\FpsOverlay\Logs`).
 
@@ -188,3 +198,10 @@ Hoãn theo ý người dùng: **biểu đồ FPS/frametime** (làm sau).
 58. Tắt log, ở desktop: PresentMon biến khỏi Task Manager. Vào game: overlay hiện và có số sau vài giây.
 59. Bật tự ẩn taskbar: Explorer hoặc Notepad phóng to (maximize) không làm overlay hiện. Game borderless vẫn hiện.
 60. Chơi game, chuyển sang trình duyệt (overlay ẩn), khay "Di chuyển overlay", Enter: focus không quay về game cũ.
+
+**Đợt 7 (1.3.0)**
+61. Kiểm tay của Task 1 (cài đặt): các mục màu, FPS và cảnh báo thu gọn/mở ra được, trạng thái đúng, cửa sổ ngắn hơn, nút "Khôi phục mặc định"/"Xong" vẫn hiện.
+62. Nhãn phiên bản trong cài đặt hiện đúng "1.3.0"; đổi ngôn ngữ thì chữ mới đổi theo.
+63. Chạy lệnh cài một dòng (mục 5) trên một máy khác (cmd): tải được `FpsOverlay.exe`, hộp thoại cài hiện, cài xong chạy được.
+64. Chạy lại đúng lệnh đó khi đã có bản cài (hoặc khi có bản mới hơn): hộp thoại báo Cập nhật, cài đặt cũ còn nguyên.
+65. Trang Releases có `FpsOverlay.exe` và `FpsOverlay.exe.sha256`; `certutil -hashfile FpsOverlay.exe SHA256` khớp file `.sha256`.
