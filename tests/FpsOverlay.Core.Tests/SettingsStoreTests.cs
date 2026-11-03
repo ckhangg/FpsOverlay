@@ -135,6 +135,14 @@ public sealed class SettingsStoreTests : IDisposable
     }
 
     [Fact]
+    public void Store_round_trips_alert_settings()
+    {
+        var original = OverlaySettings.Defaults with { GpuHotThreshold = 80, CpuHotThreshold = 95, HotAlertSeconds = 25, HotAlertBlink = false, HotAlertSound = true };
+        SettingsStore.Save(PathIn(), original);
+        Assert.Equal(original, SettingsStore.Load(PathIn()));
+    }
+
+    [Fact]
     public void Store_round_trips_new_switches()
     {
         var original = OverlaySettings.Defaults with { ShowGpuMemory = true, ShowGpuClock = true, ShowGpuPower = true, ShowGpuFan = true };

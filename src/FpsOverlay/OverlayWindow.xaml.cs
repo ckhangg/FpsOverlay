@@ -232,7 +232,7 @@ public partial class OverlayWindow : Window
                 firstBrush = FpsBrush(onePercentLow, settings);   // 1% low tô màu theo cùng mốc với FPS
             // Ô mang nhiệt độ đổi sang màu "nóng" khi vượt ngưỡng.
             var tempCell = StatRows.TempCell(row, settings);
-            if (tempCell != 0 && IsHot(row, sensors))
+            if (tempCell != 0 && IsHot(row, sensors, settings))
             {
                 if (tempCell == 1) firstBrush = hot;
                 else secondBrush = hot;
@@ -241,10 +241,10 @@ public partial class OverlayWindow : Window
         }
     }
 
-    static bool IsHot(StatRow row, SensorSnapshot s) => row switch
+    static bool IsHot(StatRow row, SensorSnapshot s, OverlaySettings settings) => row switch
     {
-        StatRow.Gpu => HeatLevels.IsHot(s.GpuTemp, HeatLevels.GpuHotCelsius),
-        StatRow.Cpu => HeatLevels.IsHot(s.CpuTemp, HeatLevels.CpuHotCelsius),
+        StatRow.Gpu => HeatLevels.IsHot(s.GpuTemp, settings.GpuHotThreshold),
+        StatRow.Cpu => HeatLevels.IsHot(s.CpuTemp, settings.CpuHotThreshold),
         _ => false,
     };
 

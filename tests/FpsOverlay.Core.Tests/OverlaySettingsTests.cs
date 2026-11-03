@@ -123,6 +123,38 @@ public class OverlaySettingsTests
     }
 
     [Fact]
+    public void Alert_defaults_match_spec()
+    {
+        var d = OverlaySettings.Defaults;
+        Assert.Equal(85, d.GpuHotThreshold);
+        Assert.Equal(90, d.CpuHotThreshold);
+        Assert.Equal(10, d.HotAlertSeconds);
+        Assert.True(d.HotAlertBlink);
+        Assert.False(d.HotAlertSound);
+    }
+
+    [Fact]
+    public void Normalize_clamps_alert_values()
+    {
+        var s = (OverlaySettings.Defaults with { GpuHotThreshold = 10, CpuHotThreshold = 200, HotAlertSeconds = -5 }).Normalize();
+        Assert.Equal(50, s.GpuHotThreshold);
+        Assert.Equal(110, s.CpuHotThreshold);
+        Assert.Equal(0, s.HotAlertSeconds);
+        Assert.Equal(60, (OverlaySettings.Defaults with { HotAlertSeconds = 99 }).Normalize().HotAlertSeconds);
+    }
+
+    [Fact]
+    public void Reset_restores_alert_settings()
+    {
+        var s = (OverlaySettings.Defaults with { GpuHotThreshold = 70, CpuHotThreshold = 70, HotAlertSeconds = 30, HotAlertBlink = false, HotAlertSound = true }).ResetToDefaults();
+        Assert.Equal(85, s.GpuHotThreshold);
+        Assert.Equal(90, s.CpuHotThreshold);
+        Assert.Equal(10, s.HotAlertSeconds);
+        Assert.True(s.HotAlertBlink);
+        Assert.False(s.HotAlertSound);
+    }
+
+    [Fact]
     public void Reset_turns_new_gpu_switches_off()
     {
         var s = (OverlaySettings.Defaults with { ShowGpuMemory = true, ShowGpuClock = true, ShowGpuPower = true, ShowGpuFan = true }).ResetToDefaults();

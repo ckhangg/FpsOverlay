@@ -49,12 +49,9 @@ public static class StatFormat
     }
 }
 
-/// <summary>Ngưỡng nhiệt độ coi là nóng (hiện màu đỏ).</summary>
+/// <summary>Quy tắc coi là nóng (hiện màu đỏ); ngưỡng do người dùng đặt trong cài đặt.</summary>
 public static class HeatLevels
 {
-    public const double GpuHotCelsius = 85;
-    public const double CpuHotCelsius = 90;
-
     /// <summary>So trên giá trị đã làm tròn như hiển thị (84,6 hiện "85°" thì đã nóng).</summary>
     public static bool IsHot(double? temp, double limit) =>
         temp is { } t && double.IsFinite(t) && Math.Round(t, MidpointRounding.AwayFromZero) >= limit;

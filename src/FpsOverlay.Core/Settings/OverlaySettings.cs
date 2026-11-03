@@ -13,6 +13,9 @@ public sealed record OverlaySettings
 {
     public const int MinThreshold = 10;
     public const int MaxThreshold = 240;
+    public const int MinHotThreshold = 50;
+    public const int MaxHotThreshold = 110;
+    public const int MaxHotAlertSeconds = 60;
     public const double MinScale = 0.5;
     public const double MaxScale = 3.0;
 
@@ -36,6 +39,12 @@ public sealed record OverlaySettings
     public bool ShowCpuLoad { get; init; } = true;
     public bool ShowCpuTemp { get; init; } = true;
     public bool ShowRam { get; init; } = true;
+    // Cảnh báo nhiệt: ngưỡng (°C), số giây nóng liên tục trước khi báo, nháy overlay và phát tiếng.
+    public int GpuHotThreshold { get; init; } = 85;
+    public int CpuHotThreshold { get; init; } = 90;
+    public int HotAlertSeconds { get; init; } = 10;
+    public bool HotAlertBlink { get; init; } = true;
+    public bool HotAlertSound { get; init; }
     // Ghi log phiên và cờ đã mời cài PawnIO: không thuộc phần giao diện nên Khôi phục mặc định không đụng tới.
     public bool LoggingEnabled { get; init; } = true;
     public bool PawnIoOffered { get; init; }
@@ -57,6 +66,9 @@ public sealed record OverlaySettings
             BackgroundOpacity = Clamp(BackgroundOpacity, 0, 1, 0.72),
             GoodThreshold = good,
             BadThreshold = bad,
+            GpuHotThreshold = Math.Clamp(GpuHotThreshold, MinHotThreshold, MaxHotThreshold),
+            CpuHotThreshold = Math.Clamp(CpuHotThreshold, MinHotThreshold, MaxHotThreshold),
+            HotAlertSeconds = Math.Clamp(HotAlertSeconds, 0, MaxHotAlertSeconds),
         };
         return clamped.NormalizeColors();
     }
