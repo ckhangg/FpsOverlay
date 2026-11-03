@@ -90,4 +90,28 @@ public sealed class SettingsStoreTests : IDisposable
         SettingsStore.Save(path, OverlaySettings.Defaults);
         Assert.True(File.Exists(path));
     }
+
+    [Fact]
+    public void Old_file_without_stat_fields_gets_defaults()
+    {
+        Directory.CreateDirectory(_dir);
+        File.WriteAllText(PathIn(), "{ \"Scale\": 2 }");
+        var s = SettingsStore.Load(PathIn());
+        Assert.Equal(2, s.Scale);
+        Assert.True(s.ShowOnePercentLow && s.ShowGpuLoad && s.ShowGpuTemp && s.ShowCpuLoad && s.ShowCpuTemp && s.ShowRam);
+        Assert.True(s.LoggingEnabled);
+        Assert.False(s.PawnIoOffered);
+    }
+
+    [Fact]
+    public void Stat_fields_round_trip()
+    {
+        var original = OverlaySettings.Defaults with
+        {
+            ShowOnePercentLow = false, ShowGpuLoad = false, ShowGpuTemp = false, ShowCpuLoad = false,
+            ShowCpuTemp = false, ShowRam = false, LoggingEnabled = false, PawnIoOffered = true,
+        };
+        SettingsStore.Save(PathIn(), original);
+        Assert.Equal(original, SettingsStore.Load(PathIn()));
+    }
 }

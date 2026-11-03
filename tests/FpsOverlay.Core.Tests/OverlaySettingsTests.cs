@@ -95,4 +95,23 @@ public class OverlaySettingsTests
     [InlineData("#GGGGGG")]
     [InlineData(null)]
     public void Hex_rejects(string? input) => Assert.False(HexColor.TryNormalize(input, out _));
+
+    [Fact]
+    public void Stat_defaults()
+    {
+        var d = OverlaySettings.Defaults;
+        Assert.True(d.ShowOnePercentLow && d.ShowGpuLoad && d.ShowGpuTemp && d.ShowCpuLoad && d.ShowCpuTemp && d.ShowRam);
+        Assert.True(d.LoggingEnabled);
+        Assert.False(d.PawnIoOffered);
+    }
+
+    [Fact]
+    public void Reset_restores_stats_but_keeps_logging_and_pawnio()
+    {
+        var s = (OverlaySettings.Defaults with { ShowRam = false, ShowGpuTemp = false, LoggingEnabled = false, PawnIoOffered = true }).ResetToDefaults();
+        Assert.True(s.ShowRam);
+        Assert.True(s.ShowGpuTemp);
+        Assert.False(s.LoggingEnabled);
+        Assert.True(s.PawnIoOffered);
+    }
 }

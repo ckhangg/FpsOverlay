@@ -22,6 +22,16 @@ public sealed record OverlaySettings
     public int GoodThreshold { get; init; } = 60;
     public int BadThreshold { get; init; } = 30;
     public AppLanguage Language { get; init; } = AppLanguage.Vietnamese;
+    // Các mục thông số hiện trên overlay (1% low, GPU, CPU, RAM).
+    public bool ShowOnePercentLow { get; init; } = true;
+    public bool ShowGpuLoad { get; init; } = true;
+    public bool ShowGpuTemp { get; init; } = true;
+    public bool ShowCpuLoad { get; init; } = true;
+    public bool ShowCpuTemp { get; init; } = true;
+    public bool ShowRam { get; init; } = true;
+    // Ghi log phiên và cờ đã mời cài PawnIO: không thuộc phần giao diện nên Khôi phục mặc định không đụng tới.
+    public bool LoggingEnabled { get; init; } = true;
+    public bool PawnIoOffered { get; init; }
     public StyleColors ClassicColors { get; init; } = StyleColors.DefaultFor(OverlayStyle.Classic);
     public StyleColors CyberpunkColors { get; init; } = StyleColors.DefaultFor(OverlayStyle.Cyberpunk);
 
@@ -65,11 +75,11 @@ public sealed record OverlaySettings
         return this with { BadThreshold = bad, GoodThreshold = Math.Max(GoodThreshold, bad + 1) };
     }
 
-    /// <summary>Về mặc định nhưng giữ ngôn ngữ, phong cách đang chọn và bộ màu của phong cách kia.</summary>
+    /// <summary>Về mặc định nhưng giữ ngôn ngữ, phong cách đang chọn, bộ màu của phong cách kia, ghi log và cờ PawnIO.</summary>
     public OverlaySettings ResetToDefaults() =>
         Defaults.WithColors(OverlayStyle.Classic, Style == OverlayStyle.Classic ? Defaults.ClassicColors : ClassicColors)
                 .WithColors(OverlayStyle.Cyberpunk, Style == OverlayStyle.Cyberpunk ? Defaults.CyberpunkColors : CyberpunkColors)
-        with { Style = Style, Language = Language };
+        with { Style = Style, Language = Language, LoggingEnabled = LoggingEnabled, PawnIoOffered = PawnIoOffered };
 
     private static double Clamp(double value, double min, double max, double fallback) =>
         double.IsNaN(value) ? fallback : Math.Clamp(value, min, max);

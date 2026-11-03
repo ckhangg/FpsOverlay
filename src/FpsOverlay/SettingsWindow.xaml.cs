@@ -27,6 +27,7 @@ public partial class SettingsWindow : Window
     readonly SettingsService _service;
     readonly AutostartService _autostart;
     readonly Action<bool> _setAutostart;
+    readonly Func<bool> _cpuTempAvailable;
     readonly RadioButton[][] _swatches = new RadioButton[Rows][];
     readonly TextBox[] _hexBoxes;
     OverlayStyle? _swatchStyle;
@@ -35,11 +36,13 @@ public partial class SettingsWindow : Window
     bool _refreshing = true;
 
     /// <param name="setAutostart">Bật/tắt khởi động cùng Windows (App lo báo lỗi); kết quả về qua <see cref="AutostartService.Changed"/>.</param>
-    internal SettingsWindow(SettingsService service, AutostartService autostart, Action<bool> setAutostart)
+    /// <param name="cpuTempAvailable">Đọc được nhiệt độ CPU chưa; chưa thì hiện ghi chú cần PawnIO dưới công tắc.</param>
+    internal SettingsWindow(SettingsService service, AutostartService autostart, Action<bool> setAutostart, Func<bool> cpuTempAvailable)
     {
         _service = service;
         _autostart = autostart;
         _setAutostart = setAutostart;
+        _cpuTempAvailable = cpuTempAvailable;
         InitializeComponent();   // _refreshing = true: giá trị mặc định trong XAML không ghi vào cài đặt
         _hexBoxes = [LabelHex, ValueHex, FpsHex];
         Icon = CreateWindowIcon();
@@ -86,6 +89,14 @@ public partial class SettingsWindow : Window
 
             RefreshColors(s);
 
+            OnePercentSwitch.IsChecked = s.ShowOnePercentLow;
+            GpuLoadSwitch.IsChecked = s.ShowGpuLoad;
+            GpuTempSwitch.IsChecked = s.ShowGpuTemp;
+            CpuLoadSwitch.IsChecked = s.ShowCpuLoad;
+            CpuTempSwitch.IsChecked = s.ShowCpuTemp;
+            RamSwitch.IsChecked = s.ShowRam;
+            RefreshSensorNote();
+
             ColorByFpsSwitch.IsChecked = s.ColorByFps;
             // Mốc bị đẩy theo mốc kia (WithGood/BadThreshold) hiện ngay trên thanh của nó.
             GoodSlider.Value = s.GoodThreshold;
@@ -97,6 +108,13 @@ public partial class SettingsWindow : Window
         {
             _refreshing = false;
         }
+    }
+
+    /// <summary>Hiện ghi chú PawnIO khi chưa đọc được nhiệt độ CPU. App gọi lại mỗi giây vì PawnIO có thể được cài lúc cửa sổ đang mở.</summary>
+    internal void RefreshSensorNote()
+    {
+        var visibility = _cpuTempAvailable() ? Visibility.Collapsed : Visibility.Visible;
+        if (PawnIoNote.Visibility != visibility) PawnIoNote.Visibility = visibility;
     }
 
     void RefreshAutostart(bool enabled)
@@ -141,6 +159,15 @@ public partial class SettingsWindow : Window
         ColorByFpsLabel.Text = T(StringKey.ColorByFps);
         GoodLabel.Text = T(StringKey.GoodThreshold);
         BadLabel.Text = T(StringKey.BadThreshold);
+
+        StatsSection.Content = T(StringKey.SectionStats);
+        OnePercentLabel.Text = T(StringKey.StatOnePercentLow);
+        GpuLoadLabel.Text = T(StringKey.StatGpuLoad);
+        GpuTempLabel.Text = T(StringKey.StatGpuTemp);
+        CpuLoadLabel.Text = T(StringKey.StatCpuLoad);
+        CpuTempLabel.Text = T(StringKey.StatCpuTemp);
+        RamLabel.Text = T(StringKey.StatRam);
+        PawnIoNote.Text = T(StringKey.PawnIoNeeded);
 
         SystemSection.Content = T(StringKey.SectionSystem);
         AutostartLabel.Text = T(StringKey.Autostart);
@@ -222,6 +249,19 @@ public partial class SettingsWindow : Window
         if (_refreshing) return;
         var on = ColorByFpsSwitch.IsChecked == true;
         _service.Update(s => s with { ColorByFps = on });
+    }
+
+    void OnStatChanged(object sender, RoutedEventArgs e)
+    {
+        if (_refreshing) return;
+        bool one = OnePercentSwitch.IsChecked == true, gpuLoad = GpuLoadSwitch.IsChecked == true,
+             gpuTemp = GpuTempSwitch.IsChecked == true, cpuLoad = CpuLoadSwitch.IsChecked == true,
+             cpuTemp = CpuTempSwitch.IsChecked == true, ram = RamSwitch.IsChecked == true;
+        _service.Update(s => s with
+        {
+            ShowOnePercentLow = one, ShowGpuLoad = gpuLoad, ShowGpuTemp = gpuTemp,
+            ShowCpuLoad = cpuLoad, ShowCpuTemp = cpuTemp, ShowRam = ram,
+        });
     }
 
     void OnAutostartChanged(object sender, RoutedEventArgs e)

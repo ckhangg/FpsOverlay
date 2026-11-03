@@ -19,6 +19,8 @@ public partial class App : Application
     double? _presentMonStartedAt;
     bool _stalled;
     DispatcherTimer? _watchdog;
+    DispatcherTimer? _statsTimer;
+    SensorService? _sensors;
     SettingsService? _settings;
     PresentMonRunner? _runner;
     OverlayWindow? _overlay;
@@ -56,6 +58,9 @@ public partial class App : Application
         var overlay = _overlay = new OverlayWindow();
         overlay.Apply(settings.Current);
         settings.Changed += overlay.Apply;
+        settings.Changed += _ => UpdateStats();   // bật/tắt mục thì hiện ngay, không chờ nhịp một giây
+        _sensors = new SensorService();
+        _sensors.Start();   // luồng nền đọc mỗi giây; dừng khi ẩn overlay là việc của đợt sau
         var tray = _tray = new TrayIcon();
         tray.Apply(settings.Current, overlayVisible: true);
         tray.ToggleRequested += ToggleOverlay;
@@ -93,6 +98,9 @@ public partial class App : Application
         _watchdog = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _watchdog.Tick += (_, _) => CheckPresentMon();
         _watchdog.Start();
+        _statsTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        _statsTimer.Tick += (_, _) => UpdateStats();
+        _statsTimer.Start();
 
         _overlay.Show();
         CompositionTarget.Rendering += OnRendering;
@@ -128,6 +136,27 @@ public partial class App : Application
         _overlay.SetFps(fps, _settings.Current);
     }
 
+    // Mỗi giây (và khi cài đặt đổi): 1% low + cảm biến lên overlay. Xem trước thì dùng số mẫu.
+    void UpdateStats()
+    {
+        _settingsWindow?.RefreshSensorNote();   // PawnIO có thể vừa được cài khi cửa sổ cài đặt đang mở
+        if (_overlay is not { IsVisible: true } || _settings is null || _sensors is null)
+            return;
+        double? onePercentLow;
+        SensorSnapshot sensors;
+        if (IsPreviewing)
+        {
+            onePercentLow = PreviewFps.At(_previewClock.Elapsed.TotalSeconds) * 0.8;
+            sensors = new SensorSnapshot(GpuLoad: 67, GpuTemp: 71, CpuLoad: 34, CpuTemp: 65, RamUsedGb: 9.2);
+        }
+        else
+        {
+            onePercentLow = _history.OnePercentLow(ForegroundProcess.GetCandidates());
+            sensors = _sensors.Latest;
+        }
+        _overlay.SetStats(onePercentLow, sensors, _settings.Current);
+    }
+
     void ToggleOverlay()
     {
         if (_overlay is null || _settings is null) return;
@@ -155,7 +184,7 @@ public partial class App : Application
         }
 
         _ = _autostart.RefreshAsync();
-        _settingsWindow = new SettingsWindow(_settings, _autostart, SetAutostart);
+        _settingsWindow = new SettingsWindow(_settings, _autostart, SetAutostart, () => _sensors?.CpuTemperatureAvailable ?? true);
         _settingsWindow.Closed += (_, _) => _settingsWindow = null;   // đóng bằng cách nào cũng về FPS thật
         _settingsWindow.Show();
         _settingsWindow.Activate();
@@ -182,6 +211,7 @@ public partial class App : Application
     void Fail(string message)
     {
         _watchdog?.Stop();
+        _statsTimer?.Stop();
         CompositionTarget.Rendering -= OnRendering;
         _overlay?.Hide();   // không để con số cũ treo trên game
         // DefaultDesktopOnly: hộp thoại nổi lên trên cả game borderless
@@ -193,8 +223,10 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         _watchdog?.Stop();
+        _statsTimer?.Stop();
         CompositionTarget.Rendering -= OnRendering;
         _tray?.Dispose();
+        _sensors?.Dispose();
         _runner?.Dispose();
         _settings?.Dispose();   // ghi nốt cài đặt còn đang hẹn
         _singleInstance?.ReleaseMutex();

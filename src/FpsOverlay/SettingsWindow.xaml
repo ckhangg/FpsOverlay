@@ -31,6 +31,14 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <!-- // GIAO DIỆN -->
@@ -115,14 +123,45 @@
                 ValueChanged="OnBadChanged" />
         <TextBlock x:Name="BadValue" Grid.Row="13" Grid.Column="2" Style="{StaticResource Cp.Value}" />
 
-        <!-- // HỆ THỐNG -->
-        <Label x:Name="SystemSection" Grid.Row="14" Grid.ColumnSpan="3" Style="{StaticResource Cp.Section}" />
+        <!-- // THÔNG SỐ -->
+        <Label x:Name="StatsSection" Grid.Row="14" Grid.ColumnSpan="3" Style="{StaticResource Cp.Section}" />
 
-        <TextBlock x:Name="AutostartLabel" Grid.Row="15" Style="{StaticResource Cp.FieldLabel}" />
-        <ToggleButton x:Name="AutostartSwitch" Grid.Row="15" Grid.Column="1" Style="{StaticResource Cp.Switch}"
+        <TextBlock x:Name="OnePercentLabel" Grid.Row="15" Style="{StaticResource Cp.FieldLabel}" />
+        <ToggleButton x:Name="OnePercentSwitch" Grid.Row="15" Grid.Column="1" Style="{StaticResource Cp.Switch}"
+                      Checked="OnStatChanged" Unchecked="OnStatChanged" />
+
+        <TextBlock x:Name="GpuLoadLabel" Grid.Row="16" Style="{StaticResource Cp.FieldLabel}" />
+        <ToggleButton x:Name="GpuLoadSwitch" Grid.Row="16" Grid.Column="1" Style="{StaticResource Cp.Switch}"
+                      Checked="OnStatChanged" Unchecked="OnStatChanged" />
+
+        <TextBlock x:Name="GpuTempLabel" Grid.Row="17" Style="{StaticResource Cp.FieldLabel}" />
+        <ToggleButton x:Name="GpuTempSwitch" Grid.Row="17" Grid.Column="1" Style="{StaticResource Cp.Switch}"
+                      Checked="OnStatChanged" Unchecked="OnStatChanged" />
+
+        <TextBlock x:Name="CpuLoadLabel" Grid.Row="18" Style="{StaticResource Cp.FieldLabel}" />
+        <ToggleButton x:Name="CpuLoadSwitch" Grid.Row="18" Grid.Column="1" Style="{StaticResource Cp.Switch}"
+                      Checked="OnStatChanged" Unchecked="OnStatChanged" />
+
+        <TextBlock x:Name="CpuTempLabel" Grid.Row="19" Style="{StaticResource Cp.FieldLabel}" />
+        <ToggleButton x:Name="CpuTempSwitch" Grid.Row="19" Grid.Column="1" Style="{StaticResource Cp.Switch}"
+                      Checked="OnStatChanged" Unchecked="OnStatChanged" />
+
+        <!-- Chỉ hiện khi chưa đọc được nhiệt độ CPU (thiếu PawnIO). -->
+        <TextBlock x:Name="PawnIoNote" Grid.Row="20" Grid.Column="1" Grid.ColumnSpan="2" Visibility="Collapsed"
+                   Style="{StaticResource Cp.FieldLabel}" Margin="0,-4,0,6" FontSize="11" TextWrapping="Wrap"
+                   Foreground="{StaticResource Cp.KnobOff}" />
+
+        <TextBlock x:Name="RamLabel" Grid.Row="21" Style="{StaticResource Cp.FieldLabel}" />
+        <ToggleButton x:Name="RamSwitch" Grid.Row="21" Grid.Column="1" Style="{StaticResource Cp.Switch}"
+                      Checked="OnStatChanged" Unchecked="OnStatChanged" />
+        <!-- // HỆ THỐNG -->
+        <Label x:Name="SystemSection" Grid.Row="22" Grid.ColumnSpan="3" Style="{StaticResource Cp.Section}" />
+
+        <TextBlock x:Name="AutostartLabel" Grid.Row="23" Style="{StaticResource Cp.FieldLabel}" />
+        <ToggleButton x:Name="AutostartSwitch" Grid.Row="23" Grid.Column="1" Style="{StaticResource Cp.Switch}"
                       Checked="OnAutostartChanged" Unchecked="OnAutostartChanged" />
 
-        <DockPanel Grid.Row="16" Grid.ColumnSpan="3" Margin="0,14,0,0" LastChildFill="False">
+        <DockPanel Grid.Row="24" Grid.ColumnSpan="3" Margin="0,14,0,0" LastChildFill="False">
             <Button x:Name="ResetButton" DockPanel.Dock="Left" Style="{StaticResource Cp.GhostButton}" Click="OnResetClick" />
             <Button x:Name="DoneButton" DockPanel.Dock="Right" Style="{StaticResource Cp.PrimaryButton}" IsCancel="True"
                     Click="OnDoneClick" />

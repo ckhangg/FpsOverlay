@@ -1,4 +1,6 @@
-using System.Windows;
+﻿using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
@@ -16,6 +18,9 @@ public partial class OverlayWindow : Window
     const double ValueFontSize = 24;
     const double LabelFontSize = 18;
     const double CyberChamfer = 9;
+    // Mục phụ (1%, GPU, CPU, RAM) nhỏ hơn mục FPS để cả dải không quá dài.
+    const double StatValueFontSize = 18;
+    const double StatLabelFontSize = 14;
 
     readonly DispatcherTimer _topmostTimer = new() { Interval = TimeSpan.FromSeconds(1) };
     IntPtr _hwnd;
@@ -28,7 +33,58 @@ public partial class OverlayWindow : Window
     double? _lastFps;
     string _lastText = "--";
     bool _glowOn;
+    double? _lastOnePercentLow;
+    SensorSnapshot _lastSensors;
+    readonly StatItem _one, _gpu, _cpu, _ram;
 
+    /// <summary>Một mục phụ: dấu ngăn + nhãn + một hoặc hai số (số thứ hai chỉ GPU/CPU có). Ẩn mục là ẩn cả dấu ngăn.</summary>
+    sealed class StatItem(TextBlock item, Run sep, Run label, Run gap, Run first, Run? gap2 = null, Run? second = null)
+    {
+        public void ApplyStyle(OverlayStyle style, Brush labelBrush)
+        {
+            var cyber = style == OverlayStyle.Cyberpunk;
+            foreach (var r in new[] { sep, label, gap, gap2 })
+            {
+                if (r is null) continue;
+                r.FontFamily = OverlayTheme.LabelFont(style);
+                r.FontSize = StatLabelFontSize;
+                r.FontWeight = FontWeights.Bold;
+                r.Foreground = labelBrush;
+            }
+            // Khoảng cách như FpsGap (≈ 4–5 DIP): Chakra Petch có dấu cách hẹp nên cỡ chữ lớn hơn Consolas.
+            gap.FontSize = cyber ? 16 : 9;
+            if (gap2 is not null) gap2.FontSize = cyber ? 16 : 9;
+            foreach (var r in new[] { first, second })
+            {
+                if (r is null) continue;
+                r.FontFamily = OverlayTheme.ValueFont(style);
+                r.FontSize = StatValueFontSize;
+                r.FontWeight = FontWeights.Bold;
+                r.Foreground = null;   // ép gán lại màu ở lần SetStats kế tiếp
+            }
+        }
+
+        public void SetVisible(bool visible)
+        {
+            var v = visible ? Visibility.Visible : Visibility.Collapsed;
+            if (item.Visibility != v) item.Visibility = v;
+        }
+
+        public void SetFirst(string text, Brush brush) => Set(first, text, brush);
+
+        /// <summary>Số thứ hai; <paramref name="gapText"/> là khoảng cách giữa hai số ("" khi chỉ hiện một số).</summary>
+        public void SetSecond(string gapText, string text, Brush brush)
+        {
+            Set(gap2!, gapText, null);
+            Set(second!, text, brush);
+        }
+
+        static void Set(Run run, string text, Brush? brush)
+        {
+            if (run.Text != text) run.Text = text;
+            if (brush is not null && !ReferenceEquals(run.Foreground, brush)) run.Foreground = brush;
+        }
+    }
     public OverlayWindow()
     {
         InitializeComponent();
@@ -37,6 +93,10 @@ public partial class OverlayWindow : Window
         DpiChanged += (_, _) => UpdatePosition();
         Chrome.SizeChanged += (_, _) => UpdateChamfer();
         _topmostTimer.Tick += (_, _) => KeepOnTop();
+        _one = new(OneItem, OneSep, OneLabel, OneGap, OneValue);
+        _gpu = new(GpuItem, GpuSep, GpuLabel, GpuGap, GpuLoad, GpuTempGap, GpuTemp);
+        _cpu = new(CpuItem, CpuSep, CpuLabel, CpuGap, CpuLoad, CpuTempGap, CpuTemp);
+        _ram = new(RamItem, RamSep, RamLabel, RamGap, RamValue);
         Apply(_settings);
     }
 
@@ -57,6 +117,12 @@ public partial class OverlayWindow : Window
         FpsValue.FontFamily = OverlayTheme.ValueFont(style);
         FpsValue.FontSize = ValueFontSize;
         FpsValue.FontWeight = FontWeights.Bold;
+
+        var labelBrush = OverlayTheme.FromHex(colors.Label);   // dấu ngăn cũng dùng màu nhãn
+        _one.ApplyStyle(style, labelBrush);
+        _gpu.ApplyStyle(style, labelBrush);
+        _cpu.ApplyStyle(style, labelBrush);
+        _ram.ApplyStyle(style, labelBrush);
 
         var background = cyber ? OverlayTheme.CyberBackground : OverlayTheme.ClassicBackground;
         background.A = (byte)Math.Round(settings.BackgroundOpacity * 255);
@@ -88,6 +154,7 @@ public partial class OverlayWindow : Window
         // Ép tính lại màu số FPS theo phong cách/màu mới.
         FpsValue.Foreground = null;
         SetFps(_lastFps, settings);
+        SetStats(_lastOnePercentLow, _lastSensors, settings);
         UpdatePosition();
     }
 
@@ -128,6 +195,51 @@ public partial class OverlayWindow : Window
         }
         else
             FpsValue.Effect = null;
+    }
+
+    /// <summary>
+    /// Cập nhật 1% low và các số cảm biến. Gọi mỗi giây và khi cài đặt đổi: chỉ gán chữ, màu, hiện/ẩn khi chúng thật sự đổi.
+    /// </summary>
+    public void SetStats(double? onePercentLow, SensorSnapshot sensors, OverlaySettings settings)
+    {
+        _lastOnePercentLow = onePercentLow;
+        _lastSensors = sensors;
+        var style = settings.Style;
+        var colors = settings.ColorsFor(style);
+        var normal = OverlayTheme.FromHex(colors.Value);
+        var hot = OverlayTheme.LevelBrush(style, FpsLevel.Bad);
+
+        // 1% low tô màu theo cùng mốc với FPS.
+        _one.SetVisible(settings.ShowOnePercentLow);
+        if (settings.ShowOnePercentLow)
+        {
+            Brush brush = normal;
+            if (onePercentLow is not null)
+            {
+                var level = settings.ColorByFps
+                    ? FpsLevels.Classify(onePercentLow, settings.GoodThreshold, settings.BadThreshold)
+                    : FpsLevel.None;
+                brush = level != FpsLevel.None ? OverlayTheme.LevelBrush(style, level) : OverlayTheme.FromHex(colors.Fps);
+            }
+            _one.SetFirst(FpsCalculator.Format(onePercentLow), brush);
+        }
+
+        SetPair(_gpu, settings.ShowGpuLoad, settings.ShowGpuTemp, sensors.GpuLoad, sensors.GpuTemp, HeatLevels.GpuHotCelsius, normal, hot);
+        SetPair(_cpu, settings.ShowCpuLoad, settings.ShowCpuTemp, sensors.CpuLoad, sensors.CpuTemp, HeatLevels.CpuHotCelsius, normal, hot);
+
+        _ram.SetVisible(settings.ShowRam);
+        if (settings.ShowRam)
+            _ram.SetFirst(StatFormat.Gigabytes(sensors.RamUsedGb), normal);
+    }
+
+    // Mục có hai số (phần trăm tải + nhiệt độ): tắt cả hai thì ẩn cả mục; tắt một thì số kia vẫn hiện, không để khoảng trống thừa.
+    static void SetPair(StatItem item, bool showLoad, bool showTemp, double? load, double? temp, double hotLimit, Brush normal, Brush hot)
+    {
+        item.SetVisible(showLoad || showTemp);
+        if (!showLoad && !showTemp) return;
+        item.SetFirst(showLoad ? StatFormat.Percent(load) : "", normal);
+        item.SetSecond(showLoad && showTemp ? " " : "", showTemp ? StatFormat.Temperature(temp) : "",
+            HeatLevels.IsHot(temp, hotLimit) ? hot : normal);
     }
 
     // Góc phải dưới vát chéo (Cyberpunk). Clip theo kích thước trước LayoutTransform nên vát cũng phóng theo Scale.
