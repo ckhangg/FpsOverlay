@@ -104,11 +104,20 @@ sealed class AutostartService
             // schtasks đọc file theo khai báo encoding trong XML (UTF-16, có BOM).
             var bytes = Encoding.Unicode.GetPreamble()
                 .Concat(Encoding.Unicode.GetBytes(AutostartTask.BuildXml(exePath, user))).ToArray();
-            // %TEMP% thì tiến trình thường cũng ghi được: giữ file mở, chỉ cho đọc, suốt lúc schtasks chạy để không ai
-            // tráo nội dung (tráo được là lệnh của họ chạy với quyền Admin mỗi lần đăng nhập). CreateNew: không dùng file có sẵn.
-            using var stream = new FileStream(xmlPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read);
-            stream.Write(bytes);
-            stream.Flush();
+            // CreateNew: không dùng file có sẵn.
+            using (var writer = new FileStream(xmlPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                writer.Write(bytes);
+            // %TEMP% thì tiến trình thường cũng ghi được: mở lại chỉ đọc, chặn ghi/xoá/đổi tên, suốt lúc schtasks chạy để
+            // không ai tráo nội dung (tráo được là lệnh của họ chạy với quyền Admin mỗi lần đăng nhập). Không giữ handle ghi:
+            // schtasks mở file chặn ghi nên sẽ báo "being used by another process". Đọc lại để chắc chưa bị tráo trong lúc đóng/mở.
+            using var guard = new FileStream(xmlPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            var written = new byte[bytes.Length + 1];
+            if (guard.ReadAtLeast(written, written.Length, throwOnEndOfStream: false) != bytes.Length ||
+                !written.AsSpan(0, bytes.Length).SequenceEqual(bytes))
+            {
+                error = "Task file was modified before schtasks could read it.";
+                return false;
+            }
             var (exitCode, _, stderr) = Run($"/Create /TN \"{AutostartTask.TaskName}\" /XML \"{xmlPath}\" /F");
             error = stderr;
             return exitCode == 0;
