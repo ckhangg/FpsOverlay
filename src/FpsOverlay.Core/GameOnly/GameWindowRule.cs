@@ -1,8 +1,8 @@
 namespace FpsOverlay.Core.GameOnly;
 
 /// <summary>
-/// Cửa sổ đang ở trước: không có; chính app này hoặc giao diện shell thoáng qua (taskbar, khay ẩn, Alt-Tab) — giữ quyết định trước;
-/// màn hình nền; hay ứng dụng khác.
+/// Cửa sổ đang ở trước: không có (thoáng qua khi chuyển cửa sổ) hoặc chính app này hoặc giao diện shell thoáng qua
+/// (taskbar, khay ẩn, Alt-Tab) — giữ quyết định trước; màn hình nền; hay ứng dụng khác.
 /// </summary>
 public enum ForegroundKind { None, Own, Desktop, Other }
 
@@ -30,6 +30,11 @@ public static class GameWindowRule
         return false;
     }
 
+    /// <summary>
+    /// Hiện hay ẩn overlay. Ẩn thủ công thắng tất cả; đang di chuyển/xem trước thì hiện; tắt "chỉ khi chơi" thì hiện;
+    /// còn lại: ứng dụng khác theo <paramref name="isGame"/>, app này hoặc không có cửa sổ phía trước giữ <paramref name="previous"/>,
+    /// màn hình nền ẩn.
+    /// </summary>
     public static bool ShouldShow(bool hiddenByUser, bool moving, bool previewing, bool onlyInGame,
         ForegroundKind kind, bool isGame, bool previous)
     {
@@ -38,7 +43,7 @@ public static class GameWindowRule
         if (!onlyInGame) return true;
         return kind switch
         {
-            ForegroundKind.Own => previous,
+            ForegroundKind.Own or ForegroundKind.None => previous,
             ForegroundKind.Other => isGame,
             _ => false,
         };

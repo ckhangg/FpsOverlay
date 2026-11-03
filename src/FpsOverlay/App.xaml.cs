@@ -199,6 +199,7 @@ public partial class App : Application
         _logTimer.Start();
 
         SetOverlayShown(true);
+        UpdateVisibility();   // quyết định ngay, không chờ nhịp 250 ms đầu (tránh chớp overlay lúc khởi động)
         _gameTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
         _gameTimer.Tick += (_, _) => UpdateVisibility();
         _gameTimer.Start();
@@ -481,6 +482,8 @@ public partial class App : Application
         if (show)
         {
             _overlay.Show();
+            _overlay.RefreshPosition();   // theo màn hình của game hiện tại, không giữ vị trí cũ tới nhịp 1 s
+            UpdateStats();                // số liệu mới ngay, không hiện số cũ tới nhịp 1 s
             CompositionTarget.Rendering += OnRendering;
         }
         else

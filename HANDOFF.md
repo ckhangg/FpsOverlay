@@ -172,7 +172,8 @@ Hoãn theo ý người dùng: **biểu đồ FPS/frametime** (làm sau).
 **Đợt 6 (1.2.0)**
 45. Desktop: overlay ẩn. Vào game borderless: hiện ngay.
 46. Mở menu khay giữa game: overlay không chớp tắt. Mục khay "Luôn hiện cho …" nhắm đúng game, không phải `explorer.exe`.
-47. Alt-Tab hoặc phím Win trong game borderless: overlay không biến mất trước khi menu khay mở.
+47. Alt-Tab trong game borderless: overlay phải còn hiện (không chớp tắt).
+    Phím Win / menu Start trong game: overlay có thể ẩn, nhưng menu khay vẫn mở được và nhắm đúng game.
 48. "Luôn hiện cho notepad.exe": overlay hiện khi Notepad ở phía trước.
 49. "Không bao giờ hiện" cho trình duyệt rồi xem video toàn màn hình: overlay không hiện.
 50. "Ẩn FPS" rồi vào game: vẫn ẩn.
@@ -184,3 +185,5 @@ Hoãn theo ý người dùng: **biểu đồ FPS/frametime** (làm sau).
 56. Cập nhật đè bản 1.1.0 bằng file mang đi 1.2.0: hộp thoại báo Cập nhật; cài đặt cũ còn nguyên và tuỳ chọn "Chỉ hiện khi chơi game" đang bật.
 57. Game Game Pass chạy cửa sổ được nhận ra (overlay hiện).
 58. Tắt log, ở desktop: PresentMon biến khỏi Task Manager. Vào game: overlay hiện và có số sau vài giây.
+59. Bật tự ẩn taskbar: Explorer hoặc Notepad phóng to (maximize) không làm overlay hiện. Game borderless vẫn hiện.
+60. Chơi game, chuyển sang trình duyệt (overlay ẩn), khay "Di chuyển overlay", Enter: focus không quay về game cũ.

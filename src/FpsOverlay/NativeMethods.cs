@@ -6,7 +6,9 @@ namespace FpsOverlay;
 static class NativeMethods
 {
     // Cửa sổ
+    public const int GWL_STYLE = -16;
     public const int GWL_EXSTYLE = -20;
+    public const long WS_CAPTION = 0x00C00000;
     public const int WS_EX_TRANSPARENT = 0x00000020;
     public const int WS_EX_TOOLWINDOW = 0x00000080;
     public const int WS_EX_LAYERED = 0x00080000;
@@ -39,6 +41,10 @@ static class NativeMethods
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool IsWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool IsZoomed(IntPtr hWnd);
 
     // Huỷ handle icon do Bitmap.GetHicon tạo (không huỷ thì rò handle GDI).
     [DllImport("user32.dll", SetLastError = true)]

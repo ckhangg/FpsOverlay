@@ -620,6 +620,9 @@ public partial class OverlayWindow : Window
         Chrome.Clip = geometry;
     }
 
+    /// <summary>Đặt lại vị trí theo màn hình đang có cửa sổ phía trước (App gọi ngay sau khi hiện overlay).</summary>
+    public void RefreshPosition() => UpdatePosition();
+
     // Đặt cửa sổ vào góc đã chọn của màn hình đang có cửa sổ phía trước (game), cách mép theo OffsetX/OffsetY (không trừ taskbar).
     void UpdatePosition()
     {
@@ -797,11 +800,14 @@ public partial class OverlayWindow : Window
     // Game borderless đôi khi đè lên cửa sổ topmost; đặt lại định kỳ.
     void KeepOnTop()
     {
-        if (_hwnd == IntPtr.Zero || !IsVisible)
+        if (_hwnd == IntPtr.Zero)
             return;
-        // Ghi cả khi đang xem trước cài đặt (TargetWindow khi đó không nhìn cửa sổ phía trước).
+        // Ghi cả khi đang xem trước cài đặt (TargetWindow khi đó không nhìn cửa sổ phía trước) và cả khi overlay đang ẩn
+        // (tự ẩn khi rời game): không thì "Di chuyển overlay" sẽ trả focus về game cũ.
         var fg = ExternalForeground();
         if (fg != IntPtr.Zero) _lastExternalForeground = fg;
+        if (!IsVisible)
+            return;
         UpdatePosition();   // theo kịp game chuyển màn hình / đổi độ phân giải
         NativeMethods.SetWindowPos(_hwnd, NativeMethods.HWND_TOPMOST, 0, 0, 0, 0,
             NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE);

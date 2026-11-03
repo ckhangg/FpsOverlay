@@ -46,12 +46,20 @@ static class ForegroundWindowInfo
 
     static bool IsTransientShellClass(StringBuilder name) =>
         name.Equals("Shell_TrayWnd") || name.Equals("Shell_SecondaryTrayWnd") || name.Equals("NotifyIconOverflowWindow") ||
-        name.Equals("TopLevelWindowForOverflowXamlIsland") || name.Equals("XamlExplorerHostIslandWindow");
+        name.Equals("TopLevelWindowForOverflowXamlIsland") || name.Equals("XamlExplorerHostIslandWindow") ||
+        name.Equals("MultitaskingViewFrame") || name.Equals("TaskSwitcherWnd") || name.Equals("ForegroundStaging");
 
-    /// <summary>Cửa sổ phủ kín màn hình chứa nó (game toàn màn hình hoặc borderless); không có cửa sổ hay màn hình nền thì không tính.</summary>
+    /// <summary>
+    /// Cửa sổ phủ kín màn hình chứa nó (game toàn màn hình hoặc borderless); không có cửa sổ hay màn hình nền thì không tính.
+    /// Cửa sổ thường phóng to (có thanh tiêu đề) không tính: khung của nó tràn ~8 px ra ngoài nên cũng "phủ" được màn hình
+    /// khi taskbar tự ẩn hoặc ở màn hình phụ; game borderless/exclusive là WS_POPUP không có thanh tiêu đề.
+    /// </summary>
     public static bool CoversMonitor(IntPtr hwnd)
     {
         if (Kind(hwnd) is ForegroundKind.None or ForegroundKind.Desktop)
+            return false;
+        if (NativeMethods.IsZoomed(hwnd) &&
+            (NativeMethods.GetWindowLongPtr(hwnd, NativeMethods.GWL_STYLE).ToInt64() & NativeMethods.WS_CAPTION) == NativeMethods.WS_CAPTION)
             return false;
 
         var monitor = NativeMethods.MonitorFromWindow(hwnd, NativeMethods.MONITOR_DEFAULTTONEAREST);

@@ -35,6 +35,7 @@ public sealed class AppNames : IEquatable<AppNames>, IReadOnlyList<string>
 
     public bool Contains(string? exeName)
     {
+        if (_items.Length == 0) return false;   // danh sách rỗng: không chuẩn hoá chuỗi mỗi nhịp dò
         var name = Normalize(exeName);
         return name is not null && IndexOf(_items, name) >= 0;
     }

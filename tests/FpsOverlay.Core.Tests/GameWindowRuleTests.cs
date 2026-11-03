@@ -51,8 +51,11 @@ public class GameWindowRuleTests
         Assert.False(GameWindowRule.ShouldShow(false, false, false, true, ForegroundKind.Desktop, false, true));
 
     [Fact]
-    public void None_hides_when_game_only() =>
-        Assert.False(GameWindowRule.ShouldShow(false, false, false, true, ForegroundKind.None, false, true));
+    public void None_keeps_previous_when_game_only()
+    {
+        Assert.True(GameWindowRule.ShouldShow(false, false, false, true, ForegroundKind.None, false, previous: true));
+        Assert.False(GameWindowRule.ShouldShow(false, false, false, true, ForegroundKind.None, false, previous: false));
+    }
 
     [Fact]
     public void Other_follows_is_game()

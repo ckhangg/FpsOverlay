@@ -20,6 +20,7 @@
   - phủ kín màn hình chứa nó;
   - exe nằm trong đường dẫn chứa `\steamapps\common\`, `\XboxGames\` hoặc `\WindowsApps\` (không phân biệt hoa thường);
   - tên exe có trong "Luôn hiện".
+  - Ghi chú: `\WindowsApps\` đã bị bỏ theo quyết định R3 — spec là chuẩn.
 
   "Không bao giờ hiện" thắng tất cả. Với khung ApplicationFrameHost, xét **mọi** tiến trình ứng viên.
 - Thứ tự ưu tiên hiện/ẩn:
