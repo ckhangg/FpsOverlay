@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace FpsOverlay.Core.Settings;
@@ -39,7 +39,7 @@ public static class SettingsStore
                 CyberpunkColors = ReadColors(root, nameof(OverlaySettings.CyberpunkColors), d.CyberpunkColors),
             }.Normalize();
         }
-        catch (Exception e) when (e is JsonException or IOException or UnauthorizedAccessException or InvalidOperationException)
+        catch (Exception)   // file hỏng, bị khoá, đường dẫn lạ...: lỗi gì cũng về mặc định
         {
             return OverlaySettings.Defaults;
         }
@@ -51,8 +51,16 @@ public static class SettingsStore
         if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
 
         var temp = path + ".tmp";
-        File.WriteAllText(temp, JsonSerializer.Serialize(settings, WriteOptions));
-        File.Move(temp, path, overwrite: true);
+        try
+        {
+            File.WriteAllText(temp, JsonSerializer.Serialize(settings, WriteOptions));
+            File.Move(temp, path, overwrite: true);
+        }
+        catch
+        {
+            try { File.Delete(temp); } catch (Exception) { }   // không để lại file .tmp mồ côi
+            throw;
+        }
     }
 
     private static bool TryGet(JsonElement obj, string name, JsonValueKind kind, out JsonElement value) =>
@@ -66,13 +74,13 @@ public static class SettingsStore
             : fallback;
 
     private static double ReadDouble(JsonElement obj, string name, double fallback) =>
-        TryGet(obj, name, JsonValueKind.Number, out var v) && v.TryGetDouble(out var d) ? d : fallback;
+        TryGet(obj, name, JsonValueKind.Number, out var v) && v.TryGetDouble(out var d) && double.IsFinite(d) ? d : fallback;
 
     private static int ReadInt(JsonElement obj, string name, int fallback)
     {
         if (!TryGet(obj, name, JsonValueKind.Number, out var v)) return fallback;
         if (v.TryGetInt32(out var i)) return i;
-        return v.TryGetDouble(out var d) ? (int)Math.Clamp(Math.Round(d), int.MinValue, int.MaxValue) : fallback;
+        return v.TryGetDouble(out var d) && double.IsFinite(d) ? (int)Math.Clamp(Math.Round(d), int.MinValue, int.MaxValue) : fallback;
     }
 
     private static bool ReadBool(JsonElement obj, string name, bool fallback) =>

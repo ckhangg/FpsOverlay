@@ -56,6 +56,34 @@ public sealed class SettingsStoreTests : IDisposable
     }
 
     [Fact]
+    public void Failed_save_throws_and_leaves_no_temp_file()
+    {
+        // Đích là một thư mục nên bước Move thất bại.
+        Directory.CreateDirectory(PathIn());
+        Assert.ThrowsAny<Exception>(() => SettingsStore.Save(PathIn(), OverlaySettings.Defaults));
+        Assert.False(File.Exists(PathIn() + ".tmp"));
+    }
+
+    [Fact]
+    public void Path_that_is_a_directory_loads_defaults()
+    {
+        Directory.CreateDirectory(PathIn());
+        Assert.Equal(OverlaySettings.Defaults, SettingsStore.Load(PathIn()));
+    }
+
+    [Theory]
+    [InlineData("[1,2]")]
+    [InlineData("null")]
+    [InlineData("")]
+    [InlineData("{\"Scale\":\"big\",\"GoodThreshold\":1e400,\"ClassicColors\":5}")]
+    public void Unusable_content_loads_defaults(string json)
+    {
+        Directory.CreateDirectory(_dir);
+        File.WriteAllText(PathIn(), json);
+        Assert.Equal(OverlaySettings.Defaults, SettingsStore.Load(PathIn()));
+    }
+
+    [Fact]
     public void Save_creates_directory()
     {
         var path = Path.Combine(_dir, "sub", "settings.json");

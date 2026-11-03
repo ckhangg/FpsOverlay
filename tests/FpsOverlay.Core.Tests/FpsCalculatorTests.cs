@@ -95,5 +95,22 @@ public class FpsCalculatorTests
     {
         Assert.Equal("--", FpsCalculator.Format(null));
         Assert.Equal("144", FpsCalculator.Format(143.6));
+        Assert.Equal("0", FpsCalculator.Format(0.2));
+        Assert.Equal("1234", FpsCalculator.Format(1234.4));
     }
+
+    [Theory]
+    [InlineData(59.5, "60", FpsLevel.Good)]
+    [InlineData(29.5, "30", FpsLevel.Medium)]
+    [InlineData(59.49, "59", FpsLevel.Medium)]
+    public void Format_rounds_like_level_classification(double fps, string text, FpsLevel level)
+    {
+        // Số hiện ra và màu của nó phải khớp nhau ở đúng mốc (59,5 hiện "60" thì phải là màu tốt).
+        Assert.Equal(text, FpsCalculator.Format(fps));
+        Assert.Equal(level, FpsLevels.Classify(fps, 60, 30));
+    }
+
+    [Fact]
+    public void Format_does_not_allocate_for_common_values() =>
+        Assert.Same(FpsCalculator.Format(144.2), FpsCalculator.Format(143.8));
 }

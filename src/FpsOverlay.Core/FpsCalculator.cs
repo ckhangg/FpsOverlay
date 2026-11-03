@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Globalization;
 
 namespace FpsOverlay.Core;
@@ -83,6 +83,17 @@ public sealed class FpsCalculator
         return null;
     }
 
+    // Chuỗi dựng sẵn cho các giá trị hay gặp: Format chạy mỗi khung hình, không cấp phát chuỗi mới.
+    static readonly string[] Texts = Enumerable.Range(0, 1000).Select(i => i.ToString(CultureInfo.InvariantCulture)).ToArray();
+
+    /// <summary>Số làm tròn (nửa làm tròn lên, khớp <see cref="FpsLevels.Classify"/>), hoặc "--".</summary>
     public static string Format(double? fps)
-        => fps is { } value ? value.ToString("0", CultureInfo.InvariantCulture) : "--";
+    {
+        if (fps is not { } value)
+            return "--";
+        var rounded = Math.Round(value, MidpointRounding.AwayFromZero);
+        return rounded >= 0 && rounded < Texts.Length
+            ? Texts[(int)rounded]
+            : rounded.ToString("0", CultureInfo.InvariantCulture);
+    }
 }

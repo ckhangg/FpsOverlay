@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Windows.Threading;
 using FpsOverlay.Core.Settings;
 
@@ -11,9 +11,12 @@ namespace FpsOverlay;
 sealed class SettingsService : IDisposable
 {
     static readonly TimeSpan SaveDelay = TimeSpan.FromMilliseconds(500);
+    /// <summary>Ghi lỗi (file đang bị khoá...) thì thử lại sau khoảng này, cho tới khi được.</summary>
+    static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(5);
 
     readonly string _path;
     readonly DispatcherTimer _saveTimer;
+    bool _dirty;
 
     public SettingsService(string path)
     {
@@ -35,11 +38,14 @@ sealed class SettingsService : IDisposable
             return;
 
         Current = next;
-        Changed?.Invoke(next);
 
-        // Mỗi lần đổi mới dời hẹn ghi.
+        // Hẹn ghi trước khi báo: một chỗ nghe Changed ném lỗi cũng không làm mất lần ghi. Mỗi lần đổi mới dời hẹn.
+        _dirty = true;
         _saveTimer.Stop();
+        _saveTimer.Interval = SaveDelay;
         _saveTimer.Start();
+
+        Changed?.Invoke(next);
     }
 
     void SaveNow()
@@ -48,18 +54,21 @@ sealed class SettingsService : IDisposable
         try
         {
             SettingsStore.Save(_path, Current);
+            _dirty = false;
         }
         catch (Exception ex)
         {
-            // Ghi cài đặt chỉ là "cố gắng": lỗi gì cũng bỏ qua (gọi từ timer, ném ra là sập app),
-            // app vẫn chạy với cài đặt trong bộ nhớ.
+            // Gọi từ timer: ném ra là sập app. App vẫn chạy với cài đặt trong bộ nhớ và thử ghi lại sau.
             Trace.WriteLine($"FpsOverlay: không ghi được cài đặt vào '{_path}': {ex.Message}");
+            _saveTimer.Interval = RetryDelay;
+            _saveTimer.Start();
         }
     }
 
     public void Dispose()
     {
-        if (_saveTimer.IsEnabled)
+        if (_dirty)
             SaveNow();
+        _saveTimer.Stop();   // lần thoát app này không thử lại nữa
     }
 }

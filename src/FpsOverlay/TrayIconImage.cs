@@ -1,4 +1,4 @@
-using System.Drawing;
+﻿using System.Drawing;
 using System.Drawing.Imaging;
 using System.Drawing.Text;
 
@@ -26,15 +26,22 @@ static class TrayIconImage
             // Chữ to nhất còn vừa bề ngang (để lề 1px mỗi bên).
             var fontSize = 18f;
             var font = new Font("Segoe UI", fontSize, FontStyle.Bold, GraphicsUnit.Pixel);
-            while (fontSize > 8 && g.MeasureString("FPS", font, int.MaxValue, format).Width > Size - 2)
+            try
             {
-                font.Dispose();
-                fontSize -= 0.5f;
-                font = new Font("Segoe UI", fontSize, FontStyle.Bold, GraphicsUnit.Pixel);
-            }
-            using (font)
-            using (var brush = new SolidBrush(Yellow))
+                while (fontSize > 8 && g.MeasureString("FPS", font, int.MaxValue, format).Width > Size - 2)
+                {
+                    var smaller = new Font("Segoe UI", fontSize - 0.5f, FontStyle.Bold, GraphicsUnit.Pixel);
+                    font.Dispose();
+                    font = smaller;
+                    fontSize -= 0.5f;
+                }
+                using var brush = new SolidBrush(Yellow);
                 g.DrawString("FPS", font, brush, new RectangleF(0, 0, Size, Size), format);
+            }
+            finally
+            {
+                font.Dispose();   // kể cả khi đo/vẽ ném lỗi giữa chừng
+            }
         }
 
         // GetHicon tạo handle GDI mà Icon.FromHandle không sở hữu: sao ra icon tự giữ handle riêng rồi huỷ handle gốc.
