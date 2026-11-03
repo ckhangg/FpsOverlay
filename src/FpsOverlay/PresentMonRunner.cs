@@ -23,9 +23,14 @@ sealed class PresentMonRunner : IDisposable
     /// <summary>PresentMon tự thoát khi app chưa yêu cầu. Tham số là phần stderr cuối cùng nó in ra.</summary>
     public event Action<string>? Exited;
 
+    readonly string _toolDirectory;
+
+    /// <param name="toolDirectory">Thư mục chứa PresentMon.exe (nơi EmbeddedFiles.ExtractAll đã bung ra).</param>
+    public PresentMonRunner(string toolDirectory) => _toolDirectory = toolDirectory;
+
     public void Start(Action<FrameSample> onFrame)
     {
-        var exePath = Path.Combine(AppContext.BaseDirectory, ExeName);
+        var exePath = Path.Combine(_toolDirectory, ExeName);
         if (!File.Exists(exePath))
             throw new FileNotFoundException($"Không tìm thấy {ExeName}.", exePath);
 

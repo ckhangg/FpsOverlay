@@ -8,6 +8,13 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Version>1.0.0</Version>
+    <!-- Một file exe tự chứa: dotnet publish src/FpsOverlay -c Release -o publish -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,12 +30,14 @@
   <ItemGroup>
     <!-- Font nhúng vào assembly, dùng qua pack://application:,,,/Assets/Fonts/#Tên font -->
     <Resource Include="Assets\Fonts\*.ttf" />
-    <!-- Giấy phép OFL phải đi kèm font khi phát hành -->
-    <None Include="Assets\Fonts\OFL-*.txt" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Giấy phép OFL phải đi kèm font khi phát hành: nhúng vào exe, EmbeddedFiles.ExtractAll bung ra cạnh exe -->
+    <EmbeddedResource Include="Assets\Fonts\OFL-*.txt" LogicalName="%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\..\tools\PresentMon.exe" Link="PresentMon.exe" CopyToOutputDirectory="PreserveNewest" />
+    <!-- PresentMon và giấy phép (MIT, MPL-2.0, ...) nhúng với tên cố định, bung phẳng vào cùng một thư mục -->
+    <EmbeddedResource Include="..\..\tools\PresentMon.exe" LogicalName="PresentMon.exe" />
+    <EmbeddedResource Include="Assets\Licenses\*.txt" LogicalName="%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

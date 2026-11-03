@@ -1,0 +1,35 @@
+﻿THIRD-PARTY NOTICES - FPS Overlay
+=================================
+
+This product bundles or links the following third-party components.
+Full license texts are in the files named below (same folder).
+
+1. PresentMon (Intel Corporation) - MIT
+   https://github.com/GameTechDev/PresentMon
+   Bundled as PresentMon.exe. Text: PresentMon-LICENSE.txt
+
+2. LibreHardwareMonitorLib 0.9.6 - MPL-2.0
+   https://github.com/LibreHardwareMonitor/LibreHardwareMonitor
+   Text: LibreHardwareMonitor-LICENSE.txt
+   Source for the MPL-covered files is available at the URL above.
+
+   Its dependencies that are linked into FpsOverlay.exe:
+   - BlackSharp.Core 1.0.7 - MPL-2.0 (https://github.com/Blacktempel/BlackSharp)
+   - DiskInfoToolkit 1.1.2 - MPL-2.0 (https://github.com/Blacktempel/DiskInfoToolkit)
+   - RAMSPDToolkit-NDD 1.4.2 - MPL-2.0 (https://github.com/Blacktempel/RAMSPDToolkit)
+     The MPL-2.0 text above (LibreHardwareMonitor-LICENSE.txt) applies to these.
+   - HidSharp 2.6.4 - Apache-2.0, Copyright 2010-2025 James F. Bellinger
+     Text: HidSharp-LICENSE.txt
+   - Mono.Posix.NETStandard 1.0.0 - license as declared in the package metadata
+     (https://go.microsoft.com/fwlink/?linkid=869050); text not bundled.
+   - System.Management 10.0.2, System.IO.Ports 10.0.3 (and its
+     runtime.*.runtime.native.System.IO.Ports packages),
+     System.IO.FileSystem.AccessControl 5.0.0 - MIT, (c) Microsoft Corporation
+     (https://github.com/dotnet/runtime)
+
+3. .NET runtime and libraries (self-contained) - MIT, (c) .NET Foundation and
+   Contributors / Microsoft Corporation. https://github.com/dotnet/runtime
+
+4. Fonts - SIL Open Font License 1.1
+   Chakra Petch: OFL-ChakraPetch.txt
+   JetBrains Mono: OFL-JetBrainsMono.txt

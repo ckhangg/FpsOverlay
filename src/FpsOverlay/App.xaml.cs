@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -33,6 +34,8 @@ public partial class App : Application
     bool _settingAutostart;
 
     Mutex? _singleInstance;
+    // Thư mục chứa PresentMon.exe đã bung (đặt lúc khởi động, trước StartPresentMon).
+    string? _toolDirectory;
 
     /// <summary>Overlay chạy số FPS mẫu thay vì FPS thật, chỉ khi cửa sổ cài đặt đang mở và là cửa sổ đang dùng.</summary>
     public bool IsPreviewing => _settingsWindow is { IsActive: true };
@@ -86,6 +89,18 @@ public partial class App : Application
         tray.MenuOpening += () => _ = _autostart.RefreshAsync();
         _ = _autostart.RefreshAsync();
 
+        // Tạm thời bung vào thư mục chứa exe (Task 8 đổi sang thư mục cài). Thư mục chỉ đọc không được làm app chết im lặng.
+        try
+        {
+            _toolDirectory = Path.GetDirectoryName(Environment.ProcessPath)!;
+            EmbeddedFiles.ExtractAll(_toolDirectory);
+        }
+        catch (Exception ex)
+        {
+            Fail($"{Loc.Get(StringKey.PresentMonStartFailed, Language)}\n\n{Loc.Get(StringKey.Details, Language)}: {ex.Message}");
+            return;
+        }
+
         if (!StartPresentMon())
             return;
         _watchdog = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
@@ -109,7 +124,7 @@ public partial class App : Application
         // Mỗi runner ghi vào bộ riêng của nó (một closure mỗi lần chạy): runner cũ không thể đẩy khung vào bộ mới.
         var calculator = new FpsCalculator();
         var history = new FrameTimeHistory();
-        var runner = new PresentMonRunner();
+        var runner = new PresentMonRunner(_toolDirectory!);
         // Dispose chủ động không phát Exited (runner tự bỏ qua khi đã Dispose), nên chỉ lần thoát bất ngờ mới tới đây.
         runner.Exited += stderr => Dispatcher.BeginInvoke(() => Fail(
             Loc.Get(StringKey.PresentMonStopped, Language) +
