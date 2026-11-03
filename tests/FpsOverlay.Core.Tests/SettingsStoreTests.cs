@@ -114,4 +114,23 @@ public sealed class SettingsStoreTests : IDisposable
         SettingsStore.Save(PathIn(), original);
         Assert.Equal(original, SettingsStore.Load(PathIn()));
     }
+
+    [Fact]
+    public void Old_file_without_new_fields_loads_defaults()
+    {
+        Directory.CreateDirectory(_dir);
+        File.WriteAllText(PathIn(), "{\"Style\":\"Classic\",\"ClassicColors\":{\"Label\":\"#123456\",\"Value\":\"#FFFFFF\",\"Fps\":\"#39FF14\"}}");
+        var s = SettingsStore.Load(PathIn());
+        Assert.Equal(OverlayStyle.Classic, s.Style);
+        Assert.Equal("#123456", s.ClassicColors.Label);
+        Assert.Equal(OverlaySettings.Defaults with { Style = OverlayStyle.Classic, ClassicColors = s.ClassicColors }, s);
+    }
+
+    [Fact]
+    public void Unknown_style_falls_back_to_default()
+    {
+        Directory.CreateDirectory(_dir);
+        File.WriteAllText(PathIn(), "{\"Style\":\"Rainbow\"}");
+        Assert.Equal(OverlayStyle.Cyberpunk, SettingsStore.Load(PathIn()).Style);
+    }
 }

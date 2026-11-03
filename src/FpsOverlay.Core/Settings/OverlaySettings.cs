@@ -44,22 +44,36 @@ public sealed record OverlaySettings
         var bad = Math.Clamp(BadThreshold, MinThreshold, MaxThreshold);
         if (bad >= good) bad = good - 1;
 
-        return this with
+        var clamped = this with
         {
             Scale = Clamp(Scale, MinScale, MaxScale, 1.0),
             BackgroundOpacity = Clamp(BackgroundOpacity, 0, 1, 0.72),
             GoodThreshold = good,
             BadThreshold = bad,
-            ClassicColors = (ClassicColors ?? StyleColors.DefaultFor(OverlayStyle.Classic)).Normalize(OverlayStyle.Classic),
-            CyberpunkColors = (CyberpunkColors ?? StyleColors.DefaultFor(OverlayStyle.Cyberpunk)).Normalize(OverlayStyle.Cyberpunk),
         };
+        return clamped.NormalizeColors();
     }
 
-    public StyleColors ColorsFor(OverlayStyle style) =>
-        style == OverlayStyle.Classic ? ClassicColors : CyberpunkColors;
+    // Chuẩn hoá bộ màu của mọi phong cách.
+    private OverlaySettings NormalizeColors()
+    {
+        var result = this;
+        foreach (var style in Enum.GetValues<OverlayStyle>())
+            result = result.WithColors(style, (ColorsFor(style) ?? StyleColors.DefaultFor(style)).Normalize(style));
+        return result;
+    }
 
-    public OverlaySettings WithColors(OverlayStyle style, StyleColors colors) =>
-        style == OverlayStyle.Classic ? this with { ClassicColors = colors } : this with { CyberpunkColors = colors };
+    public StyleColors ColorsFor(OverlayStyle style) => style switch
+    {
+        OverlayStyle.Classic => ClassicColors,
+        _ => CyberpunkColors,
+    };
+
+    public OverlaySettings WithColors(OverlayStyle style, StyleColors colors) => style switch
+    {
+        OverlayStyle.Classic => this with { ClassicColors = colors },
+        _ => this with { CyberpunkColors = colors },
+    };
 
     /// <summary>Đặt mốc tốt; nếu mốc kém không còn thấp hơn thì đẩy mốc kém xuống.</summary>
     public OverlaySettings WithGoodThreshold(int value)
@@ -76,10 +90,13 @@ public sealed record OverlaySettings
     }
 
     /// <summary>Về mặc định nhưng giữ ngôn ngữ, phong cách đang chọn, bộ màu của phong cách kia, ghi log và cờ PawnIO.</summary>
-    public OverlaySettings ResetToDefaults() =>
-        Defaults.WithColors(OverlayStyle.Classic, Style == OverlayStyle.Classic ? Defaults.ClassicColors : ClassicColors)
-                .WithColors(OverlayStyle.Cyberpunk, Style == OverlayStyle.Cyberpunk ? Defaults.CyberpunkColors : CyberpunkColors)
-        with { Style = Style, Language = Language, LoggingEnabled = LoggingEnabled, PawnIoOffered = PawnIoOffered };
+    public OverlaySettings ResetToDefaults()
+    {
+        var result = Defaults;
+        foreach (var style in Enum.GetValues<OverlayStyle>())
+            result = result.WithColors(style, style == Style ? Defaults.ColorsFor(style) : ColorsFor(style));
+        return result with { Style = Style, Language = Language, LoggingEnabled = LoggingEnabled, PawnIoOffered = PawnIoOffered };
+    }
 
     private static double Clamp(double value, double min, double max, double fallback) =>
         double.IsNaN(value) ? fallback : Math.Clamp(value, min, max);

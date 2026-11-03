@@ -4,11 +4,7 @@ namespace FpsOverlay.Core.Settings;
 public sealed record StyleColors(string Label, string Value, string Fps)
 {
     /// <summary>Bộ màu mặc định của phong cách <paramref name="style"/>.</summary>
-    public static StyleColors DefaultFor(OverlayStyle style) => style switch
-    {
-        OverlayStyle.Classic => new StyleColors("#FF8C1A", "#FFFFFF", "#39FF14"),
-        _ => new StyleColors("#00F0FF", "#FFFFFF", "#FCEE0A"),
-    };
+    public static StyleColors DefaultFor(OverlayStyle style) => StyleSpecs.For(style).DefaultColors;
 
     /// <summary>Chuẩn hoá từng màu; màu không hợp lệ được thay bằng màu mặc định của đúng ô đó.</summary>
     internal StyleColors Normalize(OverlayStyle style)

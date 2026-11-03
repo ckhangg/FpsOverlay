@@ -17,12 +17,6 @@ namespace FpsOverlay;
 /// </summary>
 public partial class SettingsWindow : Window
 {
-    static readonly string[] CyberpunkSwatches =
-        ["#00F0FF", "#FCEE0A", "#FF003C", "#FF2A6D", "#05D9E8", "#D1F7FF", "#39FF14", "#B967FF", "#FFFFFF", "#FF8C1A"];
-
-    static readonly string[] ClassicSwatches =
-        ["#FF8C1A", "#FFFFFF", "#39FF14", "#FFD400", "#FF3B30", "#00BFFF", "#FF66CC", "#A0A0A0", "#00FF99", "#FFAA00"];
-
     // Ba dòng màu: 0 = nhãn, 1 = giá trị, 2 = FPS.
     const int Rows = 3;
     const string InvalidTag = "invalid";
@@ -248,7 +242,7 @@ public partial class SettingsWindow : Window
         if (_swatchStyle != s.Style)
         {
             _swatchStyle = s.Style;
-            var palette = s.Style == OverlayStyle.Classic ? ClassicSwatches : CyberpunkSwatches;
+            var palette = StyleSpecs.For(s.Style).Swatches;
             foreach (var row in _swatches)
                 for (int i = 0; i < row.Length; i++)
                 {
@@ -429,7 +423,7 @@ public partial class SettingsWindow : Window
         var style = (Style)FindResource("Cp.Swatch");
         for (int r = 0; r < Rows; r++)
         {
-            _swatches[r] = new RadioButton[CyberpunkSwatches.Length];
+            _swatches[r] = new RadioButton[StyleSpecs.For(OverlayStyle.Cyberpunk).Swatches.Count];
             for (int i = 0; i < _swatches[r].Length; i++)
             {
                 var swatch = new RadioButton { Style = style, GroupName = $"Swatch{r}" };
