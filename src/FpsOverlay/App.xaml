@@ -5,8 +5,29 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
+                <!-- Chủ đề đang dùng: ThemeManager thay dictionary này khi đổi phong cách (Cyberpunk là mặc định). -->
                 <ResourceDictionary Source="Themes/Cyberpunk.xaml" />
             </ResourceDictionary.MergedDictionaries>
+
+            <!--
+                Khung cửa sổ CỐ ĐỊNH cho mọi chủ đề: WPF không cho đổi AllowsTransparency khi cửa sổ đã hiện, nên mọi
+                cửa sổ của app luôn không viền hệ thống + trong suốt; phần nhìn thấy (hình dạng, viền, thanh tiêu đề,
+                hiệu ứng) do Ui.WindowTemplate của chủ đề vẽ, vùng kéo do Ui.WindowChrome của chủ đề quyết định.
+            -->
+            <Style x:Key="Ui.Window" TargetType="Window">
+                <Setter Property="WindowStyle" Value="None" />
+                <Setter Property="AllowsTransparency" Value="True" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="ResizeMode" Value="NoResize" />
+                <Setter Property="UseLayoutRounding" Value="True" />
+                <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+                <Setter Property="Foreground" Value="{DynamicResource Ui.Text}" />
+                <Setter Property="FontFamily" Value="{DynamicResource Ui.Font}" />
+                <Setter Property="FontWeight" Value="{DynamicResource Ui.FontWeight}" />
+                <Setter Property="FontSize" Value="{DynamicResource Ui.FontSize}" />
+                <Setter Property="WindowChrome.WindowChrome" Value="{DynamicResource Ui.WindowChrome}" />
+                <Setter Property="Template" Value="{DynamicResource Ui.WindowTemplate}" />
+            </Style>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

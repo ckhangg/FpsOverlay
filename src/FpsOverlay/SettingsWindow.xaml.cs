@@ -16,7 +16,7 @@ using FpsOverlay.Core.Settings;
 namespace FpsOverlay;
 
 /// <summary>
-/// Cửa sổ cài đặt kiểu Cyberpunk. Mọi control gọi <see cref="SettingsService.Update"/>; cửa sổ nghe
+/// Cửa sổ cài đặt, theo chủ đề của phong cách đang chọn (xem <see cref="ThemeManager"/>). Mọi control gọi <see cref="SettingsService.Update"/>; cửa sổ nghe
 /// <see cref="SettingsService.Changed"/> để cập nhật lại control và chữ theo ngôn ngữ.
 /// </summary>
 public partial class SettingsWindow : Window
@@ -325,9 +325,11 @@ public partial class SettingsWindow : Window
     }
 
     // ---------- Ô thu gọn: màu, màu theo FPS, thông số, danh sách ứng dụng, cảnh báo ----------
-    // Một cơ chế chung: panel đổi Visible/Collapsed, tiêu đề (nút hoặc nhãn mục) hiện mũi tên ▾/▴.
+    // Một cơ chế chung: panel đổi Visible/Collapsed, tiêu đề (nút hoặc nhãn mục) hiện ký hiệu đóng/mở của chủ đề
+    // (Ui.ExpandGlyph / Ui.CollapseGlyph, vd. ▾/▴). Đổi chủ đề thì Refresh dựng lại tiêu đề (App đổi chủ đề trước).
 
-    static string Arrow(UIElement panel) => panel.Visibility == Visibility.Visible ? "▴" : "▾";
+    string Arrow(UIElement panel) =>
+        TryFindResource(panel.Visibility == Visibility.Visible ? "Ui.CollapseGlyph" : "Ui.ExpandGlyph") as string ?? "";
 
     void ToggleSection(UIElement panel)
     {
@@ -382,17 +384,19 @@ public partial class SettingsWindow : Window
 
     void AddAppGroup(string title, AppNames apps, AppLanguage language)
     {
-        AppListsPanel.Children.Add(new TextBlock
-        {
-            Text = title, Style = (Style)FindResource("Cp.FieldLabel"), Margin = new Thickness(0, 4, 0, 2),
-        });
+        // Gắn khoá chủ đề bằng SetResourceReference (động): đổi chủ đề thì các dòng dựng từ code cũng đổi theo.
+        var heading = new TextBlock { Text = title, Margin = new Thickness(0, 4, 0, 2) };
+        heading.SetResourceReference(StyleProperty, "Ui.FieldLabel");
+        AppListsPanel.Children.Add(heading);
         if (apps.Count == 0)
         {
-            AppListsPanel.Children.Add(new TextBlock
+            var empty = new TextBlock
             {
-                Text = Loc.Get(StringKey.AppListEmpty, language), Style = (Style)FindResource("Cp.FieldLabel"),
-                Foreground = (Brush)FindResource("Cp.KnobOff"), FontSize = 11, Margin = new Thickness(8, 0, 0, 0),
-            });
+                Text = Loc.Get(StringKey.AppListEmpty, language), FontSize = 11, Margin = new Thickness(8, 0, 0, 0),
+            };
+            empty.SetResourceReference(StyleProperty, "Ui.FieldLabel");
+            empty.SetResourceReference(TextBlock.ForegroundProperty, "Ui.Muted");
+            AppListsPanel.Children.Add(empty);
             return;
         }
         foreach (var exe in apps)
@@ -400,18 +404,21 @@ public partial class SettingsWindow : Window
             var row = new DockPanel { Margin = new Thickness(8, 1, 0, 1), LastChildFill = true };
             var remove = new Button
             {
-                Content = Loc.Get(StringKey.RemoveApp, language), Style = (Style)FindResource("Cp.GhostButton"),
+                Content = Loc.Get(StringKey.RemoveApp, language),
                 FontSize = 11, Padding = new Thickness(8, 1, 8, 1), Tag = exe,
             };
+            remove.SetResourceReference(StyleProperty, "Ui.GhostButton");
             remove.Click += OnRemoveAppClick;
             DockPanel.SetDock(remove, Dock.Right);
             row.Children.Add(remove);
-            row.Children.Add(new TextBlock
+            var name = new TextBlock
             {
-                Text = exe, FontFamily = (FontFamily)FindResource("Cp.Mono"), FontSize = 12,
-                Foreground = (Brush)FindResource("Cp.Text"), VerticalAlignment = VerticalAlignment.Center,
+                Text = exe, FontSize = 12, VerticalAlignment = VerticalAlignment.Center,
                 TextTrimming = TextTrimming.CharacterEllipsis,
-            });
+            };
+            name.SetResourceReference(TextBlock.FontFamilyProperty, "Ui.Mono");
+            name.SetResourceReference(TextBlock.ForegroundProperty, "Ui.Text");
+            row.Children.Add(name);
             AppListsPanel.Children.Add(row);
         }
     }
@@ -621,13 +628,13 @@ public partial class SettingsWindow : Window
     void BuildSwatches()
     {
         var panels = new[] { LabelSwatches, ValueSwatches, FpsSwatches };
-        var style = (Style)FindResource("Cp.Swatch");
         for (int r = 0; r < Rows; r++)
         {
             _swatches[r] = new RadioButton[StyleSpecs.For(OverlayStyle.Cyberpunk).Swatches.Count];
             for (int i = 0; i < _swatches[r].Length; i++)
             {
-                var swatch = new RadioButton { Style = style, GroupName = $"Swatch{r}" };
+                var swatch = new RadioButton { GroupName = $"Swatch{r}" };
+                swatch.SetResourceReference(StyleProperty, "Ui.Swatch");
                 swatch.Checked += OnSwatchChecked;
                 _swatches[r][i] = swatch;
                 panels[r].Children.Add(swatch);

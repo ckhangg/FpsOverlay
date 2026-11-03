@@ -2,13 +2,13 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:s="clr-namespace:FpsOverlay.Core.Settings;assembly=FpsOverlay.Core"
-        Style="{StaticResource Cp.Window}"
+        Style="{DynamicResource Ui.Window}"
         Width="520"
         SizeToContent="Height"
         WindowStartupLocation="CenterScreen">
     <!-- Mọi chữ được đặt từ code theo ngôn ngữ (Loc); các thứ trong XAML chỉ là bố cục. -->
     <StackPanel Margin="18,10,18,18">
-        <Label x:Name="PromptSection" Style="{StaticResource Cp.Section}" />
+        <Label x:Name="PromptSection" Style="{DynamicResource Ui.Section}" />
 
         <TextBlock x:Name="PromptText" TextWrapping="Wrap" Margin="0,6,0,4" />
 
@@ -22,17 +22,17 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <TextBlock x:Name="LanguageLabel" Style="{StaticResource Cp.FieldLabel}" />
+            <TextBlock x:Name="LanguageLabel" Style="{DynamicResource Ui.FieldLabel}" />
             <StackPanel Grid.Column="1" Orientation="Horizontal">
                 <!-- Tên ngôn ngữ không dịch -->
-                <RadioButton x:Name="LanguageVi" GroupName="Language" Style="{StaticResource Cp.Segment}" Content="Tiếng Việt"
+                <RadioButton x:Name="LanguageVi" GroupName="Language" Style="{DynamicResource Ui.Segment}" Content="Tiếng Việt"
                              Tag="{x:Static s:AppLanguage.Vietnamese}" Checked="OnLanguageChecked" />
-                <RadioButton x:Name="LanguageEn" GroupName="Language" Style="{StaticResource Cp.Segment}" Content="English"
+                <RadioButton x:Name="LanguageEn" GroupName="Language" Style="{DynamicResource Ui.Segment}" Content="English"
                              Tag="{x:Static s:AppLanguage.English}" Checked="OnLanguageChecked" />
             </StackPanel>
 
-            <TextBlock x:Name="VersionLabel" Grid.Row="1" Style="{StaticResource Cp.FieldLabel}" />
-            <TextBlock x:Name="VersionValue" Grid.Row="1" Grid.Column="1" Style="{StaticResource Cp.Value}"
+            <TextBlock x:Name="VersionLabel" Grid.Row="1" Style="{DynamicResource Ui.FieldLabel}" />
+            <TextBlock x:Name="VersionValue" Grid.Row="1" Grid.Column="1" Style="{DynamicResource Ui.Value}"
                        HorizontalAlignment="Left" />
         </Grid>
 
@@ -40,7 +40,7 @@
         <StackPanel x:Name="OptionsPanel" Margin="0,4,0,0">
             <!-- Chỉ hiện khi chưa có PawnIO và chưa từng hỏi; mặc định tắt. -->
             <DockPanel x:Name="PawnIoOption" Visibility="Collapsed" Margin="0,4,0,0">
-                <ToggleButton x:Name="PawnIoSwitch" DockPanel.Dock="Left" Style="{StaticResource Cp.Switch}"
+                <ToggleButton x:Name="PawnIoSwitch" DockPanel.Dock="Left" Style="{DynamicResource Ui.Switch}"
                               VerticalAlignment="Center" Margin="0,0,12,0" />
                 <TextBlock x:Name="PawnIoLabel" TextWrapping="Wrap" VerticalAlignment="Center" Cursor="Hand"
                            MouseLeftButtonUp="OnPawnIoLabelClick" />
@@ -48,12 +48,12 @@
         </StackPanel>
 
         <TextBlock x:Name="StatusText" Margin="0,8,0,0" Visibility="Collapsed"
-                   FontFamily="{StaticResource Cp.Mono}" FontSize="12" Foreground="{StaticResource Cp.Cyan}" />
+                   FontFamily="{DynamicResource Ui.Mono}" FontSize="12" Foreground="{DynamicResource Ui.Secondary}" />
 
         <DockPanel Margin="0,16,0,0" LastChildFill="False">
-            <Button x:Name="CancelButton" DockPanel.Dock="Left" Style="{StaticResource Cp.GhostButton}" IsCancel="True"
+            <Button x:Name="CancelButton" DockPanel.Dock="Left" Style="{DynamicResource Ui.GhostButton}" IsCancel="True"
                     Click="OnCancelClick" />
-            <Button x:Name="InstallButton" DockPanel.Dock="Right" Style="{StaticResource Cp.PrimaryButton}" IsDefault="True"
+            <Button x:Name="InstallButton" DockPanel.Dock="Right" Style="{DynamicResource Ui.PrimaryButton}" IsDefault="True"
                     Click="OnInstallClick" />
         </DockPanel>
     </StackPanel>

@@ -99,6 +99,10 @@ public partial class App : Application
         // Cờ này chỉ đến từ bản setup; Task Scheduler chạy bản cài không kèm tham số nào.
         if (args.PawnIoOffered && !settings.Current.PawnIoOffered)
             settings.Update(s => s with { PawnIoOffered = true });
+        // Chủ đề cửa sổ theo phong cách overlay, chữ công tắc theo ngôn ngữ. Đăng ký trước mọi cửa sổ: cửa sổ cài đặt
+        // dựng lại chữ (vd. ký hiệu mục thu gọn) trong Changed của nó, lúc đó chủ đề mới phải được nạp rồi.
+        ApplyTheme(settings.Current);
+        settings.Changed += ApplyTheme;
         var overlay = _overlay = new OverlayWindow
         {
             PreviewWindow = () => IsPreviewing ? new System.Windows.Interop.WindowInteropHelper(_settingsWindow!).Handle : null,
@@ -211,6 +215,7 @@ public partial class App : Application
         // Chỉ đọc (ngôn ngữ, đã hỏi PawnIO chưa), không mở SettingsService: bản này không bao giờ ghi file cài đặt.
         var saved = SettingsStore.Load(SettingsStore.DefaultPath);
         var language = saved.Language;
+        ApplyTheme(saved);   // hộp thoại cài mang chủ đề của phong cách đã lưu
         // Không mang Payload.zip (bản cài nhiều file chép đi chỗ khác, bản dotnet build): báo rõ, không cài bản hỏng.
         if (!Installer.HasPayload)
         {
@@ -251,6 +256,12 @@ public partial class App : Application
         };
         window.Show();
         window.Activate();
+    }
+
+    static void ApplyTheme(OverlaySettings settings)
+    {
+        ThemeManager.Apply(settings.Style);
+        ThemeManager.ApplyLanguage(settings.Language);
     }
 
     // --uninstall (lệnh gỡ trong Settings → Apps): hỏi xác nhận rồi gỡ. Bản cài đang chạy thì báo thoát nó trước, không tự giết.

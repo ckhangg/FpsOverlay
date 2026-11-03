@@ -1,91 +1,86 @@
 <!--
-    Kiểu Cyberpunk cho cửa sổ cài đặt (bám mockup cyberpunk-v2). Tự viết, không dùng thư viện giao diện.
+    Chủ đề Cyberpunk cho cửa sổ cài đặt / cài đặt app (bám mockup cyberpunk-v2). Tự viết, không dùng thư viện giao diện.
     Font Chakra Petch cho chữ, JetBrains Mono cho số; cả hai có đủ bộ ký tự tiếng Việt.
+
+    Mỗi file trong Themes/ là một chủ đề, định nghĩa CÙNG một tập khoá Ui.* (ThemeKeysTests kiểm tra); ThemeManager
+    thay cả dictionary khi đổi phong cách. Cửa sổ và style chỉ gắn khoá bằng DynamicResource (trừ BasedOn).
+    Khung cửa sổ cố định (WindowStyle=None, AllowsTransparency, nền trong suốt) nằm ở style Ui.Window trong App.xaml;
+    chủ đề chỉ vẽ phần nhìn thấy qua Ui.WindowTemplate và chọn vùng kéo qua Ui.WindowChrome.
 -->
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime"
                     xmlns:th="clr-namespace:FpsOverlay.Themes">
 
-    <FontFamily x:Key="Cp.Font">pack://application:,,,/Assets/Fonts/#Chakra Petch</FontFamily>
-    <FontFamily x:Key="Cp.Mono">pack://application:,,,/Assets/Fonts/#JetBrains Mono</FontFamily>
+    <FontFamily x:Key="Ui.Font">pack://application:,,,/Assets/Fonts/#Chakra Petch</FontFamily>
+    <FontFamily x:Key="Ui.Mono">pack://application:,,,/Assets/Fonts/#JetBrains Mono</FontFamily>
+    <sys:Double x:Key="Ui.FontSize">15</sys:Double>
+    <FontWeight x:Key="Ui.FontWeight">Medium</FontWeight>
 
-    <SolidColorBrush x:Key="Cp.Background" Color="#0A0A0F" />
-    <SolidColorBrush x:Key="Cp.Yellow" Color="#FCEE0A" />
-    <SolidColorBrush x:Key="Cp.YellowHover" Color="#FFF55C" />
-    <SolidColorBrush x:Key="Cp.YellowPressed" Color="#D6C900" />
-    <SolidColorBrush x:Key="Cp.Cyan" Color="#00F0FF" />
-    <SolidColorBrush x:Key="Cp.Red" Color="#FF003C" />
-    <SolidColorBrush x:Key="Cp.RedTint" Color="#33FF003C" />
-    <SolidColorBrush x:Key="Cp.Text" Color="#D8D8E0" />
-    <SolidColorBrush x:Key="Cp.Track" Color="#2A2A35" />
-    <SolidColorBrush x:Key="Cp.Outline" Color="#44444F" />
-    <SolidColorBrush x:Key="Cp.Dashed" Color="#33333F" />
-    <SolidColorBrush x:Key="Cp.Field" Color="#12121A" />
-    <SolidColorBrush x:Key="Cp.KnobOff" Color="#77778A" />
+    <!-- Ký hiệu mục thu gọn (đóng / đang mở) và chữ trên công tắc; Ui.OnText/OffText bị App ghi đè theo ngôn ngữ. -->
+    <sys:String x:Key="Ui.ExpandGlyph">▾</sys:String>
+    <sys:String x:Key="Ui.CollapseGlyph">▴</sys:String>
+    <sys:String x:Key="Ui.OnText">BẬT</sys:String>
+    <sys:String x:Key="Ui.OffText">TẮT</sys:String>
+
+    <SolidColorBrush x:Key="Ui.WindowBackground" Color="#0A0A0F" />
+    <SolidColorBrush x:Key="Ui.Accent" Color="#FCEE0A" />
+    <SolidColorBrush x:Key="Ui.AccentHover" Color="#FFF55C" />
+    <SolidColorBrush x:Key="Ui.AccentPressed" Color="#D6C900" />
+    <SolidColorBrush x:Key="Ui.Secondary" Color="#00F0FF" />
+    <SolidColorBrush x:Key="Ui.Danger" Color="#FF003C" />
+    <SolidColorBrush x:Key="Ui.DangerTint" Color="#33FF003C" />
+    <SolidColorBrush x:Key="Ui.Text" Color="#D8D8E0" />
+    <SolidColorBrush x:Key="Ui.Track" Color="#2A2A35" />
+    <SolidColorBrush x:Key="Ui.Outline" Color="#44444F" />
+    <SolidColorBrush x:Key="Ui.Divider" Color="#33333F" />
+    <SolidColorBrush x:Key="Ui.Field" Color="#12121A" />
+    <SolidColorBrush x:Key="Ui.Muted" Color="#77778A" />
 
     <!-- Khung chỉ báo focus khi dùng bàn phím (Tab); bấm chuột thì không hiện. -->
-    <Style x:Key="Cp.FocusVisual">
+    <Style x:Key="Ui.FocusVisual">
         <Setter Property="Control.Template">
             <Setter.Value>
                 <ControlTemplate>
-                    <Rectangle Margin="-3" Stroke="{StaticResource Cp.Cyan}" StrokeThickness="1" StrokeDashArray="2 2"
+                    <Rectangle Margin="-3" Stroke="{DynamicResource Ui.Secondary}" StrokeThickness="1" StrokeDashArray="2 2"
                                SnapsToDevicePixels="True" />
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
 
-    <!-- ===== Cửa sổ: nền tối, không viền hệ thống, góc trên phải và dưới trái vát 22px ===== -->
-    <Style x:Key="Cp.Window" TargetType="Window">
-        <Setter Property="WindowStyle" Value="None" />
-        <Setter Property="AllowsTransparency" Value="True" />
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="ResizeMode" Value="NoResize" />
-        <Setter Property="UseLayoutRounding" Value="True" />
-        <Setter Property="Foreground" Value="{StaticResource Cp.Text}" />
-        <Setter Property="FontFamily" Value="{StaticResource Cp.Font}" />
-        <Setter Property="FontWeight" Value="Medium" />
-        <Setter Property="FontSize" Value="15" />
-        <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
-        <Setter Property="WindowChrome.WindowChrome">
-            <Setter.Value>
-                <!-- Kéo cửa sổ bằng thanh tiêu đề tự vẽ cao 44px. -->
-                <WindowChrome CaptionHeight="44" GlassFrameThickness="0" ResizeBorderThickness="0"
-                              CornerRadius="0" UseAeroCaptionButtons="False" />
-            </Setter.Value>
-        </Setter>
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="Window">
-                    <th:ChamferBorder Background="{StaticResource Cp.Background}" BorderBrush="{StaticResource Cp.Track}"
-                                      BorderThickness="1" TopRight="22" BottomLeft="22">
-                        <DockPanel>
-                            <Border DockPanel.Dock="Top" Height="44" Padding="16,0,26,0"
-                                    BorderBrush="{StaticResource Cp.Red}" BorderThickness="0,0,0,1">
-                                <DockPanel>
-                                    <Button DockPanel.Dock="Right" Style="{DynamicResource Cp.CloseButton}" Content="[ X ]"
-                                            Command="{x:Static SystemCommands.CloseWindowCommand}"
-                                            WindowChrome.IsHitTestVisibleInChrome="True" />
-                                    <TextBlock VerticalAlignment="Center">
-                                        <Run Text="FPS//OVERLAY" Foreground="{StaticResource Cp.Yellow}" FontWeight="Bold" FontSize="20" />
-                                        <Run Text=" " FontSize="20" />
-                                        <Run Text="{Binding Title, RelativeSource={RelativeSource TemplatedParent}, Mode=OneWay}"
-                                             Foreground="{StaticResource Cp.Red}" FontFamily="{StaticResource Cp.Mono}" FontSize="11" />
-                                    </TextBlock>
-                                </DockPanel>
-                            </Border>
-                            <ContentPresenter />
-                        </DockPanel>
-                    </th:ChamferBorder>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
+    <!-- ===== Cửa sổ: nền tối, góc trên phải và dưới trái vát 22px, thanh tiêu đề tự vẽ cao 44px ===== -->
+    <!-- Vùng kéo cửa sổ = thanh tiêu đề. -->
+    <WindowChrome x:Key="Ui.WindowChrome" CaptionHeight="44" GlassFrameThickness="0" ResizeBorderThickness="0"
+                  CornerRadius="0" UseAeroCaptionButtons="False" />
+
+    <ControlTemplate x:Key="Ui.WindowTemplate" TargetType="Window">
+        <th:ChamferBorder Background="{DynamicResource Ui.WindowBackground}" BorderBrush="{DynamicResource Ui.Track}"
+                          BorderThickness="1" TopRight="22" BottomLeft="22">
+            <DockPanel>
+                <Border DockPanel.Dock="Top" Height="44" Padding="16,0,26,0"
+                        BorderBrush="{DynamicResource Ui.Danger}" BorderThickness="0,0,0,1">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Style="{DynamicResource Ui.CloseButton}" Content="[ X ]"
+                                Command="{x:Static SystemCommands.CloseWindowCommand}"
+                                WindowChrome.IsHitTestVisibleInChrome="True" />
+                        <TextBlock VerticalAlignment="Center">
+                            <Run Text="FPS//OVERLAY" Foreground="{DynamicResource Ui.Accent}" FontWeight="Bold" FontSize="20" />
+                            <Run Text=" " FontSize="20" />
+                            <Run Text="{Binding Title, RelativeSource={RelativeSource TemplatedParent}, Mode=OneWay}"
+                                 Foreground="{DynamicResource Ui.Danger}" FontFamily="{DynamicResource Ui.Mono}" FontSize="11" />
+                        </TextBlock>
+                    </DockPanel>
+                </Border>
+                <ContentPresenter />
+            </DockPanel>
+        </th:ChamferBorder>
+    </ControlTemplate>
 
     <!-- Nút [ X ] trên thanh tiêu đề -->
-    <Style x:Key="Cp.CloseButton" TargetType="Button">
-        <Setter Property="Foreground" Value="{StaticResource Cp.Red}" />
-        <Setter Property="FontFamily" Value="{StaticResource Cp.Mono}" />
+    <Style x:Key="Ui.CloseButton" TargetType="Button">
+        <Setter Property="Foreground" Value="{DynamicResource Ui.Danger}" />
+        <Setter Property="FontFamily" Value="{DynamicResource Ui.Mono}" />
         <Setter Property="FontSize" Value="14" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Focusable" Value="False" />
@@ -101,15 +96,15 @@
         </Setter>
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Foreground" Value="{StaticResource Cp.Yellow}" />
+                <Setter Property="Foreground" Value="{DynamicResource Ui.Accent}" />
             </Trigger>
         </Style.Triggers>
     </Style>
 
     <!-- ===== Chữ ===== -->
     <!-- Tiêu đề mục: "// GIAO DIỆN", gạch đứt bên dưới -->
-    <Style x:Key="Cp.Section" TargetType="Label">
-        <Setter Property="Foreground" Value="{StaticResource Cp.Red}" />
+    <Style x:Key="Ui.Section" TargetType="Label">
+        <Setter Property="Foreground" Value="{DynamicResource Ui.Danger}" />
         <Setter Property="FontSize" Value="12" />
         <Setter Property="FontWeight" Value="Bold" />
         <Setter Property="Margin" Value="0,8,0,4" />
@@ -118,7 +113,7 @@
                 <ControlTemplate TargetType="Label">
                     <StackPanel>
                         <ContentPresenter Margin="0,0,0,3" />
-                        <Rectangle Height="1" Stroke="{StaticResource Cp.Dashed}" StrokeThickness="1"
+                        <Rectangle Height="1" Stroke="{DynamicResource Ui.Divider}" StrokeThickness="1"
                                    StrokeDashArray="3 2" SnapsToDevicePixels="True" />
                     </StackPanel>
                 </ControlTemplate>
@@ -127,47 +122,47 @@
     </Style>
 
     <!-- Nhãn của một dòng cài đặt; lề trên/dưới tạo khoảng cách giữa các dòng -->
-    <Style x:Key="Cp.FieldLabel" TargetType="TextBlock">
+    <Style x:Key="Ui.FieldLabel" TargetType="TextBlock">
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Margin" Value="0,7,12,7" />
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
     </Style>
 
     <!-- Số ở cột phải: JetBrains Mono xanh cyan -->
-    <Style x:Key="Cp.Value" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource Cp.Mono}" />
-        <Setter Property="Foreground" Value="{StaticResource Cp.Cyan}" />
+    <Style x:Key="Ui.Value" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource Ui.Mono}" />
+        <Setter Property="Foreground" Value="{DynamicResource Ui.Secondary}" />
         <Setter Property="FontSize" Value="14" />
         <Setter Property="HorizontalAlignment" Value="Right" />
         <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 
     <!-- ===== Nút ===== -->
-    <Style x:Key="Cp.ButtonBase" TargetType="Button">
+    <Style x:Key="Ui.ButtonBase" TargetType="Button">
         <Setter Property="FontSize" Value="14" />
         <Setter Property="FontWeight" Value="Bold" />
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="FocusVisualStyle" Value="{StaticResource Cp.FocusVisual}" />
+        <Setter Property="FocusVisualStyle" Value="{DynamicResource Ui.FocusVisual}" />
         <Setter Property="Padding" Value="18,6" />
     </Style>
 
     <!-- Nút chính: nền vàng, chữ đen -->
-    <Style x:Key="Cp.PrimaryButton" TargetType="Button" BasedOn="{StaticResource Cp.ButtonBase}">
+    <Style x:Key="Ui.PrimaryButton" TargetType="Button" BasedOn="{StaticResource Ui.ButtonBase}">
         <Setter Property="Foreground" Value="Black" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <th:ChamferBorder x:Name="Bd" Background="{StaticResource Cp.Yellow}" BottomRight="8"
-                                      BorderBrush="{StaticResource Cp.Yellow}" BorderThickness="1"
+                    <th:ChamferBorder x:Name="Bd" Background="{DynamicResource Ui.Accent}" BottomRight="8"
+                                      BorderBrush="{DynamicResource Ui.Accent}" BorderThickness="1"
                                       Padding="{TemplateBinding Padding}">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </th:ChamferBorder>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource Cp.YellowHover}" />
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Ui.AccentHover}" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource Cp.YellowPressed}" />
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Ui.AccentPressed}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -176,22 +171,22 @@
     </Style>
 
     <!-- Nút phụ: viền đỏ, chữ đỏ -->
-    <Style x:Key="Cp.GhostButton" TargetType="Button" BasedOn="{StaticResource Cp.ButtonBase}">
-        <Setter Property="Foreground" Value="{StaticResource Cp.Red}" />
+    <Style x:Key="Ui.GhostButton" TargetType="Button" BasedOn="{StaticResource Ui.ButtonBase}">
+        <Setter Property="Foreground" Value="{DynamicResource Ui.Danger}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <th:ChamferBorder x:Name="Bd" Background="Transparent" BottomRight="8"
-                                      BorderBrush="{StaticResource Cp.Red}" BorderThickness="1"
+                                      BorderBrush="{DynamicResource Ui.Danger}" BorderThickness="1"
                                       Padding="{TemplateBinding Padding}">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </th:ChamferBorder>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource Cp.RedTint}" />
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Ui.DangerTint}" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource Cp.Red}" />
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Ui.Danger}" />
                             <Setter Property="Foreground" Value="Black" />
                         </Trigger>
                     </ControlTemplate.Triggers>
@@ -201,7 +196,7 @@
     </Style>
 
     <!-- Tiêu đề mục thu gọn: nút phẳng, giữ nguyên giao diện cũ, thao tác được bằng bàn phím -->
-    <Style x:Key="Cp.HeaderButton" TargetType="Button">
+    <Style x:Key="Ui.HeaderButton" TargetType="Button">
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -214,7 +209,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsKeyboardFocused" Value="True">
-                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Cp.Dashed}" />
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Ui.Divider}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -223,28 +218,28 @@
     </Style>
 
     <!-- ===== Nút phân đoạn (RadioButton): chọn = nền vàng chữ đen ===== -->
-    <Style x:Key="Cp.Segment" TargetType="RadioButton">
-        <Setter Property="Foreground" Value="{StaticResource Cp.Text}" />
+    <Style x:Key="Ui.Segment" TargetType="RadioButton">
+        <Setter Property="Foreground" Value="{DynamicResource Ui.Text}" />
         <Setter Property="FontSize" Value="13" />
         <Setter Property="Margin" Value="0,0,6,0" />
         <Setter Property="Padding" Value="12,3" />
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="FocusVisualStyle" Value="{StaticResource Cp.FocusVisual}" />
+        <Setter Property="FocusVisualStyle" Value="{DynamicResource Ui.FocusVisual}" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="RadioButton">
-                    <th:ChamferBorder x:Name="Bd" Background="Transparent" BorderBrush="{StaticResource Cp.Outline}"
+                    <th:ChamferBorder x:Name="Bd" Background="Transparent" BorderBrush="{DynamicResource Ui.Outline}"
                                       BorderThickness="1" BottomRight="6" Padding="{TemplateBinding Padding}">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </th:ChamferBorder>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Cp.Yellow}" />
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Ui.Accent}" />
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource Cp.Yellow}" />
-                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Cp.Yellow}" />
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Ui.Accent}" />
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Ui.Accent}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -259,14 +254,14 @@
     </Style>
 
     <!-- ===== Thanh trượt: rãnh #2A2A35, phần đã chọn cyan phát sáng, núm vàng nghiêng ===== -->
-    <Style x:Key="Cp.SliderFill" TargetType="RepeatButton">
+    <Style x:Key="Ui.SliderFill" TargetType="RepeatButton">
         <Setter Property="Focusable" Value="False" />
         <Setter Property="IsTabStop" Value="False" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="RepeatButton">
                     <Grid Background="Transparent">
-                        <Rectangle Height="4" VerticalAlignment="Center" Fill="{StaticResource Cp.Cyan}">
+                        <Rectangle Height="4" VerticalAlignment="Center" Fill="{DynamicResource Ui.Secondary}">
                             <Rectangle.Effect>
                                 <DropShadowEffect Color="#00F0FF" ShadowDepth="0" BlurRadius="8" Opacity="0.9" />
                             </Rectangle.Effect>
@@ -277,21 +272,21 @@
         </Setter>
     </Style>
 
-    <Style x:Key="Cp.SliderRest" TargetType="RepeatButton">
+    <Style x:Key="Ui.SliderRest" TargetType="RepeatButton">
         <Setter Property="Focusable" Value="False" />
         <Setter Property="IsTabStop" Value="False" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="RepeatButton">
                     <Grid Background="Transparent">
-                        <Rectangle Height="4" VerticalAlignment="Center" Fill="{StaticResource Cp.Track}" />
+                        <Rectangle Height="4" VerticalAlignment="Center" Fill="{DynamicResource Ui.Track}" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
 
-    <Style x:Key="Cp.SliderThumb" TargetType="Thumb">
+    <Style x:Key="Ui.SliderThumb" TargetType="Thumb">
         <Setter Property="Focusable" Value="False" />
         <Setter Property="Width" Value="12" />
         <Setter Property="Height" Value="16" />
@@ -300,7 +295,7 @@
             <Setter.Value>
                 <ControlTemplate TargetType="Thumb">
                     <Grid Background="Transparent">
-                        <Rectangle x:Name="Knob" Width="10" Height="16" Fill="{StaticResource Cp.Yellow}"
+                        <Rectangle x:Name="Knob" Width="10" Height="16" Fill="{DynamicResource Ui.Accent}"
                                    RenderTransformOrigin="0.5,0.5">
                             <Rectangle.RenderTransform>
                                 <SkewTransform AngleX="-15" />
@@ -309,7 +304,7 @@
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Knob" Property="Fill" Value="{StaticResource Cp.YellowHover}" />
+                            <Setter TargetName="Knob" Property="Fill" Value="{DynamicResource Ui.AccentHover}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -317,10 +312,10 @@
         </Setter>
     </Style>
 
-    <Style x:Key="Cp.Slider" TargetType="Slider">
+    <Style x:Key="Ui.Slider" TargetType="Slider">
         <Setter Property="IsMoveToPointEnabled" Value="True" />
         <Setter Property="IsSnapToTickEnabled" Value="True" />
-        <Setter Property="FocusVisualStyle" Value="{StaticResource Cp.FocusVisual}" />
+        <Setter Property="FocusVisualStyle" Value="{DynamicResource Ui.FocusVisual}" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Template">
             <Setter.Value>
@@ -328,13 +323,13 @@
                     <Grid Height="22" Background="Transparent">
                         <Track x:Name="PART_Track">
                             <Track.DecreaseRepeatButton>
-                                <RepeatButton Style="{StaticResource Cp.SliderFill}" Command="Slider.DecreaseLarge" />
+                                <RepeatButton Style="{DynamicResource Ui.SliderFill}" Command="Slider.DecreaseLarge" />
                             </Track.DecreaseRepeatButton>
                             <Track.IncreaseRepeatButton>
-                                <RepeatButton Style="{StaticResource Cp.SliderRest}" Command="Slider.IncreaseLarge" />
+                                <RepeatButton Style="{DynamicResource Ui.SliderRest}" Command="Slider.IncreaseLarge" />
                             </Track.IncreaseRepeatButton>
                             <Track.Thumb>
-                                <Thumb Style="{StaticResource Cp.SliderThumb}" />
+                                <Thumb Style="{DynamicResource Ui.SliderThumb}" />
                             </Track.Thumb>
                         </Track>
                     </Grid>
@@ -344,25 +339,25 @@
     </Style>
 
     <!-- ===== Công tắc (ToggleButton) ===== -->
-    <Style x:Key="Cp.Switch" TargetType="ToggleButton">
+    <Style x:Key="Ui.Switch" TargetType="ToggleButton">
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="FocusVisualStyle" Value="{StaticResource Cp.FocusVisual}" />
+        <Setter Property="FocusVisualStyle" Value="{DynamicResource Ui.FocusVisual}" />
         <Setter Property="HorizontalAlignment" Value="Left" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ToggleButton">
-                    <th:ChamferBorder x:Name="Bd" Width="40" Height="18" Background="{StaticResource Cp.Track}"
-                                      BorderBrush="{StaticResource Cp.Track}" BorderThickness="1" BottomRight="5">
+                    <th:ChamferBorder x:Name="Bd" Width="40" Height="18" Background="{DynamicResource Ui.Track}"
+                                      BorderBrush="{DynamicResource Ui.Track}" BorderThickness="1" BottomRight="5">
                         <Rectangle x:Name="Knob" Width="12" Height="12" Margin="2,0" HorizontalAlignment="Left"
-                                   VerticalAlignment="Center" Fill="{StaticResource Cp.KnobOff}" />
+                                   VerticalAlignment="Center" Fill="{DynamicResource Ui.Muted}" />
                     </th:ChamferBorder>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Cp.Yellow}" />
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Ui.Accent}" />
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource Cp.Yellow}" />
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Ui.Accent}" />
                             <Setter TargetName="Knob" Property="Fill" Value="Black" />
                             <Setter TargetName="Knob" Property="HorizontalAlignment" Value="Right" />
                         </Trigger>
@@ -373,19 +368,19 @@
     </Style>
 
     <!-- ===== Ô tick (CheckBox): cùng màu với công tắc ===== -->
-    <Style x:Key="Cp.Check" TargetType="CheckBox">
+    <Style x:Key="Ui.Check" TargetType="CheckBox">
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="FocusVisualStyle" Value="{StaticResource Cp.FocusVisual}" />
-        <Setter Property="FontFamily" Value="{StaticResource Cp.Font}" />
+        <Setter Property="FocusVisualStyle" Value="{DynamicResource Ui.FocusVisual}" />
+        <Setter Property="FontFamily" Value="{DynamicResource Ui.Font}" />
         <Setter Property="FontSize" Value="13" />
-        <Setter Property="Foreground" Value="{StaticResource Cp.Text}" />
+        <Setter Property="Foreground" Value="{DynamicResource Ui.Text}" />
         <Setter Property="Margin" Value="0,3" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="CheckBox">
                     <StackPanel Orientation="Horizontal" Background="Transparent">
-                        <th:ChamferBorder x:Name="Bd" Width="16" Height="16" Background="{StaticResource Cp.Track}"
-                                          BorderBrush="{StaticResource Cp.Track}" BorderThickness="1" BottomRight="4"
+                        <th:ChamferBorder x:Name="Bd" Width="16" Height="16" Background="{DynamicResource Ui.Track}"
+                                          BorderBrush="{DynamicResource Ui.Track}" BorderThickness="1" BottomRight="4"
                                           VerticalAlignment="Center">
                             <Path x:Name="Mark" Data="M3,8 L6.5,11.5 L13,4.5" Stroke="Black" StrokeThickness="2"
                                   Visibility="Collapsed" />
@@ -394,10 +389,10 @@
                     </StackPanel>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Cp.Yellow}" />
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Ui.Accent}" />
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource Cp.Yellow}" />
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Ui.Accent}" />
                             <Setter TargetName="Mark" Property="Visibility" Value="Visible" />
                         </Trigger>
                     </ControlTemplate.Triggers>
@@ -407,13 +402,13 @@
     </Style>
 
     <!-- ===== Ô nhập mã hex: Tag="invalid" thì viền đỏ ===== -->
-    <Style x:Key="Cp.HexBox" TargetType="TextBox">
-        <Setter Property="FontFamily" Value="{StaticResource Cp.Mono}" />
+    <Style x:Key="Ui.HexBox" TargetType="TextBox">
+        <Setter Property="FontFamily" Value="{DynamicResource Ui.Mono}" />
         <Setter Property="FontSize" Value="13" />
-        <Setter Property="Foreground" Value="{StaticResource Cp.Cyan}" />
-        <Setter Property="CaretBrush" Value="{StaticResource Cp.Yellow}" />
-        <Setter Property="SelectionBrush" Value="{StaticResource Cp.Cyan}" />
-        <Setter Property="BorderBrush" Value="{StaticResource Cp.Outline}" />
+        <Setter Property="Foreground" Value="{DynamicResource Ui.Secondary}" />
+        <Setter Property="CaretBrush" Value="{DynamicResource Ui.Accent}" />
+        <Setter Property="SelectionBrush" Value="{DynamicResource Ui.Secondary}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Ui.Outline}" />
         <Setter Property="MaxLength" Value="7" />
         <Setter Property="CharacterCasing" Value="Upper" />
         <Setter Property="VerticalAlignment" Value="Center" />
@@ -422,7 +417,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="TextBox">
-                    <Border x:Name="Bd" Background="{StaticResource Cp.Field}" BorderThickness="1"
+                    <Border x:Name="Bd" Background="{DynamicResource Ui.Field}" BorderThickness="1"
                             BorderBrush="{TemplateBinding BorderBrush}" Padding="4,2">
                         <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center" />
                     </Border>
@@ -431,25 +426,25 @@
         </Setter>
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="BorderBrush" Value="{StaticResource Cp.Yellow}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Ui.Accent}" />
             </Trigger>
             <Trigger Property="IsKeyboardFocused" Value="True">
-                <Setter Property="BorderBrush" Value="{StaticResource Cp.Cyan}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Ui.Secondary}" />
             </Trigger>
             <Trigger Property="Tag" Value="invalid">
-                <Setter Property="BorderBrush" Value="{StaticResource Cp.Red}" />
-                <Setter Property="Foreground" Value="{StaticResource Cp.Red}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Ui.Danger}" />
+                <Setter Property="Foreground" Value="{DynamicResource Ui.Danger}" />
             </Trigger>
         </Style.Triggers>
     </Style>
 
     <!-- ===== Ô màu gợi ý (RadioButton): Background là màu; chọn = khung vàng ===== -->
-    <Style x:Key="Cp.Swatch" TargetType="RadioButton">
+    <Style x:Key="Ui.Swatch" TargetType="RadioButton">
         <Setter Property="Width" Value="22" />
         <Setter Property="Height" Value="22" />
         <Setter Property="Margin" Value="0,0,2,0" />
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="FocusVisualStyle" Value="{StaticResource Cp.FocusVisual}" />
+        <Setter Property="FocusVisualStyle" Value="{DynamicResource Ui.FocusVisual}" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Template">
             <Setter.Value>
@@ -462,7 +457,7 @@
                             <Setter TargetName="Ring" Property="BorderBrush" Value="#88FCEE0A" />
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="Ring" Property="BorderBrush" Value="{StaticResource Cp.Yellow}" />
+                            <Setter TargetName="Ring" Property="BorderBrush" Value="{DynamicResource Ui.Accent}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

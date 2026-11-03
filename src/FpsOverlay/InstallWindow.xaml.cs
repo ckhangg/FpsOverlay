@@ -9,7 +9,7 @@ using FpsOverlay.Core.Settings;
 namespace FpsOverlay;
 
 /// <summary>
-/// Hộp thoại cài/cập nhật kiểu Cyberpunk, hiện khi chạy exe từ ngoài thư mục cài. Bấm cài: kiểm tra bản cài không
+/// Hộp thoại cài/cập nhật (chủ đề theo phong cách đã lưu, xem <see cref="ThemeManager"/>), hiện khi chạy exe từ ngoài thư mục cài. Bấm cài: kiểm tra bản cài không
 /// chạy, chép (ngoài luồng UI), trỏ lại tác vụ khởi động cùng Windows, rồi đóng với <see cref="Succeeded"/> = true.
 /// Tuỳ chọn thêm (vd. PawnIO) đặt vào <c>OptionsPanel</c> và chạy trong <see cref="AfterInstallAsync"/>.
 /// </summary>
@@ -74,6 +74,7 @@ public partial class InstallWindow : Window
     {
         if (_refreshing) return;
         _language = (AppLanguage)((FrameworkElement)sender).Tag;
+        ThemeManager.ApplyLanguage(_language);   // chữ BẬT/TẮT trên công tắc theo ngôn ngữ của hộp thoại
         ApplyLanguage();
     }
 
