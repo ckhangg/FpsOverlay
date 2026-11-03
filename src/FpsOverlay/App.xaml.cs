@@ -149,6 +149,7 @@ public partial class App : Application
         InstallAction action;
         try
         {
+            Installer.EnsureInstallPathValid();   // không hiện hộp thoại cài với thư mục cài rỗng
             action = Installer.Decide();
             if (action == InstallAction.RunInstalled)
             {

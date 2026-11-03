@@ -82,8 +82,7 @@ static class Installer
     /// </summary>
     public static void Install()
     {
-        if (!IsInstallPathValid)
-            throw new InvalidOperationException($"Program Files folder is not an absolute path: \"{ProgramFiles}\"");
+        EnsureInstallPathValid();
         Directory.CreateDirectory(InstallDirectory);
 
         // Chép qua file tạm (tên riêng mỗi lần) rồi đổi tên: lỗi giữa chừng không để lại exe cụt trong thư mục cài.
@@ -123,6 +122,8 @@ static class Installer
     /// </summary>
     public static void Uninstall()
     {
+        // Đường dẫn cài không hợp lệ: không xoá gì, không đụng tác vụ khởi động (giống Install).
+        EnsureInstallPathValid();
         var errors = new List<string>();
         bool Step(Action action)
         {
@@ -169,10 +170,16 @@ static class Installer
     // ---------- Gỡ thư mục ----------
 
     // Chặn mọi đường dẫn khác: chỉ đúng <Program Files>\FpsOverlay, tuyệt đối, không phải liên kết (junction/symlink).
-    static string SafeInstallDirectory()
+    /// <summary>Ném lỗi (kèm lý do ngắn) nếu Windows không báo được thư mục Program Files tuyệt đối.</summary>
+    public static void EnsureInstallPathValid()
     {
         if (!IsInstallPathValid)
             throw new InvalidOperationException($"Program Files folder is not an absolute path: \"{ProgramFiles}\"");
+    }
+
+    static string SafeInstallDirectory()
+    {
+        EnsureInstallPathValid();
         var full = Path.GetFullPath(InstallDirectory).TrimEnd(Path.DirectorySeparatorChar);
         var ok = ProgramFiles.Length > 0 &&
                  Path.IsPathFullyQualified(ProgramFiles) &&
