@@ -107,6 +107,23 @@ public class ThemeKeysTests
         Assert.True(checkedFiles >= 2);
     }
 
+    // Khoá Ui.* được tham chiếu bên trong file chủ đề: {DynamicResource Ui.X}, {StaticResource Ui.X}, ResourceKey=Ui.X.
+    static readonly Regex ThemeInternalRef =
+        new(@"(?:\{(?:StaticResource|DynamicResource)\s+(?:ResourceKey\s*=\s*)?|ResourceKey\s*=\s*)(?<key>Ui\.[A-Za-z0-9]+)");
+
+    [Fact]
+    public void Themes_reference_only_their_own_keys()
+    {
+        // Thiếu khoá thì DynamicResource lặng lẽ không ra gì (control mất màu/kiểu) chỉ ở đúng chủ đề đó.
+        foreach (var file in ThemeFiles())
+        {
+            var keys = ThemeKeys(file);
+            foreach (Match m in ThemeInternalRef.Matches(File.ReadAllText(file)))
+                Assert.True(keys.Contains(m.Groups["key"].Value),
+                    $"{Path.GetFileName(file)}: dùng khoá '{m.Groups["key"].Value}' nhưng không định nghĩa");
+        }
+    }
+
     [Fact]
     public void Theme_styles_use_dynamic_resources()
     {
