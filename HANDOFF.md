@@ -11,7 +11,7 @@
 
 ## 2. Công nghệ và cấu trúc
 - C# / **.NET 10**, WPF (+ WinForms `NotifyIcon` cho khay), xUnit.
-- `src/FpsOverlay.Core`: logic thuần, có test (`tests/FpsOverlay.Core.Tests`, 292 test).
+- `src/FpsOverlay.Core`: logic thuần, có test (`tests/FpsOverlay.Core.Tests`, 350 test).
 - `src/FpsOverlay`: app WPF. Chạy với quyền **Administrator** (`app.manifest` requireAdministrator) vì PresentMon cần ETW.
 - Đo FPS: **PresentMon 2.6.0** (`tools/PresentMon.exe`), cửa sổ trượt 0,5 s, độ trễ cho phép 1,5 s (dữ liệu ETW về theo đợt ~1 s).
 - Cảm biến: **LibreHardwareMonitorLib 0.9.6** (GPU/CPU tải và nhiệt, VRAM, xung nhân, công suất, quạt GPU), RAM qua `GlobalMemoryStatusEx`. Nhiệt độ CPU cần driver **PawnIO** (người dùng tự đồng ý cài).
@@ -27,6 +27,7 @@
 | 5 | Phiên bản **1.1.0**: bảng kiểu + mô hình hàng (refactor); VRAM/CLK/PWR/FAN (mặc định tắt, log thêm 4 cột); cảnh báo quá nhiệt (ngưỡng GPU 85/CPU 90, N giây mặc định 10, nháy bật, bíp tắt, nút "Thử cảnh báo", mục `// CẢNH BÁO`); hai kiểu mới **Neon tím** (Orbitron) và **Terminal xanh** (VT323); bố cục dọc; mục khay "Di chuyển overlay" (kéo thả; Enter/bấm đúp lưu, Esc huỷ, trả focus về game); cửa sổ cài đặt cuộn được | merge vào master, người dùng đã kiểm tay OK (2026-11-03) |
 | 6 | Phiên bản **1.2.0**: "Chỉ hiện khi chơi game" (mặc định bật; overlay hiện khi cửa sổ phía trước phủ kín màn hình, hoặc exe nằm trong `\steamapps\common\` hay `\XboxGames\`, hoặc nằm trong "Luôn hiện"; "Không bao giờ hiện" thắng; kiểm mỗi 250 ms); mục khay "Luôn hiện cho …"/"Không bao giờ hiện cho …"; cài đặt: danh sách thông số thu gọn sau nút "Chọn thông số hiển thị ▾" kèm "Đang hiện N/10", danh sách ứng dụng thu gọn có nút Xoá | merge vào master, chưa kiểm tay |
 | 7 | Phiên bản **1.3.0**: cài đặt có các mục màu/FPS/cảnh báo thu gọn được và nhãn phiên bản; kho GitHub công khai `ckhangg/FpsOverlay` (README song ngữ, giấy phép MIT); `scripts/release.ps1` phát hành lên GitHub Releases; cài bằng một dòng `curl` | merge vào master, đã phát hành v1.3.0 trên GitHub, chưa kiểm tay |
+| 8 | Phiên bản **1.4.0**: cửa sổ cài đặt/cài app/cập nhật theo 4 chủ đề overlay (Cổ điển, Cyberpunk, Neon tím, Terminal xanh) và đổi ngay khi chọn; cột nhãn rộng hơn, nhãn tự xuống dòng; thanh cuộn theo chủ đề; kiểm tra cập nhật từ GitHub Releases khi mở app (im lặng nếu lỗi), nút "Kiểm tra cập nhật" trong cài đặt và khay; hộp thoại CẬP NHẬT / BỎ QUA BẢN NÀY / ĐỂ SAU; `--autostart` chỉ hiện thông báo khay + một dòng đầu menu khay; tải về `<InstallDir>\Temp`, kiểm SHA-256, bàn giao `--update-after <PID>`, cập nhật tự động không hỏi; tác vụ khởi động nay truyền `--autostart` | **chưa merge**, nhánh `feat/themed-ui-updater`, chưa phát hành, chưa kiểm tay |
 
 Hoãn theo ý người dùng: **biểu đồ FPS/frametime** (làm sau).
 
@@ -37,9 +38,11 @@ Hoãn theo ý người dùng: **biểu đồ FPS/frametime** (làm sau).
 - `docs/superpowers/specs/2026-11-03-gpu-alerts-themes-layout-design.md` — đợt 5
 - `docs/superpowers/specs/2026-11-03-game-only-overlay-design.md` — đợt 6
 - `docs/superpowers/specs/2026-11-03-collapse-version-install-design.md` — đợt 7
-- `docs/superpowers/plans/*.md` — kế hoạch tương ứng (đợt 3–4 có thêm Task 9b; đợt 5: `2026-11-03-gpu-alerts-themes-layout.md`; đợt 6: `2026-11-03-game-only-overlay.md`; đợt 7: `2026-11-03-collapse-version-install.md`)
+- `docs/superpowers/specs/2026-11-04-themed-ui-updater-design.md` — đợt 8 (chủ đề cho cửa sổ + bộ cập nhật)
+- `docs/superpowers/plans/*.md` — kế hoạch tương ứng (đợt 3–4 có thêm Task 9b; đợt 5: `2026-11-03-gpu-alerts-themes-layout.md`; đợt 6: `2026-11-03-game-only-overlay.md`; đợt 7: `2026-11-03-collapse-version-install.md`; đợt 8: `2026-11-04-themed-ui-updater.md`)
 
 ## 5. Trạng thái hiện tại
+- **Đợt 8 (1.4.0) nằm trên nhánh `feat/themed-ui-updater`, chưa merge, chưa phát hành, chưa kiểm tay.** `dotnet test`: 350/350 pass, `dotnet build src/FpsOverlay`: 0 cảnh báo. Cần kiểm tay mục "Đợt 8" ở mục 9. Người dùng đang ở bản 1.3.0 (chưa có bộ cập nhật) phải chạy lại lệnh cài một dòng một lần để lên 1.4.0. Thử cập nhật thật cần phát hành một bản thử (vd. 1.4.1): chỉ làm khi người dùng đồng ý.
 - **Đợt 7 (1.3.0) đã merge vào master và phát hành tại https://github.com/ckhangg/FpsOverlay/releases/tag/v1.3.0, chưa kiểm tay.** Lịch sử git đã đổi tác giả thành `CKhang` (noreply) và xoá danh tính công ty cũ khỏi nội dung; bản sao lưu lịch sử cũ: `%USERPROFILE%\Downloads\FPS-history-backup.bundle` (chỉ trên máy, không đẩy lên). `dotnet test`: 292/292 pass, `dotnet build src/FpsOverlay`: 0 cảnh báo. Cần kiểm tay mục "Đợt 7" ở mục 9.
 - **Kho GitHub:** https://github.com/ckhangg/FpsOverlay (công khai, tài khoản `ckhangg`; tác giả mọi commit là `CKhang <39177627+ckhangg@users.noreply.github.com>`). Bản sao lưu lịch sử cũ: `%USERPROFILE%\Downloads\FPS-history-backup.bundle`.
 - **Phát hành bản mới:** đổi `<Version>` trong `src/FpsOverlay/FpsOverlay.csproj`, merge vào `master`, rồi chạy `.\scripts\release.ps1` (cần `gh` đã đăng nhập). Script kiểm cây sạch + đang ở master + thẻ chưa có, chạy test, publish, tạo `publish\FpsOverlay.exe.sha256`, đẩy thẻ `vX.Y.Z` rồi tạo release kèm hai file.
@@ -88,7 +91,21 @@ Hoãn theo ý người dùng: **biểu đồ FPS/frametime** (làm sau).
 - Bản cài setup không bao giờ ghi `settings.json` (tránh ghi đè cài đặt khi đọc lỗi).
 - Chuyển thẳng sang game khác → đóng buổi log cũ, mở buổi mới. Alt-tab < 1 phút: cùng buổi, ô FPS trống.
 
+- **Đợt 8** Tiêu đề cửa sổ của Neon tím dùng Chakra Petch vì Orbitron không có tiếng Việt (overlay Neon vẫn dùng Orbitron cho số/nhãn Latin).
+- **Đợt 8** Khung cửa sổ là một kiểu trong suốt cố định; mỗi chủ đề có `Ui.WindowTemplate` riêng vẽ nền/viền/hiệu ứng. Đổi chủ đề trong cài đặt áp dụng ngay cho mọi cửa sổ đang mở.
+- **Đợt 8** Nút trong cửa sổ viết HOA qua `Loc` (vd. CẬP NHẬT, ĐỂ SAU); mục menu khay giữ chữ thường như câu.
+- **Đợt 8** Bấm "Kiểm tra cập nhật" khi lần kiểm tra lúc mở app còn đang chạy thì nhập vào lần đó (chỉ một kết quả, không gọi mạng hai lần).
+- **Đợt 8** `--autostart` (tác vụ khởi động cùng Windows) không bao giờ bật hộp thoại: chỉ thông báo bóng khay và một dòng đầu menu khay. Tác vụ cũ của 1.3.0 được sửa (`RepairEntries`) để thêm `--autostart`.
+- **Đợt 8** `SkippedVersion` trong `settings.json`: "BỎ QUA BẢN NÀY" nhớ phiên bản; kiểm tự động không nhắc lại đúng bản đó, kiểm bằng tay vẫn báo.
+- **Đợt 8** Tải về vào `<InstallDir>\Temp` (chỉ Admin ghi được; bản `--no-install` dùng `%ProgramData%\FpsOverlay\Temp` có ACL Admin). Chỉ nhận HTTPS tới github.com, objects.githubusercontent.com, release-assets.githubusercontent.com (kiểm từng bước chuyển hướng, tối đa 5), tối đa 400 MB, bắt buộc khớp SHA-256. Khi khởi động bản đã cài, xoá `Temp\*.exe` và `Temp\extract` cũ hơn 1 giờ.
+- **Đợt 8** Bàn giao: app cũ chạy exe mới với `--update-after <PID>` rồi thoát; exe mới chỉ chờ (tối đa 30 s) nếu PID đúng là bản cài, rồi cài đè không hỏi và mở bản đã cài.
+- **Đợt 8** Cập nhật tự động thất bại vẫn mở bản đã cài (nếu còn) để người dùng không mất overlay.
+- **Đợt 8** Biến `DOTNET_BUNDLE_EXTRACT_BASE_DIR` được trỏ tới `<InstallDir>\Temp\extract` cho exe cập nhật, để thư viện native không bung ra `%TEMP%\.net` (nơi người dùng thường ghi được) khi chạy với quyền Admin.
+- **Rủi ro đã biết (đợt 8)** File `.sha256` chứng minh toàn vẹn, **không** chứng minh xuất xứ: exe chưa ký số, nên nếu tài khoản GitHub của chủ kho bị chiếm thì kẻ chiếm đăng được cả file lẫn mã băm. Chủ kho nên bật 2FA. Ghi trong README.
+- **Rủi ro đã biết (đợt 8, có từ trước)** Người dùng tự chạy file mang đi (single-file) bằng quyền Admin thì thư viện native bị bung ra `%TEMP%\.net\FpsOverlay\<id>`, thư mục người dùng ghi được và được tái sử dụng: có thể bị cài DLL giả. Đường cập nhật tự động đã tránh (xem trên); chạy tay thì chưa.
+
 ## 8. Việc nên làm tiếp
+00. **Kiểm tay đợt 8** (mục 9, phần "Đợt 8"), rồi merge và phát hành 1.4.0 (`.\scriptselease.ps1`).
 0. **Kiểm tay đợt 6** (mục 9, phần "Đợt 6", mục 45–60) với bản 1.2.0; lỗi tìm thấy sửa trên nhánh mới từ master.
 1. ~~Kiểm tay đợt 5~~ — người dùng đã kiểm OK. Kiểm tay phần còn lại của mục 9 (đợt 1–4: gỡ cài đặt, PawnIO, junction...) nếu chưa làm.
 2. ~~Sửa nhỏ về bảo mật: đặt `COMSPEC` = `System32\cmd.exe` cho tiến trình cmd tự xoá khi gỡ cài đặt~~ — đã làm và merge vào master (cần kiểm tay mục 24–26).
@@ -205,3 +222,28 @@ Hoãn theo ý người dùng: **biểu đồ FPS/frametime** (làm sau).
 63. Chạy lệnh cài một dòng (mục 5) trên một máy khác (cmd): tải được `FpsOverlay.exe`, hộp thoại cài hiện, cài xong chạy được.
 64. Chạy lại đúng lệnh đó khi đã có bản cài (hoặc khi có bản mới hơn): hộp thoại báo Cập nhật, cài đặt cũ còn nguyên.
 65. Trang Releases có `FpsOverlay.exe` và `FpsOverlay.exe.sha256`; `certutil -hashfile FpsOverlay.exe SHA256` khớp file `.sha256`.
+
+**Đợt 8 (1.4.0)** (cần quyền Admin; mục 1–10 là phần tải/bàn giao, 4–6 cần một bản phát hành thử)
+66. Bản cài ở vN, đã có bản vN+1 trên GitHub Releases kèm `FpsOverlay.exe.sha256`: mở hộp thoại cập nhật rồi bấm CẬP NHẬT.
+    - Thanh tiến độ đầy dần, phần trăm đổi, nút HUỶ viết hoa ở cả tiếng Việt và tiếng Anh.
+    - Xem giao diện ở cả 4 chủ đề.
+67. Bấm HUỶ giữa lúc tải: hộp thoại đóng, nhắc nhở ở khay còn, không còn `FpsOverlay_update.*.exe` trong `C:\Program Files\FpsOverlay\Temp`.
+68. Đóng bằng [ X ] giữa lúc tải: kết quả như mục 67.
+69. Hỏng mã băm (bản thử có `.sha256` không khớp): hiện "Không cập nhật được." kèm "SHA-256 mismatch", file bị xoá, các nút lựa chọn quay lại.
+70. Rút mạng giữa lúc tải: trong khoảng 30 giây báo lỗi hết thời gian chờ và file bị xoá.
+71. Tải thành công:
+    - App thoát (mất biểu tượng khay), exe mới hiện cửa sổ cài tự động: không nút, không ô PawnIO, chữ "Đang cập nhật lên vN+1…".
+    - Sau đó mở bản đã cài ở vN+1, cài đặt còn nguyên.
+    - Settings → Apps hiện đúng phiên bản mới.
+72. Chạy `FpsOverlay_update.x.exe --update-after <PID của notepad>`: không chờ notepad, đi tiếp vào cập nhật tự động (báo đang chạy nếu bản ở khay còn mở).
+73. Khởi động bản đã cài hơn 1 giờ sau một lần cập nhật: `Temp\FpsOverlay_update.*.exe` và `Temp\extract` bị xoá; cài PawnIO từ cài đặt vẫn chạy (dùng chung `SecureTemp`).
+74. Bản `--no-install`: hộp thoại cập nhật hiện nút MỞ TRANG TẢI, không tải.
+75. Khi đang cập nhật, `<InstallDir>\Temp\extract\FpsOverlay\<id>\*.dll` được dùng thay vì `%TEMP%\.net`.
+76. Kiểm bằng mắt 4 chủ đề (Cổ điển, Cyberpunk, Neon tím, Terminal xanh) ở cửa sổ cài đặt, cài app và cập nhật, so với bản vẽ thử `themed-settings-v5.html`; đổi chủ đề trong cài đặt thì mọi cửa sổ đổi ngay, không cần mở lại.
+77. Terminal xanh: kéo thanh trượt chữ bằng chuột và dùng phím (mũi tên, Home/End) đều chạy đúng.
+78. Neon tím: ánh sáng và cuộn mượt, không giật; thanh cuộn đúng màu chủ đề ở cả 4 chủ đề.
+79. Bấm "Kiểm tra cập nhật" khoảng 5–6 giây sau khi mở app (lúc kiểm tự động còn chạy): chỉ hiện đúng một kết quả.
+80. Tác vụ khởi động của bản 1.3.0 (đã bật "Khởi động cùng Windows"): sau khi chạy 1.4.0 một lần, tác vụ có thêm `--autostart` (xem trong Task Scheduler).
+81. Đăng xuất rồi đăng nhập với tác vụ có `--autostart` và đang có bản mới: không hộp thoại, chỉ thông báo khay và một dòng đầu menu khay; bấm dòng đó mở hộp thoại cập nhật.
+82. (Tuỳ chọn) File chủ đề hỏng/không hợp lệ: cửa sổ rơi về Cyberpunk, không lỗi.
+83. Thử cập nhật thật cần phát hành một bản thử (vd. 1.4.1): chỉ làm khi người dùng đồng ý, không tự phát hành.
