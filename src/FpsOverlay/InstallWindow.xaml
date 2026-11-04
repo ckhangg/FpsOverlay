@@ -48,7 +48,7 @@
         </StackPanel>
 
         <TextBlock x:Name="StatusText" Margin="0,8,0,0" Visibility="Collapsed"
-                   FontFamily="{DynamicResource Ui.Mono}" FontSize="12" Foreground="{DynamicResource Ui.Secondary}" />
+                   FontFamily="{DynamicResource Ui.Mono}" FontSize="{DynamicResource Ui.CompactFontSize}" Foreground="{DynamicResource Ui.Secondary}" />
 
         <DockPanel Margin="0,16,0,0" LastChildFill="False">
             <Button x:Name="CancelButton" DockPanel.Dock="Left" Style="{DynamicResource Ui.GhostButton}" IsCancel="True"

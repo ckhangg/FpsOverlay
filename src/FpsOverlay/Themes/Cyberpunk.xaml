@@ -16,6 +16,9 @@
     <FontFamily x:Key="Ui.Mono">pack://application:,,,/Assets/Fonts/#JetBrains Mono</FontFamily>
     <sys:Double x:Key="Ui.FontSize">15</sys:Double>
     <FontWeight x:Key="Ui.FontWeight">Medium</FontWeight>
+    <!-- Chữ phụ (tóm tắt, phiên bản, ghi chú) và nút nhỏ / tên ứng dụng. -->
+    <sys:Double x:Key="Ui.SmallFontSize">11</sys:Double>
+    <sys:Double x:Key="Ui.CompactFontSize">12</sys:Double>
 
     <!-- Ký hiệu mục thu gọn (đóng / đang mở) và chữ trên công tắc; Ui.OnText/OffText bị App ghi đè theo ngôn ngữ. -->
     <sys:String x:Key="Ui.ExpandGlyph">▾</sys:String>
@@ -121,11 +124,12 @@
         </Setter>
     </Style>
 
-    <!-- Nhãn của một dòng cài đặt; lề trên/dưới tạo khoảng cách giữa các dòng -->
+    <!-- Nhãn của một dòng cài đặt: xuống dòng khi dài (không cắt "…"); lề trên/dưới tạo khoảng cách giữa các dòng -->
     <Style x:Key="Ui.FieldLabel" TargetType="TextBlock">
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Margin" Value="0,7,12,7" />
-        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="TextTrimming" Value="None" />
     </Style>
 
     <!-- Số ở cột phải: JetBrains Mono xanh cyan -->
@@ -460,6 +464,84 @@
                             <Setter TargetName="Ring" Property="BorderBrush" Value="{DynamicResource Ui.Accent}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===== Thanh cuộn dọc của vùng nội dung: rãnh #2A2A35 góc vuông, núm #44444F, rê chuột / kéo thì cyan ===== -->
+    <Style x:Key="Ui.ScrollPage" TargetType="RepeatButton">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RepeatButton">
+                    <Grid Background="Transparent" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="Ui.ScrollThumb" TargetType="Thumb">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Thumb">
+                    <Border x:Name="Bar" CornerRadius="0" Background="{DynamicResource Ui.Outline}" />
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bar" Property="Background" Value="{DynamicResource Ui.Secondary}" />
+                        </Trigger>
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="Bar" Property="Background" Value="{DynamicResource Ui.Secondary}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="Ui.ScrollBar" TargetType="ScrollBar">
+        <Setter Property="Width" Value="8" />
+        <Setter Property="MinWidth" Value="8" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ScrollBar">
+                    <Border Background="{DynamicResource Ui.Track}" CornerRadius="0">
+                        <Track x:Name="PART_Track" IsDirectionReversed="True">
+                            <Track.DecreaseRepeatButton>
+                                <RepeatButton Style="{DynamicResource Ui.ScrollPage}" Command="ScrollBar.PageUpCommand" />
+                            </Track.DecreaseRepeatButton>
+                            <Track.IncreaseRepeatButton>
+                                <RepeatButton Style="{DynamicResource Ui.ScrollPage}" Command="ScrollBar.PageDownCommand" />
+                            </Track.IncreaseRepeatButton>
+                            <Track.Thumb>
+                                <Thumb Style="{DynamicResource Ui.ScrollThumb}" />
+                            </Track.Thumb>
+                        </Track>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Vùng cuộn của cửa sổ: nội dung + thanh cuộn dọc theo chủ đề (cuộn ngang không dùng). -->
+    <Style x:Key="Ui.ScrollViewer" TargetType="ScrollViewer">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ScrollViewer">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ScrollContentPresenter x:Name="PART_ScrollContentPresenter" CanContentScroll="{TemplateBinding CanContentScroll}" />
+                        <ScrollBar x:Name="PART_VerticalScrollBar" Grid.Column="1" Margin="0,4,4,4"
+                                   Style="{DynamicResource Ui.ScrollBar}"
+                                   Value="{TemplateBinding VerticalOffset}" Maximum="{TemplateBinding ScrollableHeight}"
+                                   ViewportSize="{TemplateBinding ViewportHeight}"
+                                   Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" />
+                    </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

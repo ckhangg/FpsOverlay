@@ -392,9 +392,10 @@ public partial class SettingsWindow : Window
         {
             var empty = new TextBlock
             {
-                Text = Loc.Get(StringKey.AppListEmpty, language), FontSize = 11, Margin = new Thickness(8, 0, 0, 0),
+                Text = Loc.Get(StringKey.AppListEmpty, language), Margin = new Thickness(8, 0, 0, 0),
             };
             empty.SetResourceReference(StyleProperty, "Ui.FieldLabel");
+            empty.SetResourceReference(TextBlock.FontSizeProperty, "Ui.SmallFontSize");
             empty.SetResourceReference(TextBlock.ForegroundProperty, "Ui.Muted");
             AppListsPanel.Children.Add(empty);
             return;
@@ -405,18 +406,20 @@ public partial class SettingsWindow : Window
             var remove = new Button
             {
                 Content = Loc.Get(StringKey.RemoveApp, language),
-                FontSize = 11, Padding = new Thickness(8, 1, 8, 1), Tag = exe,
+                Padding = new Thickness(8, 1, 8, 1), Tag = exe,
             };
             remove.SetResourceReference(StyleProperty, "Ui.GhostButton");
+            remove.SetResourceReference(FontSizeProperty, "Ui.SmallFontSize");
             remove.Click += OnRemoveAppClick;
             DockPanel.SetDock(remove, Dock.Right);
             row.Children.Add(remove);
             var name = new TextBlock
             {
-                Text = exe, FontSize = 12, VerticalAlignment = VerticalAlignment.Center,
+                Text = exe, VerticalAlignment = VerticalAlignment.Center,
                 TextTrimming = TextTrimming.CharacterEllipsis,
             };
             name.SetResourceReference(TextBlock.FontFamilyProperty, "Ui.Mono");
+            name.SetResourceReference(TextBlock.FontSizeProperty, "Ui.CompactFontSize");
             name.SetResourceReference(TextBlock.ForegroundProperty, "Ui.Text");
             row.Children.Add(name);
             AppListsPanel.Children.Add(row);

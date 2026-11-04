@@ -13,10 +13,10 @@
         <RowDefinition Height="*" />
         <RowDefinition Height="Auto" />
     </Grid.RowDefinitions>
-    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <ScrollViewer Style="{DynamicResource Ui.ScrollViewer}" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
     <Grid Margin="18,10,18,8">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="140" />
+            <ColumnDefinition Width="190" />
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="76" />
         </Grid.ColumnDefinitions>
@@ -109,9 +109,9 @@
 
         <!-- Danh sách ứng dụng: thu gọn mặc định; các dòng được dựng lại từ code khi hai danh sách đổi. -->
         <StackPanel Grid.Row="8" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,2,0,2">
-            <Button x:Name="AppListsButton" Style="{DynamicResource Ui.GhostButton}" FontSize="12" Padding="12,3"
+            <Button x:Name="AppListsButton" Style="{DynamicResource Ui.GhostButton}" FontSize="{DynamicResource Ui.CompactFontSize}" Padding="12,3"
                     Tag="AppListsPanel" Click="OnToggleClick" />
-            <TextBlock x:Name="AppListsSummary" Style="{DynamicResource Ui.FieldLabel}" Margin="12,0,0,0" FontSize="11"
+            <TextBlock x:Name="AppListsSummary" Style="{DynamicResource Ui.FieldLabel}" Margin="12,0,0,0" FontSize="{DynamicResource Ui.SmallFontSize}"
                        Foreground="{DynamicResource Ui.Muted}" />
         </StackPanel>
         <StackPanel x:Name="AppListsPanel" Grid.Row="9" Grid.ColumnSpan="3" Visibility="Collapsed" Margin="0,2,0,8" />
@@ -133,7 +133,7 @@
         </Button>
         <Grid x:Name="ColorsPanel" Grid.Row="11" Grid.ColumnSpan="3" Visibility="Collapsed">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="140" />
+                <ColumnDefinition Width="190" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="76" />
             </Grid.ColumnDefinitions>
@@ -163,13 +163,13 @@
         <Button Grid.Row="12" Grid.ColumnSpan="3" Style="{DynamicResource Ui.HeaderButton}" Tag="FpsColorPanel" Click="OnToggleClick">
             <Grid Background="Transparent">
             <Label x:Name="FpsColorSection" Style="{DynamicResource Ui.Section}" />
-            <TextBlock x:Name="FpsColorSummary" Style="{DynamicResource Ui.FieldLabel}" FontSize="11" HorizontalAlignment="Right"
+            <TextBlock x:Name="FpsColorSummary" Style="{DynamicResource Ui.FieldLabel}" FontSize="{DynamicResource Ui.SmallFontSize}" HorizontalAlignment="Right"
                        VerticalAlignment="Top" Margin="0,12,0,0" Foreground="{DynamicResource Ui.Muted}" IsHitTestVisible="False" />
             </Grid>
         </Button>
         <Grid x:Name="FpsColorPanel" Grid.Row="13" Grid.ColumnSpan="3" Visibility="Collapsed">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="140" />
+                <ColumnDefinition Width="190" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="76" />
             </Grid.ColumnDefinitions>
@@ -201,9 +201,9 @@
         <Label x:Name="StatsSection" Grid.Row="14" Grid.ColumnSpan="3" Style="{DynamicResource Ui.Section}" />
 
         <StackPanel Grid.Row="15" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,2,0,2">
-            <Button x:Name="StatsButton" Style="{DynamicResource Ui.GhostButton}" FontSize="12" Padding="12,3"
+            <Button x:Name="StatsButton" Style="{DynamicResource Ui.GhostButton}" FontSize="{DynamicResource Ui.CompactFontSize}" Padding="12,3"
                     Tag="StatsPanel" Click="OnToggleClick" />
-            <TextBlock x:Name="StatsSummary" Style="{DynamicResource Ui.FieldLabel}" Margin="12,0,0,0" FontSize="11"
+            <TextBlock x:Name="StatsSummary" Style="{DynamicResource Ui.FieldLabel}" Margin="12,0,0,0" FontSize="{DynamicResource Ui.SmallFontSize}"
                        Foreground="{DynamicResource Ui.Muted}" />
         </StackPanel>
 
@@ -232,25 +232,25 @@
         <!-- Chỉ hiện khi chưa đọc được nhiệt độ CPU (thiếu PawnIO); nút cài chỉ hiện khi PawnIO chưa cài. Nằm ngoài ô thu gọn. -->
         <StackPanel x:Name="PawnIoPanel" Grid.Row="17" Grid.Column="1" Grid.ColumnSpan="2" Visibility="Collapsed"
                     Margin="0,0,0,6">
-            <TextBlock x:Name="PawnIoNote" Style="{DynamicResource Ui.FieldLabel}" Margin="0,0,0,4" FontSize="11"
+            <TextBlock x:Name="PawnIoNote" Style="{DynamicResource Ui.FieldLabel}" Margin="0,0,0,4" FontSize="{DynamicResource Ui.SmallFontSize}"
                        TextWrapping="Wrap" Foreground="{DynamicResource Ui.Muted}" />
             <Button x:Name="PawnIoInstallButton" HorizontalAlignment="Left" Style="{DynamicResource Ui.GhostButton}"
-                    FontSize="12" Padding="12,3" Click="OnInstallPawnIoClick" />
+                    FontSize="{DynamicResource Ui.CompactFontSize}" Padding="12,3" Click="OnInstallPawnIoClick" />
             <TextBlock x:Name="PawnIoStatus" Margin="0,4,0,0" Visibility="Collapsed" TextWrapping="Wrap"
-                       FontFamily="{DynamicResource Ui.Mono}" FontSize="11" Foreground="{DynamicResource Ui.Secondary}" />
+                       FontFamily="{DynamicResource Ui.Mono}" FontSize="{DynamicResource Ui.SmallFontSize}" Foreground="{DynamicResource Ui.Secondary}" />
         </StackPanel>
 
         <!-- // CẢNH BÁO -->
         <Button Grid.Row="18" Grid.ColumnSpan="3" Style="{DynamicResource Ui.HeaderButton}" Tag="AlertsPanel" Click="OnToggleClick">
             <Grid Background="Transparent">
             <Label x:Name="AlertsSection" Style="{DynamicResource Ui.Section}" />
-            <TextBlock x:Name="AlertsSummary" Style="{DynamicResource Ui.FieldLabel}" FontSize="11" HorizontalAlignment="Right"
+            <TextBlock x:Name="AlertsSummary" Style="{DynamicResource Ui.FieldLabel}" FontSize="{DynamicResource Ui.SmallFontSize}" HorizontalAlignment="Right"
                        VerticalAlignment="Top" Margin="0,12,0,0" Foreground="{DynamicResource Ui.Muted}" IsHitTestVisible="False" />
             </Grid>
         </Button>
         <Grid x:Name="AlertsPanel" Grid.Row="19" Grid.ColumnSpan="3" Visibility="Collapsed">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="140" />
+                <ColumnDefinition Width="190" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="76" />
             </Grid.ColumnDefinitions>
@@ -312,7 +312,7 @@
         <DockPanel Grid.Row="1" Margin="18,10,18,18" LastChildFill="False">
             <Button x:Name="ResetButton" DockPanel.Dock="Left" Style="{DynamicResource Ui.GhostButton}" Click="OnResetClick" />
             <!-- Số phiên bản: chữ nhỏ, mờ, căn trái cạnh nút Khôi phục. -->
-            <TextBlock x:Name="VersionText" DockPanel.Dock="Left" Margin="14,0,0,0" VerticalAlignment="Center" FontSize="11"
+            <TextBlock x:Name="VersionText" DockPanel.Dock="Left" Margin="14,0,0,0" VerticalAlignment="Center" FontSize="{DynamicResource Ui.SmallFontSize}"
                        FontFamily="{DynamicResource Ui.Mono}" Foreground="{DynamicResource Ui.Muted}" />
             <Button x:Name="DoneButton" DockPanel.Dock="Right" Style="{DynamicResource Ui.PrimaryButton}" IsCancel="True"
                     Click="OnDoneClick" />
