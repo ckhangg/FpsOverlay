@@ -55,8 +55,12 @@ public partial class App : Application
     readonly UpdateService _updates = new();
     // Huỷ lần kiểm cập nhật đang chạy (và lần chờ trước khi kiểm) khi app thoát.
     readonly CancellationTokenSource _updateCts = new();
-    // Đang kiểm cập nhật (tự động hay bấm tay): bấm tiếp thì bỏ qua, không gọi GitHub hai lần.
-    bool _checkingUpdates;
+    // Lần gọi GitHub gần nhất (đang chạy thì kiểm tự động và bấm tay dùng chung, không gọi hai lần).
+    Task<ReleaseInfo?>? _updateCheck;
+    // Đã có lần kiểm nào bắt đầu: lần kiểm tự động (sau 5 s) bỏ qua nếu người dùng đã bấm kiểm tay trước đó.
+    bool _updateChecked;
+    // Lần bấm tay đang chờ kết quả / đang báo: lần kiểm tự động dùng chung kết quả thì không báo thêm.
+    bool _manualCheckActive;
     // Bản mới đang báo ở khay (dòng đầu menu / balloon); bấm vào thì mở lại hộp thoại với bản này.
     ReleaseInfo? _pendingRelease;
     UpdateWindow? _updateWindow;
@@ -232,13 +236,12 @@ public partial class App : Application
         try
         {
             await Task.Delay(TimeSpan.FromSeconds(5), _updateCts.Token);
-            // Người dùng đã bấm kiểm tay trong lúc chờ (đang kiểm hoặc đã mở hộp thoại): không kiểm thêm.
-            if (_checkingUpdates || _updateWindow is not null || _settings is null) return;
-            _checkingUpdates = true;
-            ReleaseInfo? release;
-            try { release = await _updates.CheckAsync(_updateCts.Token); }
-            finally { _checkingUpdates = false; }
-            if (_settings is null || release is null ||
+            // Người dùng đã bấm kiểm tay trong lúc chờ: lần đó đã (hoặc đang) báo kết quả, không kiểm thêm.
+            if (_updateChecked || _settings is null) return;
+            var release = await CheckSharedAsync();
+            // Người dùng bấm kiểm tay trong lúc lần này đang chạy: lần bấm tay dùng chung kết quả và tự báo, ở đây
+            // không mở thêm hộp thoại nào (lỗi cũng để lần bấm tay báo).
+            if (_manualCheckActive || _settings is null || release is null ||
                 !UpdatePolicy.ShouldOffer(UpdateService.CurrentVersion, release, _settings.Current.SkippedVersion, manual: false))
                 return;
             // Tự chạy lúc đăng nhập Windows: chỉ báo ở khay (balloon + dòng đầu menu), không bật hộp thoại.
@@ -259,7 +262,16 @@ public partial class App : Application
         }
     }
 
-    // Nút "Kiểm tra cập nhật" (cài đặt, khay): luôn báo kết quả. Có bản mới (kể cả bản đã bỏ qua) thì mở hộp thoại.
+    // Lần gọi GitHub đang chạy thì dùng chung (kiểm tự động và bấm tay không gọi hai lần); không thì gọi mới.
+    Task<ReleaseInfo?> CheckSharedAsync()
+    {
+        if (_updateCheck is { IsCompleted: false } running) return running;
+        _updateChecked = true;
+        return _updateCheck = _updates.CheckAsync(_updateCts.Token);
+    }
+
+    // Nút "Kiểm tra cập nhật" (cài đặt, khay): luôn báo kết quả, kể cả khi đang chờ lần kiểm tự động (dùng chung lần đó).
+    // Có bản mới (kể cả bản đã bỏ qua) thì mở hộp thoại; đã mới nhất hay lỗi thì báo bằng hộp thông báo.
     async Task CheckForUpdatesManuallyAsync()
     {
         if (_settings is null) return;
@@ -268,31 +280,35 @@ public partial class App : Application
             _updateWindow.Activate();
             return;
         }
-        if (_checkingUpdates) return;
-        _checkingUpdates = true;
-        ReleaseInfo? release;
+        if (_manualCheckActive) return;   // lần bấm trước đang chờ kết quả, nó sẽ báo
+        // Đặt cờ trước khi chờ, gỡ sau khi đã báo xong: lần kiểm tự động (nếu đang chạy) thấy cờ thì không mở thêm gì.
+        _manualCheckActive = true;
         try
         {
-            release = await _updates.CheckAsync(_updateCts.Token);
-        }
-        catch (Exception ex)
-        {
-            if (_updateCts.IsCancellationRequested) return;   // app đang thoát
-            Trace.TraceWarning($"Kiểm cập nhật lỗi: {ex.Message}");
-            MessageBox.Show($"{Loc.Get(StringKey.UpdateCheckFailed, Language)}\n\n{Loc.Get(StringKey.Details, Language)}: {ex.Message}",
-                "FPS Overlay", MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
+            ReleaseInfo? release;
+            try
+            {
+                release = await CheckSharedAsync();
+            }
+            catch (Exception ex)
+            {
+                if (_updateCts.IsCancellationRequested) return;   // app đang thoát
+                Trace.TraceWarning($"Kiểm cập nhật lỗi: {ex.Message}");
+                MessageBox.Show($"{Loc.Get(StringKey.UpdateCheckFailed, Language)}\n\n{Loc.Get(StringKey.Details, Language)}: {ex.Message}",
+                    "FPS Overlay", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            if (_settings is null || _updateCts.IsCancellationRequested) return;
+            if (release is not null && UpdatePolicy.ShouldOffer(UpdateService.CurrentVersion, release, _settings.Current.SkippedVersion, manual: true))
+                ShowUpdateWindow(release);
+            else
+                MessageBox.Show(string.Format(Loc.Get(StringKey.UpToDate, Language), "v" + UpdateService.CurrentVersion.ToString(3)),
+                    "FPS Overlay", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         finally
         {
-            _checkingUpdates = false;
+            _manualCheckActive = false;
         }
-        if (_settings is null || _updateCts.IsCancellationRequested) return;
-        if (release is not null && UpdatePolicy.ShouldOffer(UpdateService.CurrentVersion, release, _settings.Current.SkippedVersion, manual: true))
-            ShowUpdateWindow(release);
-        else
-            MessageBox.Show(string.Format(Loc.Get(StringKey.UpToDate, Language), "v" + UpdateService.CurrentVersion.ToString(3)),
-                "FPS Overlay", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     // Một hộp thoại cập nhật một lúc; đang mở thì đưa lên trước. Lựa chọn xử lý khi đóng.

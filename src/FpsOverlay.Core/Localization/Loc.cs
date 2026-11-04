@@ -20,7 +20,7 @@ public enum StringKey
     InstalledCopyRunning, InstallFailed, InstallPayloadMissing, UninstallConfirm, UninstallDone, UninstallFailed,
     PawnIoOffer, PawnIoInstallButton, PawnIoWorking, PawnIoInstalled, PawnIoRebootRequired, PawnIoDownloadFailed,
     PawnIoSignatureInvalid, PawnIoInstallFailed,
-    CheckUpdates, UpdateTitle, UpdateVersions, UpdateNow, UpdateSkip, UpdateLater, UpdateOpenPage, UpToDate, UpdateCheckFailed,
+    CheckUpdates, CheckUpdatesButton, UpdateTitle, UpdateVersions, UpdateNow, UpdateSkip, UpdateLater, UpdateOpenPage, UpToDate, UpdateCheckFailed,
     TrayUpdateAvailable, UpdateBalloon,
 }
 
@@ -139,12 +139,13 @@ public static class Loc
         [StringKey.PawnIoSignatureInvalid] = ("Bộ cài PawnIO tải về không có chữ ký hợp lệ nên đã bị xoá, không chạy.", "The downloaded PawnIO installer isn't validly signed, so it was deleted without running."),
         [StringKey.PawnIoInstallFailed] = ("Không cài được PawnIO.", "Couldn't install PawnIO."),
         [StringKey.CheckUpdates] = ("Kiểm tra cập nhật", "Check for updates"),
+        [StringKey.CheckUpdatesButton] = ("KIỂM TRA CẬP NHẬT", "CHECK FOR UPDATES"),   // nút trong cửa sổ: chữ hoa như các nút khác
         [StringKey.UpdateTitle] = ("Có bản cập nhật", "Update available"),
         [StringKey.UpdateVersions] = ("Phiên bản hiện tại: {0} → Bản mới: {1}", "Current version: {0} → New: {1}"),
-        [StringKey.UpdateNow] = ("Cập nhật", "Update"),
-        [StringKey.UpdateSkip] = ("Bỏ qua bản này", "Skip this version"),
-        [StringKey.UpdateLater] = ("Để sau", "Later"),
-        [StringKey.UpdateOpenPage] = ("Mở trang tải", "Open download page"),
+        [StringKey.UpdateNow] = ("CẬP NHẬT", "UPDATE"),
+        [StringKey.UpdateSkip] = ("BỎ QUA BẢN NÀY", "SKIP THIS VERSION"),
+        [StringKey.UpdateLater] = ("ĐỂ SAU", "LATER"),
+        [StringKey.UpdateOpenPage] = ("MỞ TRANG TẢI", "OPEN DOWNLOAD PAGE"),
         [StringKey.UpToDate] = ("Bạn đang dùng bản mới nhất ({0}).", "You're on the latest version ({0})."),
         [StringKey.UpdateCheckFailed] = ("Không kiểm tra được cập nhật.", "Couldn't check for updates."),
         [StringKey.TrayUpdateAvailable] = ("Có bản {0}…", "Version {0} available…"),

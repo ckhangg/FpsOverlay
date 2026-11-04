@@ -291,7 +291,7 @@ public partial class SettingsWindow : Window
         AutostartSwitch.ToolTip = _autostart.CanManage ? null : T(StringKey.AutostartInstalledOnly);
         LogLabel.Text = T(StringKey.LogFps);
         OpenLogButton.Content = T(StringKey.OpenLogFolder);
-        CheckUpdatesButton.Content = T(StringKey.CheckUpdates);
+        CheckUpdatesButton.Content = T(StringKey.CheckUpdatesButton);
 
         ResetButton.Content = T(StringKey.ResetDefaults);
         DoneButton.Content = T(StringKey.Done);
