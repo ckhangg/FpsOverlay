@@ -20,6 +20,8 @@ public enum StringKey
     InstalledCopyRunning, InstallFailed, InstallPayloadMissing, UninstallConfirm, UninstallDone, UninstallFailed,
     PawnIoOffer, PawnIoInstallButton, PawnIoWorking, PawnIoInstalled, PawnIoRebootRequired, PawnIoDownloadFailed,
     PawnIoSignatureInvalid, PawnIoInstallFailed,
+    CheckUpdates, UpdateTitle, UpdateVersions, UpdateNow, UpdateSkip, UpdateLater, UpdateOpenPage, UpToDate, UpdateCheckFailed,
+    TrayUpdateAvailable, UpdateBalloon,
 }
 
 /// <summary>Chuỗi giao diện hai ngôn ngữ. Khoá thiếu ném <see cref="KeyNotFoundException"/>.</summary>
@@ -136,6 +138,17 @@ public static class Loc
         [StringKey.PawnIoDownloadFailed] = ("Không tải được PawnIO. Kiểm tra kết nối mạng rồi thử lại.", "Couldn't download PawnIO. Check your internet connection and try again."),
         [StringKey.PawnIoSignatureInvalid] = ("Bộ cài PawnIO tải về không có chữ ký hợp lệ nên đã bị xoá, không chạy.", "The downloaded PawnIO installer isn't validly signed, so it was deleted without running."),
         [StringKey.PawnIoInstallFailed] = ("Không cài được PawnIO.", "Couldn't install PawnIO."),
+        [StringKey.CheckUpdates] = ("Kiểm tra cập nhật", "Check for updates"),
+        [StringKey.UpdateTitle] = ("Có bản cập nhật", "Update available"),
+        [StringKey.UpdateVersions] = ("Phiên bản hiện tại: {0} → Bản mới: {1}", "Current version: {0} → New: {1}"),
+        [StringKey.UpdateNow] = ("Cập nhật", "Update"),
+        [StringKey.UpdateSkip] = ("Bỏ qua bản này", "Skip this version"),
+        [StringKey.UpdateLater] = ("Để sau", "Later"),
+        [StringKey.UpdateOpenPage] = ("Mở trang tải", "Open download page"),
+        [StringKey.UpToDate] = ("Bạn đang dùng bản mới nhất ({0}).", "You're on the latest version ({0})."),
+        [StringKey.UpdateCheckFailed] = ("Không kiểm tra được cập nhật.", "Couldn't check for updates."),
+        [StringKey.TrayUpdateAvailable] = ("Có bản {0}…", "Version {0} available…"),
+        [StringKey.UpdateBalloon] = ("Có bản FPS Overlay {0} — bấm để xem", "FPS Overlay {0} is available — click to view"),
     };
 
     public static string Get(StringKey key, AppLanguage language)

@@ -10,6 +10,7 @@ using FpsOverlay.Core.Install;
 using FpsOverlay.Core.Localization;
 using FpsOverlay.Core.PawnIo;
 using FpsOverlay.Core.Settings;
+using FpsOverlay.Core.Update;
 
 namespace FpsOverlay;
 
@@ -51,6 +52,14 @@ public partial class App : Application
     bool _settingAutostart;
     // Lần cài PawnIO đang chạy (từ nút trong cài đặt); null = không cài.
     Task<PawnIoResult>? _pawnIoInstall;
+    readonly UpdateService _updates = new();
+    // Huỷ lần kiểm cập nhật đang chạy (và lần chờ trước khi kiểm) khi app thoát.
+    readonly CancellationTokenSource _updateCts = new();
+    // Đang kiểm cập nhật (tự động hay bấm tay): bấm tiếp thì bỏ qua, không gọi GitHub hai lần.
+    bool _checkingUpdates;
+    // Bản mới đang báo ở khay (dòng đầu menu / balloon); bấm vào thì mở lại hộp thoại với bản này.
+    ReleaseInfo? _pendingRelease;
+    UpdateWindow? _updateWindow;
 
     Mutex? _singleInstance;
     // Thư mục chứa PresentMon.exe đã bung (đặt lúc khởi động, trước StartPresentMon).
@@ -147,6 +156,11 @@ public partial class App : Application
         overlay.PositionSaved += (corner, x, y) => settings.Update(s => s with { Corner = corner, OffsetX = x, OffsetY = y });
         tray.AutostartRequested += SetAutostart;
         tray.ExitRequested += Shutdown;
+        tray.CheckUpdatesRequested += () => _ = CheckForUpdatesManuallyAsync();
+        tray.UpdateItemClicked += () =>
+        {
+            if (_pendingRelease is { } release) ShowUpdateWindow(release);
+        };
         // Đổi ngôn ngữ hay góc (kể cả từ cửa sổ cài đặt) thì menu khay đổi theo ngay.
         settings.Changed += s =>
         {
@@ -207,6 +221,151 @@ public partial class App : Application
         _gameTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
         _gameTimer.Tick += (_, _) => UpdateVisibility();
         _gameTimer.Start();
+
+        _ = CheckForUpdatesOnStartupAsync(args.Autostart);
+    }
+
+    // Kiểm cập nhật một lần sau khi mở app, đợi vài giây để không làm chậm lúc khởi động. Không bao giờ ném ra ngoài:
+    // không có mạng, quá giờ, GitHub lỗi hay giới hạn lượt gọi thì chỉ ghi Trace.
+    async Task CheckForUpdatesOnStartupAsync(bool autostart)
+    {
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(5), _updateCts.Token);
+            // Người dùng đã bấm kiểm tay trong lúc chờ (đang kiểm hoặc đã mở hộp thoại): không kiểm thêm.
+            if (_checkingUpdates || _updateWindow is not null || _settings is null) return;
+            _checkingUpdates = true;
+            ReleaseInfo? release;
+            try { release = await _updates.CheckAsync(_updateCts.Token); }
+            finally { _checkingUpdates = false; }
+            if (_settings is null || release is null ||
+                !UpdatePolicy.ShouldOffer(UpdateService.CurrentVersion, release, _settings.Current.SkippedVersion, manual: false))
+                return;
+            // Tự chạy lúc đăng nhập Windows: chỉ báo ở khay (balloon + dòng đầu menu), không bật hộp thoại.
+            if (autostart)
+            {
+                _pendingRelease = release;
+                _tray?.ShowUpdateAvailable(release.Version.ToString(3), balloon: true);
+            }
+            else
+                ShowUpdateWindow(release);
+        }
+        catch (OperationCanceledException) when (_updateCts.IsCancellationRequested)
+        {
+        }
+        catch (Exception ex)
+        {
+            Trace.TraceWarning($"Kiểm cập nhật lúc khởi động lỗi: {ex.Message}");
+        }
+    }
+
+    // Nút "Kiểm tra cập nhật" (cài đặt, khay): luôn báo kết quả. Có bản mới (kể cả bản đã bỏ qua) thì mở hộp thoại.
+    async Task CheckForUpdatesManuallyAsync()
+    {
+        if (_settings is null) return;
+        if (_updateWindow is not null)
+        {
+            _updateWindow.Activate();
+            return;
+        }
+        if (_checkingUpdates) return;
+        _checkingUpdates = true;
+        ReleaseInfo? release;
+        try
+        {
+            release = await _updates.CheckAsync(_updateCts.Token);
+        }
+        catch (Exception ex)
+        {
+            if (_updateCts.IsCancellationRequested) return;   // app đang thoát
+            Trace.TraceWarning($"Kiểm cập nhật lỗi: {ex.Message}");
+            MessageBox.Show($"{Loc.Get(StringKey.UpdateCheckFailed, Language)}\n\n{Loc.Get(StringKey.Details, Language)}: {ex.Message}",
+                "FPS Overlay", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+        finally
+        {
+            _checkingUpdates = false;
+        }
+        if (_settings is null || _updateCts.IsCancellationRequested) return;
+        if (release is not null && UpdatePolicy.ShouldOffer(UpdateService.CurrentVersion, release, _settings.Current.SkippedVersion, manual: true))
+            ShowUpdateWindow(release);
+        else
+            MessageBox.Show(string.Format(Loc.Get(StringKey.UpToDate, Language), "v" + UpdateService.CurrentVersion.ToString(3)),
+                "FPS Overlay", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    // Một hộp thoại cập nhật một lúc; đang mở thì đưa lên trước. Lựa chọn xử lý khi đóng.
+    void ShowUpdateWindow(ReleaseInfo release)
+    {
+        if (_settings is null) return;
+        if (_updateWindow is not null)
+        {
+            _updateWindow.Activate();
+            return;
+        }
+        var window = _updateWindow = new UpdateWindow(release, UpdateService.CurrentVersion, Installer.IsRunningInstalled, Language);
+        window.Closed += (_, _) =>
+        {
+            _updateWindow = null;
+            OnUpdateChoice(window.Release, window.Choice);
+        };
+        window.Show();
+        window.Activate();
+    }
+
+    void OnUpdateChoice(ReleaseInfo release, UpdateChoice choice)
+    {
+        if (_updateCts.IsCancellationRequested) return;   // hộp thoại bị đóng vì app thoát
+        switch (choice)
+        {
+            case UpdateChoice.Update:
+                StartUpdate(release);
+                break;
+            case UpdateChoice.Skip:
+                // Lần kiểm tự động sau không báo bản này nữa; bản lớn hơn vẫn báo. Khôi phục mặc định không xoá.
+                var version = release.Version.ToString(3);
+                _settings?.Update(s => s with { SkippedVersion = version });
+                _pendingRelease = null;
+                _tray?.HideUpdateAvailable();
+                break;
+            case UpdateChoice.OpenPage:
+                OpenReleasePage(release);
+                RemindInTray(release);
+                break;
+            default:   // Để sau: không lưu gì; dòng báo ở khay ở lại tới khi tắt app
+                RemindInTray(release);
+                break;
+        }
+    }
+
+    void RemindInTray(ReleaseInfo release)
+    {
+        _pendingRelease = release;
+        _tray?.ShowUpdateAvailable(release.Version.ToString(3), balloon: false);
+    }
+
+    // Chỗ nối phần tải và cài bản mới (Task 6 làm). Hiện chỉ giữ dòng báo ở khay để mở lại được.
+    void StartUpdate(ReleaseInfo release)
+    {
+        Trace.TraceInformation($"Chọn cập nhật lên {release.Tag} (chưa có phần tải).");
+        RemindInTray(release);
+    }
+
+    // Trang phát hành mở bằng trình duyệt mặc định qua explorer.exe theo đường dẫn đầy đủ (như nút mở thư mục log;
+    // tên trần thì CreateProcess tìm trong thư mục exe trước). Chỉ mở URL https (ReleaseInfo.Parse cũng đã lọc).
+    static void OpenReleasePage(ReleaseInfo release)
+    {
+        try
+        {
+            if (!Uri.TryCreate(release.PageUrl, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps) return;
+            var explorer = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "explorer.exe");
+            using var _ = Process.Start(explorer, $"\"{uri.AbsoluteUri}\"");
+        }
+        catch (Exception ex)
+        {
+            Trace.TraceWarning($"Không mở được trang phát hành: {ex.Message}");
+        }
     }
 
     // Chạy từ ngoài thư mục cài: cài mới/cập nhật qua hộp thoại, hoặc chạy luôn bản đã cài (không hỏi). Xong thì thoát.
@@ -523,7 +682,7 @@ public partial class App : Application
 
         _ = _autostart.RefreshAsync();
         _settingsWindow = new SettingsWindow(_settings, _autostart, SetAutostart, () => _sensors?.CpuTemperatureAvailable ?? true,
-            InstallPawnIo, _pawnIoInstall is not null, TestAlert);
+            InstallPawnIo, _pawnIoInstall is not null, TestAlert, () => _ = CheckForUpdatesManuallyAsync());
         _settingsWindow.Closed += (_, _) =>
         {
             _settingsWindow = null;   // đóng bằng cách nào cũng về FPS thật
@@ -587,6 +746,7 @@ public partial class App : Application
 
     void Fail(string message)
     {
+        _updateCts.Cancel();
         _gameTimer?.Stop();
         _watchdog?.Stop();
         _statsTimer?.Stop();
@@ -603,6 +763,7 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         if (_overlay is { IsMoving: true }) _overlay.EndMove(save: true);   // không mất vị trí vừa kéo
+        _updateCts.Cancel();
         _gameTimer?.Stop();
         _watchdog?.Stop();
         _statsTimer?.Stop();

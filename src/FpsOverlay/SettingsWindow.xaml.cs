@@ -29,6 +29,7 @@ public partial class SettingsWindow : Window
     readonly AutostartService _autostart;
     readonly Action<bool> _setAutostart;
     readonly Action _testAlert;
+    readonly Action _checkUpdates;
     readonly Func<bool> _cpuTempAvailable;
     readonly Func<Task<PawnIoResult>> _installPawnIo;
     readonly RadioButton[][] _swatches = new RadioButton[Rows][];
@@ -51,9 +52,10 @@ public partial class SettingsWindow : Window
     /// <param name="cpuTempAvailable">Đọc được nhiệt độ CPU chưa; chưa thì hiện ghi chú cần PawnIO dưới công tắc.</param>
     /// <param name="installPawnIo">Tải + kiểm chữ ký + cài PawnIO (App lo đọc lại cảm biến; đang cài thì trả về lần đang chạy).</param>
     /// <param name="testAlert">Chạy thử cảnh báo trên overlay (App lo nháy 3 giây và tiếng).</param>
+    /// <param name="checkUpdates">Nút "Kiểm tra cập nhật" (App kiểm trên nền và báo kết quả).</param>
     /// <param name="pawnIoInstalling">App đang cài PawnIO (vd. bắt đầu từ cửa sổ trước đã đóng).</param>
     internal SettingsWindow(SettingsService service, AutostartService autostart, Action<bool> setAutostart, Func<bool> cpuTempAvailable,
-        Func<Task<PawnIoResult>> installPawnIo, bool pawnIoInstalling, Action testAlert)
+        Func<Task<PawnIoResult>> installPawnIo, bool pawnIoInstalling, Action testAlert, Action checkUpdates)
     {
         _service = service;
         _autostart = autostart;
@@ -61,6 +63,7 @@ public partial class SettingsWindow : Window
         _cpuTempAvailable = cpuTempAvailable;
         _installPawnIo = installPawnIo;
         _testAlert = testAlert;
+        _checkUpdates = checkUpdates;
         _pawnIoInstalled = PawnIoSetup.IsInstalled();
         InitializeComponent();   // _refreshing = true: giá trị mặc định trong XAML không ghi vào cài đặt
         // Màn hình thấp thì phần giữa cuộn, tiêu đề và hai nút dưới vẫn thấy.
@@ -288,6 +291,7 @@ public partial class SettingsWindow : Window
         AutostartSwitch.ToolTip = _autostart.CanManage ? null : T(StringKey.AutostartInstalledOnly);
         LogLabel.Text = T(StringKey.LogFps);
         OpenLogButton.Content = T(StringKey.OpenLogFolder);
+        CheckUpdatesButton.Content = T(StringKey.CheckUpdates);
 
         ResetButton.Content = T(StringKey.ResetDefaults);
         DoneButton.Content = T(StringKey.Done);
@@ -549,6 +553,8 @@ public partial class SettingsWindow : Window
         var on = LogSwitch.IsChecked == true;
         _service.Update(s => s with { LoggingEnabled = on });
     }
+
+    void OnCheckUpdatesClick(object sender, RoutedEventArgs e) => _checkUpdates();
 
     // Mở thư mục log trong Explorer (tạo nếu chưa có). Lỗi chỉ ghi vết, không làm sập cửa sổ.
     void OnOpenLogFolderClick(object sender, RoutedEventArgs e)

@@ -6,7 +6,8 @@ using Icon = System.Drawing.Icon;
 namespace FpsOverlay;
 
 /// <summary>Biểu tượng ở khay hệ thống: Ẩn/Hiện FPS, Cài đặt..., Góc hiển thị, Di chuyển overlay,
-/// Luôn hiện / Không bao giờ hiện cho app phía trước, Khởi động cùng Windows, Thoát.</summary>
+/// Luôn hiện / Không bao giờ hiện cho app phía trước, Khởi động cùng Windows, Kiểm tra cập nhật, Thoát.
+/// Có bản mới thì thêm dòng "Có bản vX.Y.Z…" đầu menu (và balloon nếu cần).</summary>
 sealed class TrayIcon : IDisposable
 {
     static readonly (OverlayCorner Corner, StringKey Key)[] Corners =
@@ -20,6 +21,7 @@ sealed class TrayIcon : IDisposable
     readonly NotifyIcon _icon;
     readonly Icon _image;
     readonly ToolStripMenuItem _warningItem;
+    readonly ToolStripMenuItem _updateItem;
     readonly ToolStripMenuItem _toggleItem;
     readonly ToolStripMenuItem _settingsItem;
     readonly ToolStripMenuItem _cornerItem;
@@ -27,6 +29,7 @@ sealed class TrayIcon : IDisposable
     readonly ToolStripMenuItem _alwaysShowItem;
     readonly ToolStripMenuItem _neverShowItem;
     readonly ToolStripMenuItem _autostartItem;
+    readonly ToolStripMenuItem _checkUpdatesItem;
     readonly ToolStripMenuItem _exitItem;
     readonly ToolStripMenuItem[] _cornerItems;
     // Chữ cảnh báo đang hiện (null = không có); Apply giữ lại để đổi cài đặt không làm mất cảnh báo.
@@ -36,6 +39,8 @@ sealed class TrayIcon : IDisposable
     bool _autostartLocked;
     // Tên exe của app phía trước gần nhất cho hai mục Luôn hiện / Không bao giờ hiện; null = chưa có.
     string? _appTarget;
+    // Phiên bản mới đang báo ở dòng đầu menu ("1.4.0"); null = không có.
+    string? _updateVersion;
 
     public event Action? ToggleRequested;
     public event Action? SettingsRequested;
@@ -50,10 +55,15 @@ sealed class TrayIcon : IDisposable
     public event Action<bool>? AutostartRequested;
     public event Action? ExitRequested;
     public event Action? MenuOpening;
+    /// <summary>Mục "Kiểm tra cập nhật" (kiểm bằng tay).</summary>
+    public event Action? CheckUpdatesRequested;
+    /// <summary>Bấm dòng "Có bản vX.Y.Z…" đầu menu hoặc balloon báo bản mới: mở hộp thoại cập nhật.</summary>
+    public event Action? UpdateItemClicked;
 
     public TrayIcon()
     {
         _warningItem = new ToolStripMenuItem("") { Enabled = false, Visible = false };
+        _updateItem = new ToolStripMenuItem("", null, (_, _) => UpdateItemClicked?.Invoke()) { Visible = false };
         _toggleItem = new ToolStripMenuItem("", null, (_, _) => ToggleRequested?.Invoke());
         _settingsItem = new ToolStripMenuItem("", null, (_, _) => SettingsRequested?.Invoke());
         _cornerItems = Corners
@@ -64,10 +74,12 @@ sealed class TrayIcon : IDisposable
         _alwaysShowItem = new ToolStripMenuItem("", null, (_, _) => AlwaysShowRequested?.Invoke());
         _neverShowItem = new ToolStripMenuItem("", null, (_, _) => NeverShowRequested?.Invoke());
         _autostartItem = new ToolStripMenuItem("", null, (sender, _) => AutostartRequested?.Invoke(!((ToolStripMenuItem)sender!).Checked));
+        _checkUpdatesItem = new ToolStripMenuItem("", null, (_, _) => CheckUpdatesRequested?.Invoke());
         _exitItem = new ToolStripMenuItem("", null, (_, _) => ExitRequested?.Invoke());
 
         var menu = new ContextMenuStrip { ShowItemToolTips = true };
         menu.Opening += (_, _) => MenuOpening?.Invoke();
+        menu.Items.Add(_updateItem);
         menu.Items.Add(_warningItem);
         menu.Items.Add(_toggleItem);
         menu.Items.Add(_settingsItem);
@@ -76,6 +88,7 @@ sealed class TrayIcon : IDisposable
         menu.Items.Add(_alwaysShowItem);
         menu.Items.Add(_neverShowItem);
         menu.Items.Add(_autostartItem);
+        menu.Items.Add(_checkUpdatesItem);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_exitItem);
 
@@ -85,6 +98,7 @@ sealed class TrayIcon : IDisposable
             Icon = _image,
             ContextMenuStrip = menu,
         };
+        _icon.BalloonTipClicked += (_, _) => UpdateItemClicked?.Invoke();   // chỉ có balloon báo bản mới
         Apply(OverlaySettings.Defaults, shownByUser: true);
         _icon.Visible = true;
     }
@@ -105,6 +119,8 @@ sealed class TrayIcon : IDisposable
         ApplyAppTarget();
         _autostartItem.Text = Loc.Get(StringKey.TrayAutostart, language);
         ApplyAutostartLock();
+        _checkUpdatesItem.Text = Loc.Get(StringKey.CheckUpdates, language);
+        ApplyUpdateItem();
         _exitItem.Text = Loc.Get(StringKey.TrayExit, language);
         for (int i = 0; i < Corners.Length; i++)
         {
@@ -120,6 +136,32 @@ sealed class TrayIcon : IDisposable
         _warningItem.Text = text ?? "";
         _warningItem.Visible = text is not null;
         _icon.Text = text ?? Loc.Get(StringKey.TrayTooltip, _language);
+    }
+
+    /// <summary>
+    /// Thêm dòng "Có bản vX.Y.Z…" đầu menu (giữ tới khi tắt app); <paramref name="balloon"/> thì kèm thông báo khay,
+    /// bấm vào cũng phát <see cref="UpdateItemClicked"/>. <paramref name="version"/> dạng "1.4.0".
+    /// </summary>
+    public void ShowUpdateAvailable(string version, bool balloon)
+    {
+        _updateVersion = version;
+        ApplyUpdateItem();
+        if (balloon)
+            _icon.ShowBalloonTip(10_000, Loc.Get(StringKey.TrayTooltip, _language),
+                string.Format(Loc.Get(StringKey.UpdateBalloon, _language), "v" + version), ToolTipIcon.Info);
+    }
+
+    /// <summary>Bỏ dòng báo bản mới (vd. người dùng chọn "Bỏ qua bản này").</summary>
+    public void HideUpdateAvailable()
+    {
+        _updateVersion = null;
+        ApplyUpdateItem();
+    }
+
+    void ApplyUpdateItem()
+    {
+        _updateItem.Visible = _updateVersion is not null;
+        _updateItem.Text = _updateVersion is null ? "" : string.Format(Loc.Get(StringKey.TrayUpdateAvailable, _language), "v" + _updateVersion);
     }
 
     /// <summary>Dấu tick ở mục Di chuyển overlay (đang ở chế độ di chuyển).</summary>
