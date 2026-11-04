@@ -89,7 +89,7 @@ public partial class App : Application
         var noInstall = args.NoInstall;
         if (!noInstall && !Installer.IsRunningInstalled)
         {
-            RunSetup();   // tự Shutdown khi xong hoặc huỷ
+            RunSetup(args.UpdateAfterPid);   // tự Shutdown khi xong hoặc huỷ
             return;
         }
 
@@ -183,6 +183,8 @@ public partial class App : Application
 
         // Lần cài trước dừng giữa chừng (sau khi chép exe) thì bổ sung lối tắt và mục gỡ cài đặt.
         Installer.RepairEntries();
+        // Exe bản cập nhật đã chạy xong (không tự xoá được mình), bộ cài PawnIO sót lại: xoá cái cũ hơn một giờ.
+        SecureTemp.DeleteStaleExecutables();
 
         // Bản cài (nhiều file): PresentMon nằm sẵn cạnh exe trong payload, chỉ kiểm tra có. --no-install (single-file lúc
         // phát triển): bung bản nhúng vào thư mục chứa exe. Thiếu file hay thư mục chỉ đọc không được làm app chết im lặng.
@@ -320,23 +322,27 @@ public partial class App : Application
             _updateWindow.Activate();
             return;
         }
-        var window = _updateWindow = new UpdateWindow(release, UpdateService.CurrentVersion, Installer.IsRunningInstalled, Language);
+        // Chỉ bản đã cài tự cập nhật được (thư mục Temp trong Program Files, cài lại vào đúng chỗ); bản khác mở trang tải.
+        Func<IProgress<double>, CancellationToken, Task<string>>? download = Installer.IsRunningInstalled
+            ? (progress, token) => _updates.DownloadAsync(release, progress, token)
+            : null;
+        var window = _updateWindow = new UpdateWindow(release, UpdateService.CurrentVersion, download, Language, _updateCts.Token);
         window.Closed += (_, _) =>
         {
             _updateWindow = null;
-            OnUpdateChoice(window.Release, window.Choice);
+            OnUpdateChoice(window.Release, window.Choice, window.DownloadedPath);
         };
         window.Show();
         window.Activate();
     }
 
-    void OnUpdateChoice(ReleaseInfo release, UpdateChoice choice)
+    void OnUpdateChoice(ReleaseInfo release, UpdateChoice choice, string? downloadedPath)
     {
         if (_updateCts.IsCancellationRequested) return;   // hộp thoại bị đóng vì app thoát
         switch (choice)
         {
-            case UpdateChoice.Update:
-                StartUpdate(release);
+            case UpdateChoice.Update when downloadedPath is not null:
+                StartUpdate(release, downloadedPath);
                 break;
             case UpdateChoice.Skip:
                 // Lần kiểm tự động sau không báo bản này nữa; bản lớn hơn vẫn báo. Khôi phục mặc định không xoá.
@@ -361,11 +367,38 @@ public partial class App : Application
         _tray?.ShowUpdateAvailable(release.Version.ToString(3), balloon: false);
     }
 
-    // Chỗ nối phần tải và cài bản mới (Task 6 làm). Hiện chỉ giữ dòng báo ở khay để mở lại được.
-    void StartUpdate(ReleaseInfo release)
+    // Đã tải và kiểm băm bản mới (exe trong Temp của thư mục cài, chỉ Admin ghi được): chạy nó ở chế độ setup với
+    // --update-after <PID này> rồi thoát. Bản mới chờ tiến trình này thoát hẳn (OnExit nhả mutex một bản chạy, dừng
+    // PresentMon, ghi nốt log và cài đặt) mới cài đè, rồi chạy bản đã cài. Không chạy được thì báo, app chạy tiếp.
+    void StartUpdate(ReleaseInfo release, string exePath)
     {
-        Trace.TraceInformation($"Chọn cập nhật lên {release.Tag} (chưa có phần tải).");
-        RemindInTray(release);
+        try
+        {
+            var start = new ProcessStartInfo(exePath)
+            {
+                UseShellExecute = false,   // app đã là Admin: bản mới thừa hưởng quyền, không hỏi UAC
+                WorkingDirectory = Path.GetDirectoryName(exePath)!,
+            };
+            start.ArgumentList.Add(FpsOverlay.Core.CommandLine.UpdateAfterArgument);
+            start.ArgumentList.Add(Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            // Bản mới là exe single-file: mặc định bung thư viện native vào %TEMP% (tiến trình không Admin ghi được, cài sẵn
+            // dll giả vào đó được) rồi nạp với quyền Admin. Cho bung vào Temp của thư mục cài (chỉ Admin ghi được).
+            var extract = Path.Combine(Path.GetDirectoryName(exePath)!, UpdateHandover.ExtractDirectoryName);
+            Directory.CreateDirectory(extract);
+            start.Environment["DOTNET_BUNDLE_EXTRACT_BASE_DIR"] = extract;
+            using var process = Process.Start(start) ?? throw new InvalidOperationException("Process.Start returned null");
+        }
+        catch (Exception ex)
+        {
+            Trace.TraceWarning($"Không chạy được bản cập nhật {release.Tag}: {ex.Message}");
+            try { File.Delete(exePath); }
+            catch (Exception deleteError) when (deleteError is IOException or UnauthorizedAccessException) { }
+            ShowError(StringKey.UpdateFailed, ex, Language);
+            RemindInTray(release);
+            return;
+        }
+        Trace.TraceInformation($"Chuyển sang bản cập nhật {release.Tag}.");
+        Shutdown();
     }
 
     // Trang phát hành mở bằng trình duyệt mặc định qua explorer.exe theo đường dẫn đầy đủ (như nút mở thư mục log;
@@ -385,7 +418,8 @@ public partial class App : Application
     }
 
     // Chạy từ ngoài thư mục cài: cài mới/cập nhật qua hộp thoại, hoặc chạy luôn bản đã cài (không hỏi). Xong thì thoát.
-    void RunSetup()
+    // updateAfterPid (--update-after): bản cài cũ vừa tải bản này về rồi thoát; chờ nó thoát hẳn rồi tự cập nhật (không hỏi).
+    async void RunSetup(int? updateAfterPid)
     {
         // Chỉ đọc (ngôn ngữ, đã hỏi PawnIO chưa), không mở SettingsService: bản này không bao giờ ghi file cài đặt.
         var saved = SettingsStore.Load(SettingsStore.DefaultPath);
@@ -399,6 +433,20 @@ public partial class App : Application
             Shutdown();
             return;
         }
+
+        var auto = updateAfterPid is not null;
+        if (updateAfterPid is { } pid)
+        {
+            // Bản cũ còn chạy (quá 30 s) hay có bản cài khác đang chạy: exe trong thư mục cài đang bị khoá, không cài đè.
+            if (!await WaitForOldInstanceAsync(pid) || Installer.IsInstalledCopyRunning())
+            {
+                MessageBox.Show(Loc.Get(StringKey.InstalledCopyRunning, language), "FPS Overlay",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                Shutdown();
+                return;
+            }
+        }
+
         InstallAction action;
         try
         {
@@ -418,12 +466,15 @@ public partial class App : Application
             return;
         }
 
-        var window = new InstallWindow(action, language, saved.PawnIoOffered);
+        var window = new InstallWindow(action, language, saved.PawnIoOffered, auto);
         window.Closed += (_, _) =>
         {
-            if (window.Succeeded)
+            // Tự cập nhật lỗi (hộp thoại đã báo): vẫn mở lại bản đang có trong thư mục cài để người dùng không mất overlay.
+            // PayloadFiles.Apply chuyển từng file vào chỗ, gọi lại an toàn; exe cài còn đó thì chạy được.
+            if (window.Succeeded || (auto && File.Exists(Installer.InstalledExePath)))
             {
                 // Đã hỏi PawnIO: bản đã cài (chủ của file cài đặt) nhận cờ này và tự ghi PawnIoOffered = true.
+                // Tự cập nhật không hỏi PawnIO nên không kèm cờ.
                 try { Installer.LaunchInstalled(window.PawnIoOffered ? [PawnIoSetup.OfferedArgument] : []); }
                 catch (Exception ex) { ShowError(StringKey.InstallFailed, ex, language); }
             }
@@ -431,6 +482,39 @@ public partial class App : Application
         };
         window.Show();
         window.Activate();
+    }
+
+    // Chờ bản cài cũ (PID truyền qua --update-after) thoát, tối đa 30 s. Chỉ chờ khi PID đó đúng là FpsOverlay chạy từ exe
+    // đã cài (PID có thể đã bị tiến trình khác dùng lại); không phải, đã thoát hay không đọc được thì không chờ (true).
+    // false = bản cũ vẫn chạy sau 30 s.
+    static async Task<bool> WaitForOldInstanceAsync(int pid)
+    {
+        Process process;
+        try { process = Process.GetProcessById(pid); }
+        catch (ArgumentException) { return true; }   // đã thoát
+        using (process)
+        {
+            try
+            {
+                if (!UpdateHandover.IsOldInstance(process.ProcessName, process.MainModule?.FileName, Installer.InstalledExePath))
+                    return true;
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception or NotSupportedException)
+            {
+                return true;   // vừa thoát, hoặc không đọc được đường dẫn: không phải bản cũ đang chạy
+            }
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            try
+            {
+                await process.WaitForExitAsync(timeout.Token);
+                return true;
+            }
+            catch (OperationCanceledException)
+            {
+                Trace.TraceWarning($"Bản cũ (PID {pid}) chưa thoát sau 30 giây.");
+                return false;
+            }
+        }
     }
 
     static void ApplyTheme(OverlaySettings settings)

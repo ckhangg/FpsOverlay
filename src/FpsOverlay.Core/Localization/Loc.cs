@@ -21,7 +21,7 @@ public enum StringKey
     PawnIoOffer, PawnIoInstallButton, PawnIoWorking, PawnIoInstalled, PawnIoRebootRequired, PawnIoDownloadFailed,
     PawnIoSignatureInvalid, PawnIoInstallFailed,
     CheckUpdates, CheckUpdatesButton, UpdateTitle, UpdateVersions, UpdateNow, UpdateSkip, UpdateLater, UpdateOpenPage, UpToDate, UpdateCheckFailed,
-    TrayUpdateAvailable, UpdateBalloon,
+    TrayUpdateAvailable, UpdateBalloon, UpdateDownloading, UpdateCancel, UpdateFailed, UpdatingTo,
 }
 
 /// <summary>Chuỗi giao diện hai ngôn ngữ. Khoá thiếu ném <see cref="KeyNotFoundException"/>.</summary>
@@ -150,6 +150,10 @@ public static class Loc
         [StringKey.UpdateCheckFailed] = ("Không kiểm tra được cập nhật.", "Couldn't check for updates."),
         [StringKey.TrayUpdateAvailable] = ("Có bản {0}…", "Version {0} available…"),
         [StringKey.UpdateBalloon] = ("Có bản FPS Overlay {0} — bấm để xem", "FPS Overlay {0} is available — click to view"),
+        [StringKey.UpdateDownloading] = ("Đang tải bản cập nhật…", "Downloading update…"),
+        [StringKey.UpdateCancel] = ("HUỶ", "CANCEL"),   // nút: chữ hoa như các nút khác
+        [StringKey.UpdateFailed] = ("Không cập nhật được.", "Update failed."),
+        [StringKey.UpdatingTo] = ("Đang cập nhật lên {0}…", "Updating to {0}…"),
     };
 
     public static string Get(StringKey key, AppLanguage language)

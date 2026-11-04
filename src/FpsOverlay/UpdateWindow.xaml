@@ -21,7 +21,21 @@
             </ScrollViewer>
         </Border>
 
-        <DockPanel Margin="0,16,0,0" LastChildFill="False">
+        <!-- Chế độ tải: chữ trạng thái + thanh tiến trình, thay cho ba nút lựa chọn. -->
+        <StackPanel x:Name="DownloadPanel" Margin="0,12,0,0" Visibility="Collapsed">
+            <TextBlock x:Name="DownloadText" FontFamily="{DynamicResource Ui.Mono}" FontSize="{DynamicResource Ui.CompactFontSize}"
+                       Foreground="{DynamicResource Ui.Secondary}" />
+            <ProgressBar x:Name="DownloadProgress" Height="8" Margin="0,6,0,0" Minimum="0" Maximum="1"
+                         Foreground="{DynamicResource Ui.Accent}" Background="{DynamicResource Ui.Track}"
+                         BorderBrush="{DynamicResource Ui.Outline}" BorderThickness="1" />
+        </StackPanel>
+
+        <DockPanel x:Name="DownloadButtons" Margin="0,16,0,0" LastChildFill="False" Visibility="Collapsed">
+            <Button x:Name="CancelDownloadButton" DockPanel.Dock="Right" Style="{DynamicResource Ui.GhostButton}"
+                    Click="OnCancelDownloadClick" />
+        </DockPanel>
+
+        <DockPanel x:Name="ChoiceButtons" Margin="0,16,0,0" LastChildFill="False">
             <Button x:Name="LaterButton" DockPanel.Dock="Left" Style="{DynamicResource Ui.GhostButton}" IsCancel="True"
                     Click="OnLaterClick" />
             <Button x:Name="SkipButton" DockPanel.Dock="Left" Style="{DynamicResource Ui.GhostButton}" Margin="8,0,0,0"

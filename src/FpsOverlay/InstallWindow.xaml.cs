@@ -12,6 +12,7 @@ namespace FpsOverlay;
 /// Hộp thoại cài/cập nhật (chủ đề theo phong cách đã lưu, xem <see cref="ThemeManager"/>), hiện khi chạy exe từ ngoài thư mục cài. Bấm cài: kiểm tra bản cài không
 /// chạy, chép (ngoài luồng UI), trỏ lại tác vụ khởi động cùng Windows, rồi đóng với <see cref="Succeeded"/> = true.
 /// Tuỳ chọn thêm (vd. PawnIO) đặt vào <c>OptionsPanel</c> và chạy trong <see cref="AfterInstallAsync"/>.
+/// Chế độ tự chạy (bản cập nhật vừa tải về, <c>--update-after</c>): không nút, không hỏi PawnIO, cài ngay khi hiện.
 /// </summary>
 public partial class InstallWindow : Window
 {
@@ -31,15 +32,18 @@ public partial class InstallWindow : Window
     public bool PawnIoOffered { get; private set; }
 
     readonly bool _offerPawnIo;
+    readonly bool _auto;
 
     /// <param name="action"><see cref="InstallAction.Install"/> hoặc <see cref="InstallAction.Update"/>.</param>
     /// <param name="language">Ngôn ngữ trong cài đặt đã lưu; người dùng đổi được ngay trong hộp thoại (chỉ cho hộp thoại).</param>
     /// <param name="pawnIoAlreadyOffered"><c>PawnIoOffered</c> trong cài đặt đã lưu (chỉ đọc).</param>
-    internal InstallWindow(InstallAction action, AppLanguage language, bool pawnIoAlreadyOffered)
+    /// <param name="auto">Tự cập nhật: cài ngay khi hiện, không nút, không ô PawnIO; lỗi thì báo rồi đóng.</param>
+    internal InstallWindow(InstallAction action, AppLanguage language, bool pawnIoAlreadyOffered, bool auto = false)
     {
         _action = action;
         _language = language;
-        _offerPawnIo = !pawnIoAlreadyOffered && !PawnIoSetup.IsInstalled();
+        _auto = auto;
+        _offerPawnIo = !auto && !pawnIoAlreadyOffered && !PawnIoSetup.IsInstalled();
         InitializeComponent();
         PawnIoOption.Visibility = _offerPawnIo ? Visibility.Visible : Visibility.Collapsed;
         PawnIoSwitch.IsChecked = false;   // mặc định không cài
@@ -51,6 +55,15 @@ public partial class InstallWindow : Window
         VersionValue.Text = Installer.RunningVersion.ToString(3);
         ApplyLanguage();
         _refreshing = false;
+        if (auto)
+        {
+            ButtonRow.Visibility = Visibility.Collapsed;
+            ContentRendered += async (_, _) =>
+            {
+                if (await RunInstallAsync()) return;
+                Close();   // đã báo lỗi; App mở lại bản đang cài (nếu còn) rồi thoát
+            };
+        }
     }
 
     void ApplyLanguage()
@@ -60,7 +73,9 @@ public partial class InstallWindow : Window
 
         Title = T(StringKey.InstallTitle);
         PromptSection.Content = "// " + T(update ? StringKey.UpdateButton : StringKey.InstallButton);
-        PromptText.Text = string.Format(T(update ? StringKey.UpdatePrompt : StringKey.InstallPrompt), Installer.InstallDirectory);
+        PromptText.Text = _auto
+            ? string.Format(T(StringKey.UpdatingTo), "v" + Installer.RunningVersion.ToString(3))
+            : string.Format(T(update ? StringKey.UpdatePrompt : StringKey.InstallPrompt), Installer.InstallDirectory);
         LanguageLabel.Text = T(StringKey.Language);
         VersionLabel.Text = T(StringKey.InstallVersion);
         StatusText.Text = T(StringKey.InstallWorking);
@@ -80,7 +95,7 @@ public partial class InstallWindow : Window
 
     async void OnInstallClick(object sender, RoutedEventArgs e)
     {
-        if (_busy) return;
+        if (_busy || _auto) return;
         // Bản cài đang chạy thì exe/PresentMon trong thư mục cài đang bị khoá: báo thoát nó trước, không tự giết.
         // Hộp thoại vẫn mở để người dùng thoát bản kia rồi bấm lại.
         if (Installer.IsInstalledCopyRunning())
@@ -89,7 +104,12 @@ public partial class InstallWindow : Window
                 MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
+        await RunInstallAsync();
+    }
 
+    // Cài/cập nhật rồi đóng với Succeeded = true; lỗi thì báo, mở lại hộp thoại (tự chạy: bên gọi đóng) và trả về false.
+    async Task<bool> RunInstallAsync()
+    {
         SetBusy(true);
         try
         {
@@ -106,12 +126,13 @@ public partial class InstallWindow : Window
             SetBusy(false);
             MessageBox.Show(this, $"{Loc.Get(StringKey.InstallFailed, _language)}\n\n{Loc.Get(StringKey.Details, _language)}: {ex.Message}",
                 "FPS Overlay", MessageBoxButton.OK, MessageBoxImage.Error);
-            return;
+            return false;
         }
 
         Succeeded = true;
         _busy = false;
         Close();
+        return true;
     }
 
     void OnPawnIoLabelClick(object sender, MouseButtonEventArgs e)

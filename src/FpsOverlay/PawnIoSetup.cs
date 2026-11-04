@@ -2,9 +2,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Runtime.InteropServices;
-using System.Security.AccessControl;
 using System.Security.Cryptography.X509Certificates;
-using System.Security.Principal;
 using FpsOverlay.Core.PawnIo;
 using Microsoft.Win32;
 using Microsoft.Win32.SafeHandles;
@@ -14,7 +12,7 @@ namespace FpsOverlay;
 /// <summary>
 /// Tải, kiểm chữ ký và cài ngầm PawnIO (driver để LibreHardwareMonitor đọc nhiệt độ CPU). Chỉ chạy khi người dùng
 /// chọn (ô tick trong hộp thoại cài, hoặc nút trong cài đặt); không bao giờ chạy lúc app tự khởi động cùng Windows.
-/// Chuỗi an toàn: tải qua HTTPS vào thư mục chỉ Admin ghi được → mở file chỉ cho chia sẻ đọc (không ai ghi/xoá/tráo được
+/// Chuỗi an toàn: tải qua HTTPS vào thư mục chỉ Admin ghi được (<see cref="SecureTemp"/>) → mở file chỉ cho chia sẻ đọc (không ai ghi/xoá/tráo được
 /// tới lúc chạy xong) → WinVerifyTrust trên chính handle đó + người ký khớp <see cref="PawnIoSigner"/> → chạy → xoá.
 /// </summary>
 static class PawnIoSetup
@@ -34,9 +32,6 @@ static class PawnIoSetup
     static readonly TimeSpan DownloadTimeout = TimeSpan.FromSeconds(60);
     static readonly TimeSpan VerifyTimeout = TimeSpan.FromSeconds(45);
     static readonly TimeSpan InstallTimeout = TimeSpan.FromSeconds(120);
-
-    static readonly SecurityIdentifier Administrators = new(WellKnownSidType.BuiltinAdministratorsSid, null);
-    static readonly SecurityIdentifier LocalSystem = new(WellKnownSidType.LocalSystemSid, null);
 
     /// <summary>
     /// PawnIO đã cài: có khoá gỡ cài đặt <c>HKLM\...\Uninstall\PawnIO</c> (bộ cài PawnIO ghi, LibreHardwareMonitor cũng đọc
@@ -65,7 +60,12 @@ static class PawnIoSetup
         string directory;
         try
         {
-            directory = await Task.Run(PrepareTempDirectory, cancellationToken);
+            directory = await Task.Run(() =>
+            {
+                var dir = SecureTemp.PrepareDirectory();
+                DeleteLeftovers(dir);
+                return dir;
+            }, cancellationToken);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -111,77 +111,7 @@ static class PawnIoSetup
         }
     }
 
-    // ---------- Thư mục tạm chỉ Admin ghi được ----------
-
-    /// <summary>
-    /// Có bản cài (bản setup vừa cài xong, hoặc bản đã cài đang chạy): <c>&lt;thư mục cài&gt;\Temp</c>, thừa hưởng quyền của
-    /// Program Files. Không có (<c>--no-install</c>): <c>%ProgramData%\FpsOverlay\Temp</c>, đặt ACL riêng chỉ Administrators
-    /// và SYSTEM. Thư mục là liên kết (junction/symlink) thì từ chối.
-    /// </summary>
-    static string PrepareTempDirectory()
-    {
-        string directory;
-        if (Installer.IsInstallPathValid && File.Exists(Installer.InstalledExePath))
-        {
-            RejectReparsePoint(Installer.InstallDirectory);
-            directory = Path.Combine(Installer.InstallDirectory, Installer.TempDirectoryName);
-            Directory.CreateDirectory(directory);
-            RejectReparsePoint(directory);
-        }
-        else
-        {
-            var programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
-            if (string.IsNullOrEmpty(programData) || !Path.IsPathFullyQualified(programData))
-                throw new InvalidOperationException($"ProgramData folder is not an absolute path: \"{programData}\"");
-            var root = Path.Combine(programData, Core.Install.InstallPaths.DirectoryName);
-            directory = Path.Combine(root, "Temp");
-            SecureDirectory(root);
-            SecureDirectory(directory);
-        }
-        DeleteLeftovers(directory);
-        return directory;
-    }
-
-    // Tạo (hoặc đặt lại) thư mục với ACL: chủ sở hữu Administrators, tắt thừa hưởng, chỉ Administrators + SYSTEM toàn quyền.
-    // Đặt xong đọc lại để kiểm; không đúng thì ném lỗi.
-    static void SecureDirectory(string path)
-    {
-        var security = new DirectorySecurity();
-        security.SetOwner(Administrators);
-        security.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
-        const InheritanceFlags inherit = InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit;
-        security.AddAccessRule(new FileSystemAccessRule(Administrators, FileSystemRights.FullControl, inherit,
-            PropagationFlags.None, AccessControlType.Allow));
-        security.AddAccessRule(new FileSystemAccessRule(LocalSystem, FileSystemRights.FullControl, inherit,
-            PropagationFlags.None, AccessControlType.Allow));
-
-        var info = new DirectoryInfo(path);
-        if (!info.Exists)
-            info.Create(security);   // tạo luôn với ACL; có ai tạo trước giữa chừng thì ném lỗi, lần sau đi nhánh dưới
-        else
-        {
-            RejectReparsePoint(path);
-            info.SetAccessControl(security);
-        }
-
-        info.Refresh();
-        RejectReparsePoint(path);
-        var actual = info.GetAccessControl();
-        var owner = actual.GetOwner(typeof(SecurityIdentifier));
-        if (owner is null || (!owner.Equals(Administrators) && !owner.Equals(LocalSystem)))
-            throw new InvalidOperationException($"Unexpected owner on {path}: {owner}");
-        if (!actual.AreAccessRulesProtected)
-            throw new InvalidOperationException($"Inherited permissions on {path}");
-        foreach (FileSystemAccessRule rule in actual.GetAccessRules(true, true, typeof(SecurityIdentifier)))
-            if (!rule.IdentityReference.Equals(Administrators) && !rule.IdentityReference.Equals(LocalSystem))
-                throw new InvalidOperationException($"Unexpected permission on {path}: {rule.IdentityReference}");
-    }
-
-    static void RejectReparsePoint(string path)
-    {
-        if (new DirectoryInfo(path).Attributes.HasFlag(FileAttributes.ReparsePoint))
-            throw new InvalidOperationException($"Refusing to use a link: {path}");
-    }
+    // ---------- File còn sót ----------
 
     // File của lần trước bị dừng giữa chừng (app bị tắt lúc đang tải/cài): xoá được thì xoá, không thì thôi.
     static void DeleteLeftovers(string directory)
