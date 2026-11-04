@@ -111,6 +111,51 @@ static class NativeMethods
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool CloseHandle(IntPtr hObject);
 
+    // Tách khỏi Job Object khi chạy bản cập nhật: app chạy từ Task Scheduler nằm trong job của tác vụ (xem JobBreakaway).
+    public const uint CREATE_UNICODE_ENVIRONMENT = 0x00000400;
+    public const uint CREATE_BREAKAWAY_FROM_JOB = 0x01000000;
+    public const int ERROR_ACCESS_DENIED = 5;
+    public const int ERROR_ELEVATION_REQUIRED = 740;
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    public struct STARTUPINFO
+    {
+        public int cb;
+        public IntPtr lpReserved;
+        public IntPtr lpDesktop;
+        public IntPtr lpTitle;
+        public int dwX, dwY, dwXSize, dwYSize, dwXCountChars, dwYCountChars, dwFillAttribute;
+        public int dwFlags;
+        public short wShowWindow;
+        public short cbReserved2;
+        public IntPtr lpReserved2;
+        public IntPtr hStdInput, hStdOutput, hStdError;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct PROCESS_INFORMATION
+    {
+        public IntPtr hProcess;
+        public IntPtr hThread;
+        public int dwProcessId;
+        public int dwThreadId;
+    }
+
+    [DllImport("kernel32.dll")]
+    public static extern IntPtr GetCurrentProcess();   // pseudo-handle, không cần đóng
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool IsProcessInJob(IntPtr processHandle, IntPtr jobHandle, [MarshalAs(UnmanagedType.Bool)] out bool result);
+
+    // lpCommandLine phải là bộ đệm ghi được (CreateProcessW có thể sửa tại chỗ): dùng StringBuilder.
+    [DllImport("kernel32.dll", EntryPoint = "CreateProcessW", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool CreateProcess(string? lpApplicationName, System.Text.StringBuilder lpCommandLine,
+        IntPtr lpProcessAttributes, IntPtr lpThreadAttributes, [MarshalAs(UnmanagedType.Bool)] bool bInheritHandles,
+        uint dwCreationFlags, IntPtr lpEnvironment, string? lpCurrentDirectory, ref STARTUPINFO lpStartupInfo,
+        out PROCESS_INFORMATION lpProcessInformation);
+
     // Đường dẫn exe của tiến trình (nhận ra game theo thư mục cài); quyền hạn chế đủ cho cả tiến trình chạy quyền cao hơn.
     public const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
 

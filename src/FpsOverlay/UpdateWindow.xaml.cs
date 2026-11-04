@@ -63,7 +63,7 @@ public partial class UpdateWindow : Window
         Title = T(StringKey.UpdateTitle);
         TitleSection.Content = "// v" + release.Version.ToString(3);   // tiêu đề đã ở thanh trên cửa sổ
         VersionsText.Text = string.Format(T(StringKey.UpdateVersions), "v" + current.ToString(3), "v" + release.Version.ToString(3));
-        var notes = release.Notes.Replace("\r\n", "\n").Trim();
+        var notes = ReleaseNotes.ToPlainText(release.Notes);   // GitHub viết Markdown; hiện chữ thường, không ** hay ```
         NotesText.Text = notes;
         NotesBox.Visibility = notes.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
         PrimaryButton.Content = T(_canInstall ? StringKey.UpdateNow : StringKey.UpdateOpenPage);

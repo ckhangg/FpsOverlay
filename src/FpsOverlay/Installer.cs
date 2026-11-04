@@ -189,9 +189,16 @@ static class Installer
     /// <summary>
     /// Chạy bản đã cài (nó cần Admin; bản này đã là Admin nên không hiện UAC lần nữa). <paramref name="arguments"/>: tham số
     /// truyền cho bản cài (vd. <see cref="PawnIoSetup.OfferedArgument"/>).
+    /// ShellExecute từ tiến trình đã là Admin vẫn gọi CreateProcess ngay trong tiến trình này, nên bản cài thừa hưởng Job
+    /// Object nếu bản setup đang nằm trong job: khi đó tách khỏi job trước (xem <see cref="JobBreakaway"/>), không được
+    /// thì chạy như cũ.
     /// </summary>
     public static void LaunchInstalled(params string[] arguments)
     {
+        var breakaway = new ProcessStartInfo(InstalledExePath) { WorkingDirectory = InstallDirectory };
+        foreach (var argument in arguments) breakaway.ArgumentList.Add(argument);
+        if (JobBreakaway.TryStart(breakaway, useEnvironment: false)) return;
+
         var start = new ProcessStartInfo(InstalledExePath)
         {
             UseShellExecute = true,

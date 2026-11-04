@@ -246,8 +246,9 @@ public partial class App : Application
             if (_manualCheckActive || _settings is null || release is null ||
                 !UpdatePolicy.ShouldOffer(UpdateService.CurrentVersion, release, _settings.Current.SkippedVersion, manual: false))
                 return;
-            // Tự chạy lúc đăng nhập Windows: chỉ báo ở khay (balloon + dòng đầu menu), không bật hộp thoại.
-            if (autostart)
+            // Tự chạy lúc đăng nhập Windows, hoặc đang có game ở phía trước (không cướp focus của game): chỉ báo ở khay
+            // (balloon + dòng đầu menu), không bật hộp thoại. Bấm dòng đó / balloon thì mở hộp thoại.
+            if (autostart || IsGameInFront())
             {
                 _pendingRelease = release;
                 _tray?.ShowUpdateAvailable(release.Version.ToString(3), balloon: true);
@@ -263,6 +264,11 @@ public partial class App : Application
             Trace.TraceWarning($"Kiểm cập nhật lúc khởi động lỗi: {ex.Message}");
         }
     }
+
+    // Game đang ở phía trước theo trạng thái hiện/ẩn sẵn có: chế độ chỉ-hiện-khi-chơi đang bật và overlay đang hiện mà không
+    // phải vì xem trước hay đang di chuyển (khi đó chỉ game, hoặc app trong "Luôn hiện", mới làm overlay hiện).
+    bool IsGameInFront() =>
+        _settings is { Current.ShowOnlyInGame: true } && _shown && !_hiddenByUser && !IsPreviewing && _overlay is { IsMoving: false };
 
     // Lần gọi GitHub đang chạy thì dùng chung (kiểm tự động và bấm tay không gọi hai lần); không thì gọi mới.
     Task<ReleaseInfo?> CheckSharedAsync()
@@ -386,7 +392,12 @@ public partial class App : Application
             var extract = Path.Combine(Path.GetDirectoryName(exePath)!, UpdateHandover.ExtractDirectoryName);
             Directory.CreateDirectory(extract);
             start.Environment["DOTNET_BUNDLE_EXTRACT_BASE_DIR"] = extract;
-            using var process = Process.Start(start) ?? throw new InvalidOperationException("Process.Start returned null");
+            // Chạy từ tác vụ khởi động (Task Scheduler): tách bản mới khỏi job của tác vụ để nó không bị tắt cùng app này.
+            // Không trong job, hay job không cho tách: chạy như cũ.
+            if (!JobBreakaway.TryStart(start, useEnvironment: true))
+            {
+                using var process = Process.Start(start) ?? throw new InvalidOperationException("Process.Start returned null");
+            }
         }
         catch (Exception ex)
         {
@@ -430,6 +441,9 @@ public partial class App : Application
         {
             MessageBox.Show(Loc.Get(StringKey.InstallPayloadMissing, language), "FPS Overlay",
                 MessageBoxButton.OK, MessageBoxImage.Error);
+            // Tự cập nhật: bản cũ đã (đang) thoát; chờ nó thoát hẳn rồi mở lại bản đang cài.
+            if (updateAfterPid is { } failedPid && await WaitForOldInstanceAsync(failedPid))
+                RelaunchInstalledAfterFailedUpdate(language);
             Shutdown();
             return;
         }
@@ -462,6 +476,7 @@ public partial class App : Application
         catch (Exception ex)
         {
             ShowError(StringKey.InstallFailed, ex, language);
+            if (auto) RelaunchInstalledAfterFailedUpdate(language);
             Shutdown();
             return;
         }
@@ -485,8 +500,8 @@ public partial class App : Application
     }
 
     // Chờ bản cài cũ (PID truyền qua --update-after) thoát, tối đa 30 s. Chỉ chờ khi PID đó đúng là FpsOverlay chạy từ exe
-    // đã cài (PID có thể đã bị tiến trình khác dùng lại); không phải, đã thoát hay không đọc được thì không chờ (true).
-    // false = bản cũ vẫn chạy sau 30 s.
+    // đã cài (PID có thể đã bị tiến trình khác dùng lại); không phải hay đã thoát thì không chờ (true). Không đọc được
+    // tên/đường dẫn thì chờ mutex một bản chạy được nhả, tối đa 30 s. false = bản cũ (bản cài) vẫn chạy sau 30 s.
     static async Task<bool> WaitForOldInstanceAsync(int pid)
     {
         Process process;
@@ -501,7 +516,9 @@ public partial class App : Application
             }
             catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception or NotSupportedException)
             {
-                return true;   // vừa thoát, hoặc không đọc được đường dẫn: không phải bản cũ đang chạy
+                // Vừa thoát, hoặc không đọc được đường dẫn (bị từ chối quyền): không biết có phải bản cũ không, nên chờ
+                // mutex một bản chạy được nhả (bản cài nào đó còn chạy thì exe cài đang bị khoá).
+                return await WaitForInstalledCopyExitAsync(pid);
             }
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             try
@@ -515,6 +532,31 @@ public partial class App : Application
                 return false;
             }
         }
+    }
+
+    // Hỏi mutex một bản chạy mỗi 250 ms, tối đa 30 s. true = không còn bản cài nào chạy.
+    static async Task<bool> WaitForInstalledCopyExitAsync(int pid)
+    {
+        var waited = Stopwatch.StartNew();
+        while (Installer.IsInstalledCopyRunning())
+        {
+            if (waited.Elapsed >= TimeSpan.FromSeconds(30))
+            {
+                Trace.TraceWarning($"Không xác định được PID {pid}; bản cài vẫn chạy sau 30 giây.");
+                return false;
+            }
+            await Task.Delay(250);
+        }
+        return true;
+    }
+
+    // Tự cập nhật (--update-after) dừng vì lỗi (đã báo): mở lại bản đang có trong thư mục cài, nếu còn và chưa có bản nào
+    // chạy, để người dùng không mất overlay (như nhánh hộp thoại cài lỗi trong RunSetup).
+    static void RelaunchInstalledAfterFailedUpdate(AppLanguage language)
+    {
+        if (!File.Exists(Installer.InstalledExePath) || Installer.IsInstalledCopyRunning()) return;
+        try { Installer.LaunchInstalled(); }
+        catch (Exception ex) { ShowError(StringKey.InstallFailed, ex, language); }
     }
 
     static void ApplyTheme(OverlaySettings settings)

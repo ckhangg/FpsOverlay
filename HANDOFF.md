@@ -95,11 +95,13 @@ Hoãn theo ý người dùng: **biểu đồ FPS/frametime** (làm sau).
 - **Đợt 8** Khung cửa sổ là một kiểu trong suốt cố định; mỗi chủ đề có `Ui.WindowTemplate` riêng vẽ nền/viền/hiệu ứng. Đổi chủ đề trong cài đặt áp dụng ngay cho mọi cửa sổ đang mở.
 - **Đợt 8** Nút trong cửa sổ viết HOA qua `Loc` (vd. CẬP NHẬT, ĐỂ SAU); mục menu khay giữ chữ thường như câu.
 - **Đợt 8** Bấm "Kiểm tra cập nhật" khi lần kiểm tra lúc mở app còn đang chạy thì nhập vào lần đó (chỉ một kết quả, không gọi mạng hai lần).
-- **Đợt 8** `--autostart` (tác vụ khởi động cùng Windows) không bao giờ bật hộp thoại: chỉ thông báo bóng khay và một dòng đầu menu khay. Tác vụ cũ của 1.3.0 được sửa (`RepairEntries`) để thêm `--autostart`.
+- **Đợt 8** `--autostart` (tác vụ khởi động cùng Windows) không bao giờ bật hộp thoại: chỉ thông báo bóng khay và một dòng đầu menu khay. Tác vụ cũ của 1.3.0 được sửa để thêm `--autostart`: bản cài tự sửa qua `AutostartService.QueryAndRepair` (gọi từ `RefreshAsync` lúc khởi động, mở menu khay, mở cài đặt), và bản setup sửa qua `Retarget` khi cài/cập nhật (không phải `RepairEntries`, hàm đó chỉ tạo lại lối tắt và mục gỡ cài đặt).
 - **Đợt 8** `SkippedVersion` trong `settings.json`: "BỎ QUA BẢN NÀY" nhớ phiên bản; kiểm tự động không nhắc lại đúng bản đó, kiểm bằng tay vẫn báo.
 - **Đợt 8** Tải về vào `<InstallDir>\Temp` (chỉ Admin ghi được; bản `--no-install` dùng `%ProgramData%\FpsOverlay\Temp` có ACL Admin). Chỉ nhận HTTPS tới github.com, objects.githubusercontent.com, release-assets.githubusercontent.com (kiểm từng bước chuyển hướng, tối đa 5), tối đa 400 MB, bắt buộc khớp SHA-256. Khi khởi động bản đã cài, xoá `Temp\*.exe` và `Temp\extract` cũ hơn 1 giờ.
 - **Đợt 8** Bàn giao: app cũ chạy exe mới với `--update-after <PID>` rồi thoát; exe mới chỉ chờ (tối đa 30 s) nếu PID đúng là bản cài, rồi cài đè không hỏi và mở bản đã cài.
 - **Đợt 8** Cập nhật tự động thất bại vẫn mở bản đã cài (nếu còn) để người dùng không mất overlay.
+- **Đợt 8** App chạy từ tác vụ khởi động (Task Scheduler) nằm trong Job Object của tác vụ: exe cập nhật (và bản cài nó mở lại) được chạy bằng `CreateProcess` + `CREATE_BREAKAWAY_FROM_JOB` để không bị tắt cùng tác vụ; job không cho tách thì chạy như cũ (ghi Trace) và có thể bị tắt, xem mục 84. Không trong job thì đường chạy không đổi.
+- **Đợt 8** Lúc mở app mà game đang ở phía trước (chỉ-hiện-khi-chơi bật, overlay đang hiện, không xem trước): không bật hộp thoại cập nhật, chỉ báo khay (balloon + dòng đầu menu). Ghi chú phát hành hiện chữ thường (bỏ Markdown đơn giản, `ReleaseNotes.ToPlainText`).
 - **Đợt 8** Biến `DOTNET_BUNDLE_EXTRACT_BASE_DIR` được trỏ tới `<InstallDir>\Temp\extract` cho exe cập nhật, để thư viện native không bung ra `%TEMP%\.net` (nơi người dùng thường ghi được) khi chạy với quyền Admin.
 - **Rủi ro đã biết (đợt 8)** File `.sha256` chứng minh toàn vẹn, **không** chứng minh xuất xứ: exe chưa ký số, nên nếu tài khoản GitHub của chủ kho bị chiếm thì kẻ chiếm đăng được cả file lẫn mã băm. Chủ kho nên bật 2FA. Ghi trong README.
 - **Rủi ro đã biết (đợt 8, có từ trước)** Người dùng tự chạy file mang đi (single-file) bằng quyền Admin thì thư viện native bị bung ra `%TEMP%\.net\FpsOverlay\<id>`, thư mục người dùng ghi được và được tái sử dụng: có thể bị cài DLL giả. Đường cập nhật tự động đã tránh (xem trên); chạy tay thì chưa.
@@ -223,7 +225,7 @@ Hoãn theo ý người dùng: **biểu đồ FPS/frametime** (làm sau).
 64. Chạy lại đúng lệnh đó khi đã có bản cài (hoặc khi có bản mới hơn): hộp thoại báo Cập nhật, cài đặt cũ còn nguyên.
 65. Trang Releases có `FpsOverlay.exe` và `FpsOverlay.exe.sha256`; `certutil -hashfile FpsOverlay.exe SHA256` khớp file `.sha256`.
 
-**Đợt 8 (1.4.0)** (cần quyền Admin; mục 66–75 là phần tải/bàn giao; mục 66–71 và 83 cần một bản phát hành thử, mục 73 và 75 cần đã cập nhật ít nhất một lần)
+**Đợt 8 (1.4.0)** (cần quyền Admin; mục 66–75 là phần tải/bàn giao; mục 66–71, 83 và 84 cần một bản phát hành thử, mục 73 và 75 cần đã cập nhật ít nhất một lần)
 66. Bản cài ở vN, đã có bản vN+1 trên GitHub Releases kèm `FpsOverlay.exe.sha256`: mở hộp thoại cập nhật rồi bấm CẬP NHẬT.
     - Thanh tiến độ đầy dần, phần trăm đổi, nút HUỶ viết hoa ở cả tiếng Việt và tiếng Anh.
     - Xem giao diện ở cả 4 chủ đề.
@@ -247,3 +249,5 @@ Hoãn theo ý người dùng: **biểu đồ FPS/frametime** (làm sau).
 81. Đăng xuất rồi đăng nhập với tác vụ có `--autostart` và đang có bản mới: không hộp thoại, chỉ thông báo khay và một dòng đầu menu khay; bấm dòng đó mở hộp thoại cập nhật.
 82. (Tuỳ chọn) File chủ đề hỏng/không hợp lệ: cửa sổ rơi về Cyberpunk, không lỗi.
 83. Thử cập nhật thật cần phát hành một bản thử (vd. 1.4.1): chỉ làm khi người dùng đồng ý, không tự phát hành.
+84. **(Đường dễ hỏng nhất)** Cập nhật từ bản chạy bởi tác vụ khởi động: bật "Khởi động cùng Windows", đăng xuất rồi đăng nhập, chờ dòng báo bản mới ở khay, bấm dòng đó rồi bấm CẬP NHẬT → bản mới được cài và đang chạy (biểu tượng khay còn, Settings → Apps đúng phiên bản). App này nằm trong Job Object của tác vụ; nếu bản mới hay bản cài không lên, xem Trace "Không tách được … khỏi job" (job không cho tách). Cần bản phát hành thử như mục 83.
+85. Mở app (không phải tự khởi động) khi có bản mới, rồi vào game toàn màn hình trong vòng 5 giây (bật chỉ-hiện-khi-chơi): không có hộp thoại cướp focus, chỉ balloon + dòng đầu menu khay; bấm vào thì mở hộp thoại. Ghi chú phát hành trong hộp thoại không còn `**` hay ```.
