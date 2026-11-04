@@ -105,13 +105,13 @@ Hoãn theo ý người dùng: **biểu đồ FPS/frametime** (làm sau).
 - **Rủi ro đã biết (đợt 8, có từ trước)** Người dùng tự chạy file mang đi (single-file) bằng quyền Admin thì thư viện native bị bung ra `%TEMP%\.net\FpsOverlay\<id>`, thư mục người dùng ghi được và được tái sử dụng: có thể bị cài DLL giả. Đường cập nhật tự động đã tránh (xem trên); chạy tay thì chưa.
 
 ## 8. Việc nên làm tiếp
-00. **Kiểm tay đợt 8** (mục 9, phần "Đợt 8"), rồi merge và phát hành 1.4.0 (`.\scriptselease.ps1`).
-0. **Kiểm tay đợt 6** (mục 9, phần "Đợt 6", mục 45–60) với bản 1.2.0; lỗi tìm thấy sửa trên nhánh mới từ master.
-1. ~~Kiểm tay đợt 5~~ — người dùng đã kiểm OK. Kiểm tay phần còn lại của mục 9 (đợt 1–4: gỡ cài đặt, PawnIO, junction...) nếu chưa làm.
-2. ~~Sửa nhỏ về bảo mật: đặt `COMSPEC` = `System32\cmd.exe` cho tiến trình cmd tự xoá khi gỡ cài đặt~~ — đã làm và merge vào master (cần kiểm tay mục 24–26).
-3. Kiểm tra log khi `Documents` bị chuyển hướng/junction (hiện chỉ chặn một phần; tác động giới hạn ở việc tạo file mới, không ghi đè).
-4. Các lỗi nhỏ đã hoãn (không chặn việc dùng): GPU tích hợp bận hơn ở desktop nên nhiệt GPU hiện `--`; dòng ghi chú PawnIO nháy ~1 s lúc mở app; ẩn overlay khi tắt log có thể đứng giao diện vài giây; file `.pdb` trong `publish\`.
-5. Tính năng đã hoãn: **biểu đồ FPS/frametime**.
+1. **Kiểm tay đợt 8** (mục 9, phần "Đợt 8"), rồi merge và phát hành 1.4.0 (`.\scripts\release.ps1`).
+2. **Kiểm tay đợt 6** (mục 9, phần "Đợt 6", mục 45–60) với bản 1.2.0; lỗi tìm thấy sửa trên nhánh mới từ master.
+3. ~~Kiểm tay đợt 5~~ — người dùng đã kiểm OK. Kiểm tay phần còn lại của mục 9 (đợt 1–4: gỡ cài đặt, PawnIO, junction...) nếu chưa làm.
+4. ~~Sửa nhỏ về bảo mật: đặt `COMSPEC` = `System32\cmd.exe` cho tiến trình cmd tự xoá khi gỡ cài đặt~~ — đã làm và merge vào master (cần kiểm tay mục 24–26).
+5. Kiểm tra log khi `Documents` bị chuyển hướng/junction (hiện chỉ chặn một phần; tác động giới hạn ở việc tạo file mới, không ghi đè).
+6. Các lỗi nhỏ đã hoãn (không chặn việc dùng): GPU tích hợp bận hơn ở desktop nên nhiệt GPU hiện `--`; dòng ghi chú PawnIO nháy ~1 s lúc mở app; ẩn overlay khi tắt log có thể đứng giao diện vài giây; file `.pdb` trong `publish\`.
+7. Tính năng đã hoãn: **biểu đồ FPS/frametime**.
 
 ## 9. Danh sách kiểm tay (cần quyền Admin)
 **Cài lần đầu và PawnIO**
@@ -223,7 +223,7 @@ Hoãn theo ý người dùng: **biểu đồ FPS/frametime** (làm sau).
 64. Chạy lại đúng lệnh đó khi đã có bản cài (hoặc khi có bản mới hơn): hộp thoại báo Cập nhật, cài đặt cũ còn nguyên.
 65. Trang Releases có `FpsOverlay.exe` và `FpsOverlay.exe.sha256`; `certutil -hashfile FpsOverlay.exe SHA256` khớp file `.sha256`.
 
-**Đợt 8 (1.4.0)** (cần quyền Admin; mục 1–10 là phần tải/bàn giao, 4–6 cần một bản phát hành thử)
+**Đợt 8 (1.4.0)** (cần quyền Admin; mục 66–75 là phần tải/bàn giao; mục 66–71 và 83 cần một bản phát hành thử, mục 73 và 75 cần đã cập nhật ít nhất một lần)
 66. Bản cài ở vN, đã có bản vN+1 trên GitHub Releases kèm `FpsOverlay.exe.sha256`: mở hộp thoại cập nhật rồi bấm CẬP NHẬT.
     - Thanh tiến độ đầy dần, phần trăm đổi, nút HUỶ viết hoa ở cả tiếng Việt và tiếng Anh.
     - Xem giao diện ở cả 4 chủ đề.
