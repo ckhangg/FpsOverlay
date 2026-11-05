@@ -47,9 +47,13 @@ Hoãn theo ý người dùng: **biểu đồ FPS/frametime** (làm sau).
 - **Đợt 7 (1.3.0) đã merge vào master và phát hành tại https://github.com/ckhangg/FpsOverlay/releases/tag/v1.3.0, chưa kiểm tay.** Lịch sử git đã đổi tác giả thành `CKhang` (noreply) và xoá danh tính công ty cũ khỏi nội dung; bản sao lưu lịch sử cũ: `%USERPROFILE%\Downloads\FPS-history-backup.bundle` (chỉ trên máy, không đẩy lên). `dotnet test`: 292/292 pass, `dotnet build src/FpsOverlay`: 0 cảnh báo. Cần kiểm tay mục "Đợt 7" ở mục 9.
 - **Kho GitHub:** https://github.com/ckhangg/FpsOverlay (công khai, tài khoản `ckhangg`; tác giả mọi commit là `CKhang <39177627+ckhangg@users.noreply.github.com>`). Bản sao lưu lịch sử cũ: `%USERPROFILE%\Downloads\FPS-history-backup.bundle`.
 - **Phát hành bản mới:** đổi `<Version>` trong `src/FpsOverlay/FpsOverlay.csproj`, merge vào `master`, rồi chạy `.\scripts\release.ps1` (cần `gh` đã đăng nhập). Script kiểm cây sạch + đang ở master + thẻ chưa có, chạy test, publish, tạo `publish\FpsOverlay.exe.sha256`, đẩy thẻ `vX.Y.Z` rồi tạo release kèm hai file.
-- **Lệnh cài một dòng** (cmd, không phải PowerShell; chạy lại để cập nhật):
+- **Lệnh cài một dòng** (chạy lại để cập nhật; lệnh chờ setup thoát rồi xoá file tạm để Windows Search không còn mục "FpsOverlay.exe" thừa). cmd:
   ```
-  curl -fL -o "%TEMP%\FpsOverlay.exe" https://github.com/ckhangg/FpsOverlay/releases/latest/download/FpsOverlay.exe && start "" "%TEMP%\FpsOverlay.exe"
+  curl -fL -o "%TEMP%\FpsOverlay.exe" https://github.com/ckhangg/FpsOverlay/releases/latest/download/FpsOverlay.exe && start "" /wait "%TEMP%\FpsOverlay.exe" & del "%TEMP%\FpsOverlay.exe" 2>nul
+  ```
+  PowerShell:
+  ```
+  $f = "$env:TEMP\FpsOverlay.exe"; curl.exe -fL -o $f https://github.com/ckhangg/FpsOverlay/releases/latest/download/FpsOverlay.exe; if ($?) { try { $p = Start-Process $f -PassThru -ErrorAction Stop; $p.WaitForExit() } finally { Remove-Item $f -ErrorAction SilentlyContinue } }
   ```
 - **Đợt 6 (1.2.0) đã merge vào master, chưa kiểm tay** (nhánh `feat/game-only-overlay` đã xoá; người dùng chọn merge trước khi kiểm tay, lỗi tìm thấy sửa trên nhánh mới từ master). `dotnet test`: 287/287 pass, `dotnet build src/FpsOverlay`: 0 cảnh báo. Cần kiểm tay mục "Đợt 6" ở mục 9.
 - **Đợt 5 (1.1.0) đã merge vào master** (nhánh `feat/gpu-alerts-themes-layout` đã xoá; người dùng chọn merge trước khi kiểm tay, lỗi tìm thấy sửa trên nhánh mới từ master). Code xong, `dotnet test`: 256/256 pass, `dotnet build src/FpsOverlay`: 0 cảnh báo, `dotnet publish` chạy được. Người dùng đã cài bản 1.1.0 và kiểm tay đợt 5 trên máy thật: OK (2026-11-03).
@@ -260,3 +264,4 @@ Hoãn theo ý người dùng: **biểu đồ FPS/frametime** (làm sau).
 88. Tìm "EzFPS" hoặc "FPS" trong Start Menu: ra lối tắt có icon mới (có thể cần đăng xuất rồi đăng nhập hoặc xoá cache icon mới thấy icon mới).
 89. Icon khay (khay hệ thống) và icon trên thanh tiêu đề/thanh tác vụ của cửa sổ Cài đặt, Cài app, Cập nhật là logo mới, rõ nét ở màn hình 100% và 150%; tooltip khay và mọi hộp thoại ghi "EzFPS".
 90. Chạy file mang đi (`publish\FpsOverlay.exe`): icon file trong Explorer là logo mới.
+91. Lệnh cài cmd và lệnh cài PowerShell trong README, chạy từ cửa sổ **không** phải Admin: UAC hiện, cài xong (hoặc bấm No ở UAC) thì dấu nhắc lệnh quay lại và `%TEMP%\FpsOverlay.exe` không còn.

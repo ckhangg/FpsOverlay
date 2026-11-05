@@ -20,12 +20,18 @@ EzFPS là app Windows hiện FPS và các thông số máy (1% low, tải và nh
 Mở **Command Prompt** (cmd), dán lệnh sau rồi Enter:
 
 ```
-curl -fL -o "%TEMP%\FpsOverlay.exe" https://github.com/ckhangg/FpsOverlay/releases/latest/download/FpsOverlay.exe && start "" "%TEMP%\FpsOverlay.exe"
+curl -fL -o "%TEMP%\FpsOverlay.exe" https://github.com/ckhangg/FpsOverlay/releases/latest/download/FpsOverlay.exe && start "" /wait "%TEMP%\FpsOverlay.exe" & del "%TEMP%\FpsOverlay.exe" 2>nul
+```
+
+Nếu bạn dùng **PowerShell** (Windows Terminal mặc định mở PowerShell), dùng lệnh này:
+
+```
+$f = "$env:TEMP\FpsOverlay.exe"; curl.exe -fL -o $f https://github.com/ckhangg/FpsOverlay/releases/latest/download/FpsOverlay.exe; if ($?) { try { $p = Start-Process $f -PassThru -ErrorAction Stop; $p.WaitForExit() } finally { Remove-Item $f -ErrorAction SilentlyContinue } }
 ```
 
 Hộp thoại cài sẽ hiện (và đòi quyền Admin). Chạy lại đúng lệnh này cũng cập nhật được lên bản mới nhất; cài đặt của bạn được giữ nguyên.
 
-Lệnh dùng `curl` và cmd. Trong PowerShell, `curl` là tên khác của lệnh khác, hãy dùng cmd hoặc `curl.exe`.
+Lệnh chờ hộp thoại cài đóng rồi xoá file cài tạm trong `%TEMP%`, để Windows Search không còn hiện thêm một mục "FpsOverlay.exe" cạnh EzFPS. Lệnh cmd không chạy được trong PowerShell (PowerShell 5.1 không có `&&`), và ngược lại.
 
 ### Cập nhật
 Từ bản 1.4.0, app tự kiểm tra bản mới trên GitHub Releases mỗi lần mở (lỗi mạng thì im lặng) và có nút **Kiểm tra cập nhật** trong cài đặt và trên menu khay. Khi có bản mới, hộp thoại hiện ba nút: **CẬP NHẬT**, **BỎ QUA BẢN NÀY**, **ĐỂ SAU**. Bấm CẬP NHẬT thì app tải bản mới, kiểm mã băm SHA-256, tự cài đè và mở lại, cài đặt được giữ nguyên, không hỏi thêm gì. Khi app tự chạy cùng Windows, nó chỉ báo bằng thông báo ở khay và một dòng trên menu khay, không bật hộp thoại.
@@ -81,12 +87,18 @@ EzFPS is a Windows app that shows FPS and system stats (1% low, GPU/CPU load and
 Open **Command Prompt** (cmd), paste this and press Enter:
 
 ```
-curl -fL -o "%TEMP%\FpsOverlay.exe" https://github.com/ckhangg/FpsOverlay/releases/latest/download/FpsOverlay.exe && start "" "%TEMP%\FpsOverlay.exe"
+curl -fL -o "%TEMP%\FpsOverlay.exe" https://github.com/ckhangg/FpsOverlay/releases/latest/download/FpsOverlay.exe && start "" /wait "%TEMP%\FpsOverlay.exe" & del "%TEMP%\FpsOverlay.exe" 2>nul
+```
+
+If you use **PowerShell** (Windows Terminal opens PowerShell by default), use this instead:
+
+```
+$f = "$env:TEMP\FpsOverlay.exe"; curl.exe -fL -o $f https://github.com/ckhangg/FpsOverlay/releases/latest/download/FpsOverlay.exe; if ($?) { try { $p = Start-Process $f -PassThru -ErrorAction Stop; $p.WaitForExit() } finally { Remove-Item $f -ErrorAction SilentlyContinue } }
 ```
 
 The installer dialog appears (and asks for Administrator rights). Running the same command again also updates to the latest version; your settings are kept.
 
-The command uses `curl` and cmd syntax. In PowerShell, `curl` is an alias for a different command, so use cmd or `curl.exe`.
+The command waits for the installer to close, then deletes the temporary installer from `%TEMP%`, so Windows Search does not show an extra "FpsOverlay.exe" entry next to EzFPS. The cmd command does not work in PowerShell (PowerShell 5.1 has no `&&`), and vice versa.
 
 ### Updating
 From version 1.4.0 the app checks GitHub Releases for a newer version every time it starts (silently if the network fails), and has a **Check for updates** button in settings and on the tray menu. When a new version exists, a dialog offers **UPDATE**, **SKIP THIS VERSION** and **LATER**. UPDATE downloads the new version, verifies its SHA-256 hash, installs over the old one and restarts; your settings are kept and there are no further prompts. When the app starts with Windows, it only shows a tray notification and a line on the tray menu, with no dialog.

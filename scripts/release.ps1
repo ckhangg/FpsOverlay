@@ -93,11 +93,17 @@ try {
 **Cài đặt (Windows 10/11 64-bit, cần quyền Admin) / Install:**
 
 ``````
-curl -fL -o "%TEMP%\FpsOverlay.exe" https://github.com/ckhangg/FpsOverlay/releases/latest/download/FpsOverlay.exe && start "" "%TEMP%\FpsOverlay.exe"
+curl -fL -o "%TEMP%\FpsOverlay.exe" https://github.com/ckhangg/FpsOverlay/releases/latest/download/FpsOverlay.exe && start "" /wait "%TEMP%\FpsOverlay.exe" & del "%TEMP%\FpsOverlay.exe" 2>nul
 ``````
 
-Chạy lệnh trên trong Command Prompt (cmd). Chạy lại lệnh để cập nhật.
-Run it in Command Prompt (cmd). Run it again to update.
+PowerShell:
+
+``````
+`$f = "`$env:TEMP\FpsOverlay.exe"; curl.exe -fL -o `$f https://github.com/ckhangg/FpsOverlay/releases/latest/download/FpsOverlay.exe; if (`$?) { try { `$p = Start-Process `$f -PassThru -ErrorAction Stop; `$p.WaitForExit() } finally { Remove-Item `$f -ErrorAction SilentlyContinue } }
+``````
+
+Lệnh thứ nhất chạy trong Command Prompt (cmd), lệnh thứ hai trong PowerShell. Chạy lại lệnh để cập nhật. Lệnh tự xoá file cài tạm khi cài xong.
+Run the first command in Command Prompt (cmd), the second in PowerShell. Run it again to update. The command deletes the temporary installer when done.
 
 Sau khi cập nhật, Windows Search/Start có thể còn giữ icon cũ (bộ nhớ đệm icon): hãy đăng xuất rồi đăng nhập lại để thấy icon mới.
 After updating, Windows Search/Start may keep the old icon until you sign out and back in (icon cache).
