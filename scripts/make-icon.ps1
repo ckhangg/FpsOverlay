@@ -38,16 +38,24 @@ function DrawIcon([int]$size) {
     $small = $size -le 32
     $stroke = if ($small) { 5.0 } else { 3.5 }
     # thân màn hình: nét viền nằm giữa mép hình chữ nhật như SVG
-    $body = RoundRect 4 8 56 40 5
+    $pixelDigits = $size -le 24   # 16 và 24 px: bản đơn giản hoá, bỏ chân đế, màn hình choán gần hết ô (chừa lề trong suốt 1 px), số vẽ tay theo điểm ảnh
+    if ($pixelDigits) {
+        $edge = 64.0 / $size + $stroke / 2   # lề 1 px + nửa nét viền
+        $body = RoundRect $edge $edge (64 - 2 * $edge) (64 - 2 * $edge) 5
+    } else {
+        $body = RoundRect 4 8 56 40 5
+    }
     $g.FillPath((New-Object System.Drawing.SolidBrush $bg), $body)
     $pen = New-Object System.Drawing.Pen $pink, $stroke
     $pen.LineJoin = 'Round'
     $g.DrawPath($pen, $body)
     $pb = New-Object System.Drawing.SolidBrush $pink
-    $g.FillRectangle($pb, 24, 50, 16, 4)
-    $g.FillPath($pb, (RoundRect 16 55 32 4 2))
+    if (-not $pixelDigits) {
+        $g.FillRectangle($pb, 24, 50, 16, 4)
+        $g.FillPath($pb, (RoundRect 16 55 32 4 2))
+    }
     # số "60": đường viền trắng làm đậm (font biến thiên chỉ nạp được kiểu thường)
-    $pixelDigits = $size -le 24   # 16 và 24 px: số vẽ tay theo điểm ảnh (vector bị nhoè, chữ số 0 có chấm khó đọc)
+    # số 60 ở 16/24 px vẽ tay theo điểm ảnh (vector bị nhoè, chữ số 0 có chấm khó đọc)
     $em = if ($small) { 31.0 } else { 22.0 }
     $emBold = if ($small) { 1.6 } else { 1.1 }
     $path = New-Object System.Drawing.Drawing2D.GraphicsPath
