@@ -44,6 +44,8 @@
   <ItemGroup>
     <!-- Font nhúng vào assembly, dùng qua pack://application:,,,/Assets/Fonts/#Tên font -->
     <Resource Include="Assets\Fonts\*.ttf" />
+    <!-- Icon ứng dụng: ApplicationIcon chỉ đóng dấu icon Win32 của exe; Resource này mới đưa icon vào assembly để AppIcon nạp bằng pack://application:,,,/Assets/EzFPS.ico (khay và cửa sổ). -->
+    <Resource Include="Assets\EzFPS.ico" />
   </ItemGroup>
 
   <!-- Bản mang đi / dotnet build: PresentMon và giấy phép (MIT, MPL-2.0, OFL của font, ...) nhúng với tên cố định,

@@ -1,4 +1,4 @@
-﻿THIRD-PARTY NOTICES - FPS Overlay
+﻿THIRD-PARTY NOTICES - EzFPS
 =================================
 
 This product bundles or links the following third-party components.

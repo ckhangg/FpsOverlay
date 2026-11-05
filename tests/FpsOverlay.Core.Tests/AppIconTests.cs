@@ -67,4 +67,11 @@ public class AppIconTests
         }
         Assert.True(offenders.Count == 0, "Còn tên hiển thị cũ:" + Environment.NewLine + string.Join(Environment.NewLine, offenders));
     }
+
+    [Fact]
+    public void Csproj_includes_icon_as_wpf_resource()
+    {
+        var csproj = File.ReadAllText(Path.Combine(RepoRoot, "src", "FpsOverlay", "FpsOverlay.csproj"));
+        Assert.Contains(@"<Resource Include=""Assets\EzFPS.ico"" />", csproj);
+    }
 }
