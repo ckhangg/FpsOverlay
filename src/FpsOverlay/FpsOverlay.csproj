@@ -8,7 +8,7 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>1.4.0</Version>
+    <Version>1.4.1</Version>
     <!-- App chạy quyền Admin (cả tác vụ khởi động cùng Windows): tắt DOTNET_STARTUP_HOOKS, không thì biến môi trường
          người dùng (HKCU\Environment, ghi được không cần Admin) nạp được dll lạ vào tiến trình Admin. Áp cả payload. -->
     <StartupHookSupport>false</StartupHookSupport>
