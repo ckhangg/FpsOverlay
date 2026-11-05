@@ -54,14 +54,13 @@ function DrawIcon([int]$size) {
         $g.FillRectangle($pb, 24, 50, 16, 4)
         $g.FillPath($pb, (RoundRect 16 55 32 4 2))
     }
-    # số "60": đường viền trắng làm đậm (font biến thiên chỉ nạp được kiểu thường)
-    # số 60 ở 16/24 px vẽ tay theo điểm ảnh (vector bị nhoè, chữ số 0 có chấm khó đọc)
     $em = if ($small) { 31.0 } else { 22.0 }
     $emBold = if ($small) { 1.6 } else { 1.1 }
     $path = New-Object System.Drawing.Drawing2D.GraphicsPath
     $fmt = New-Object System.Drawing.StringFormat
     $fmt.Alignment = 'Center'; $fmt.LineAlignment = 'Center'
     $white = [System.Drawing.Color]::White
+    # số "60": đường viền trắng làm đậm (font biến thiên chỉ nạp được kiểu thường)
     if (-not $pixelDigits) {
         $path.AddString('60', $family, 0, $em, (New-Object System.Drawing.PointF 32, 28), $fmt)
         $g.FillPath((New-Object System.Drawing.SolidBrush $white), $path)
@@ -77,12 +76,13 @@ function DrawIcon([int]$size) {
     $g2.DrawImage($bmp, 0, 0, $size, $size)
     $g2.Dispose(); $bmp.Dispose()
     if ($pixelDigits) {
+        # số 60 ở 16/24 px vẽ tay theo điểm ảnh (vector bị nhoè, chữ số 0 có chấm khó đọc)
         # glyph 3x5 (16 px) và 5x7 (24 px); x0/y0 là góc trên trái của cụm "60"
         if ($size -eq 16) {
-            $six = '111', '100', '111', '101', '111'; $zero = '111', '101', '101', '101', '111'; $x0 = 4; $y0 = 4; $gap = 2
+            $six = '111', '100', '111', '101', '111'; $zero = '111', '101', '101', '101', '111'; $x0 = 4; $y0 = 5; $gap = 2
         } else {
             $six = '01110', '10000', '10000', '11110', '10001', '10001', '01110'
-            $zero = '01110', '10001', '10001', '10001', '10001', '10001', '01110'; $x0 = 6; $y0 = 7; $gap = 2
+            $zero = '01110', '10001', '10001', '10001', '10001', '10001', '01110'; $x0 = 6; $y0 = 8; $gap = 2
         }
         $x = $x0
         foreach ($glyph in $six, $zero) {
