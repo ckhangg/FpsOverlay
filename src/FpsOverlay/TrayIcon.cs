@@ -92,7 +92,7 @@ sealed class TrayIcon : IDisposable
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_exitItem);
 
-        _image = TrayIconImage.Create();
+        _image = AppIcon.CreateTrayIcon();
         _icon = new NotifyIcon
         {
             Icon = _image,

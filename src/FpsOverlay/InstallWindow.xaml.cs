@@ -47,7 +47,7 @@ public partial class InstallWindow : Window
         InitializeComponent();
         PawnIoOption.Visibility = _offerPawnIo ? Visibility.Visible : Visibility.Collapsed;
         PawnIoSwitch.IsChecked = false;   // mặc định không cài
-        Icon = SettingsWindow.CreateWindowIcon();
+        Icon = AppIcon.WindowIcon;
         CommandBindings.Add(new CommandBinding(SystemCommands.CloseWindowCommand, (_, _) => Close()));
 
         LanguageVi.IsChecked = language == AppLanguage.Vietnamese;
@@ -100,7 +100,7 @@ public partial class InstallWindow : Window
         // Hộp thoại vẫn mở để người dùng thoát bản kia rồi bấm lại.
         if (Installer.IsInstalledCopyRunning())
         {
-            MessageBox.Show(this, Loc.Get(StringKey.InstalledCopyRunning, _language), "FPS Overlay",
+            MessageBox.Show(this, Loc.Get(StringKey.InstalledCopyRunning, _language), "EzFPS",
                 MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
@@ -125,7 +125,7 @@ public partial class InstallWindow : Window
         {
             SetBusy(false);
             MessageBox.Show(this, $"{Loc.Get(StringKey.InstallFailed, _language)}\n\n{Loc.Get(StringKey.Details, _language)}: {ex.Message}",
-                "FPS Overlay", MessageBoxButton.OK, MessageBoxImage.Error);
+                "EzFPS", MessageBoxButton.OK, MessageBoxImage.Error);
             return false;
         }
 
@@ -162,7 +162,7 @@ public partial class InstallWindow : Window
             System.Diagnostics.Trace.TraceWarning($"Cài PawnIO lỗi: {ex.Message}");
             result = PawnIoResult.InstallFailed;
         }
-        MessageBox.Show(this, Loc.Get(PawnIoResults.MessageKey(result), _language), "FPS Overlay", MessageBoxButton.OK,
+        MessageBox.Show(this, Loc.Get(PawnIoResults.MessageKey(result), _language), "EzFPS", MessageBoxButton.OK,
             PawnIoResults.IsSuccess(result) ? MessageBoxImage.Information : MessageBoxImage.Warning);
     }
 

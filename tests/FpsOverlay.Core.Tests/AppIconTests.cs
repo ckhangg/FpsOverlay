@@ -37,10 +37,34 @@ public class AppIconTests
         Assert.Equal(new[] { 16, 24, 32, 48, 64, 128, 256 }, sizes.Order().ToArray());
     }
 
-    [Fact(Skip = "Đỏ tới khi Task 2 thêm ApplicationIcon vào csproj")]
+    [Fact]
     public void Csproj_embeds_application_icon()
     {
         var csproj = File.ReadAllText(Path.Combine(RepoRoot, "src", "FpsOverlay", "FpsOverlay.csproj"));
         Assert.Contains(@"<ApplicationIcon>Assets\EzFPS.ico</ApplicationIcon>", csproj);
+    }
+
+    [Fact]
+    public void No_old_display_name_in_ui_strings()
+    {
+        var files = new List<string> { Path.Combine(RepoRoot, "src", "FpsOverlay.Core", "Localization", "Loc.cs") };
+        var appDir = Path.Combine(RepoRoot, "src", "FpsOverlay");
+        files.AddRange(Directory.EnumerateFiles(appDir, "*.*", SearchOption.AllDirectories)
+            .Where(f => (f.EndsWith(".xaml") || f.EndsWith(".cs"))
+                && !f.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar)
+                && !f.Contains(Path.DirectorySeparatorChar + "bin" + Path.DirectorySeparatorChar)));
+
+        var offenders = new List<string>();
+        foreach (var file in files)
+        {
+            var lines = File.ReadAllLines(file);
+            for (var i = 0; i < lines.Length; i++)
+            {
+                var line = lines[i].TrimStart();
+                if (line.StartsWith("//") || line.StartsWith("<!--") || line.Contains("LegacyShortcutName")) continue;
+                if (line.Contains("FPS Overlay")) offenders.Add($"{Path.GetFileName(file)}:{i + 1}: {line}");
+            }
+        }
+        Assert.True(offenders.Count == 0, "Còn tên hiển thị cũ:" + Environment.NewLine + string.Join(Environment.NewLine, offenders));
     }
 }

@@ -1,10 +1,10 @@
-# FPS Overlay
+# EzFPS
 
 **Tiếng Việt** | [English](#english)
 
 ## Tiếng Việt
 
-FPS Overlay là app Windows hiện FPS và các thông số máy (1% low, tải và nhiệt độ GPU/CPU, RAM, VRAM, xung nhân, công suất, quạt GPU) ngay trên game, giống overlay của MSI Afterburner nhưng tuỳ chỉnh theo ý mình.
+EzFPS là app Windows hiện FPS và các thông số máy (1% low, tải và nhiệt độ GPU/CPU, RAM, VRAM, xung nhân, công suất, quạt GPU) ngay trên game, giống overlay của MSI Afterburner nhưng tuỳ chỉnh theo ý mình.
 
 - Nhiều phong cách: Cổ điển, Cyberpunk, Neon tím, Terminal xanh; bố cục ngang hoặc dọc; chỉnh cỡ, độ mờ, màu, màu theo FPS. Cửa sổ cài đặt, cài đặt app và cập nhật cũng đổi theo phong cách đã chọn.
 - Cảnh báo quá nhiệt GPU/CPU (nháy và bíp).
@@ -43,7 +43,7 @@ Khi tải bằng trình duyệt, Windows SmartScreen có thể cảnh báo "Wind
 Đọc nhiệt độ CPU cần driver [PawnIO](https://pawnio.eu/). Hộp thoại cài có ô tick "Cài PawnIO" (mặc định trống); có thể cài sau bằng nút trong cài đặt. Không cài thì nhiệt độ CPU hiện `--`, các thông số khác vẫn chạy.
 
 ### Gỡ cài đặt
-Settings → Apps → FPS Overlay → Uninstall. Cài đặt (`%AppData%\FpsOverlay\settings.json`) và log (`Documents\FpsOverlay\Logs`) được giữ lại.
+Settings → Apps → EzFPS → Uninstall. Cài đặt (`%AppData%\FpsOverlay\settings.json`) và log (`Documents\FpsOverlay\Logs`) được giữ lại.
 
 ### Build từ mã nguồn
 Cần .NET 10 SDK (x64).
@@ -63,7 +63,7 @@ MIT, xem [LICENSE](LICENSE). Các thành phần bên thứ ba (PresentMon, Libre
 
 ## English
 
-FPS Overlay is a Windows app that shows FPS and system stats (1% low, GPU/CPU load and temperature, RAM, VRAM, clocks, power, GPU fan) on top of your games, like the MSI Afterburner overlay but fully customisable.
+EzFPS is a Windows app that shows FPS and system stats (1% low, GPU/CPU load and temperature, RAM, VRAM, clocks, power, GPU fan) on top of your games, like the MSI Afterburner overlay but fully customisable.
 
 - Several styles: Classic, Cyberpunk, Neon purple, Green terminal; horizontal or vertical layout; size, opacity, colours, FPS-based colours. The settings, install and update windows follow the chosen style too.
 - GPU/CPU overheat alerts (blink and beep).
@@ -102,7 +102,7 @@ When downloaded with a browser, Windows SmartScreen may show "Windows protected 
 Reading CPU temperature needs the [PawnIO](https://pawnio.eu/) driver. The installer has an unchecked "Install PawnIO" box; you can also install it later from the settings window. Without it, CPU temperature shows `--` and everything else works.
 
 ### Uninstall
-Settings → Apps → FPS Overlay → Uninstall. Your settings (`%AppData%\FpsOverlay\settings.json`) and logs (`Documents\FpsOverlay\Logs`) are kept.
+Settings → Apps → EzFPS → Uninstall. Your settings (`%AppData%\FpsOverlay\settings.json`) and logs (`Documents\FpsOverlay\Logs`) are kept.
 
 ### Build from source
 Requires the .NET 10 SDK (x64).

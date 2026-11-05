@@ -21,7 +21,7 @@ public static class AutostartTask
         XElement E(string name, params object[] content) => new(Ns + name, content);
 
         var task = E("Task", new XAttribute("version", "1.2"),
-            E("RegistrationInfo", E("Description", "FPS Overlay")),
+            E("RegistrationInfo", E("Description", "EzFPS")),
             E("Triggers",
                 E("LogonTrigger",
                     E("Enabled", "true"),

@@ -57,7 +57,7 @@ public partial class UpdateWindow : Window
         _language = language;
         _appToken = appToken;
         InitializeComponent();
-        Icon = SettingsWindow.CreateWindowIcon();
+        Icon = AppIcon.WindowIcon;
         CommandBindings.Add(new CommandBinding(SystemCommands.CloseWindowCommand, (_, _) => Close()));
 
         Title = T(StringKey.UpdateTitle);
@@ -119,7 +119,7 @@ public partial class UpdateWindow : Window
             Trace.TraceWarning($"Tải bản cập nhật lỗi: {ex.Message}");
             if (_closed) return;
             SetDownloading(false);   // về ba nút lựa chọn: thử lại, để sau hoặc bỏ qua
-            MessageBox.Show(this, $"{T(StringKey.UpdateFailed)}\n\n{T(StringKey.Details)}: {ex.Message}", "FPS Overlay",
+            MessageBox.Show(this, $"{T(StringKey.UpdateFailed)}\n\n{T(StringKey.Details)}: {ex.Message}", "EzFPS",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         finally

@@ -67,7 +67,7 @@
                         <TextBlock VerticalAlignment="Center">
                             <Run Text="{Binding Title, RelativeSource={RelativeSource TemplatedParent}, Mode=OneWay}"
                                  Foreground="{DynamicResource Ui.Accent}" FontWeight="Bold" FontSize="15" />
-                            <Run Text="  FPS Overlay" Foreground="{DynamicResource Ui.Muted}" FontSize="12" />
+                            <Run Text="  EzFPS" Foreground="{DynamicResource Ui.Muted}" FontSize="12" />
                         </TextBlock>
                     </DockPanel>
                 </Border>

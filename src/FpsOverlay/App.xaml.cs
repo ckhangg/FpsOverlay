@@ -99,7 +99,7 @@ public partial class App : Application
         {
             // Chỉ đọc ngôn ngữ, không mở SettingsService (bản này không được ghi file cài đặt).
             var language = SettingsStore.Load(SettingsStore.DefaultPath).Language;
-            MessageBox.Show(Loc.Get(StringKey.AlreadyRunning, language), "FPS Overlay",
+            MessageBox.Show(Loc.Get(StringKey.AlreadyRunning, language), "EzFPS",
                 MessageBoxButton.OK, MessageBoxImage.Information);
             _singleInstance.Dispose();
             _singleInstance = null;
@@ -303,7 +303,7 @@ public partial class App : Application
                 if (_updateCts.IsCancellationRequested) return;   // app đang thoát
                 Trace.TraceWarning($"Kiểm cập nhật lỗi: {ex.Message}");
                 MessageBox.Show($"{Loc.Get(StringKey.UpdateCheckFailed, Language)}\n\n{Loc.Get(StringKey.Details, Language)}: {ex.Message}",
-                    "FPS Overlay", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    "EzFPS", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
             if (_settings is null || _updateCts.IsCancellationRequested) return;
@@ -311,7 +311,7 @@ public partial class App : Application
                 ShowUpdateWindow(release);
             else
                 MessageBox.Show(string.Format(Loc.Get(StringKey.UpToDate, Language), "v" + UpdateService.CurrentVersion.ToString(3)),
-                    "FPS Overlay", MessageBoxButton.OK, MessageBoxImage.Information);
+                    "EzFPS", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         finally
         {
@@ -439,7 +439,7 @@ public partial class App : Application
         // Không mang Payload.zip (bản cài nhiều file chép đi chỗ khác, bản dotnet build): báo rõ, không cài bản hỏng.
         if (!Installer.HasPayload)
         {
-            MessageBox.Show(Loc.Get(StringKey.InstallPayloadMissing, language), "FPS Overlay",
+            MessageBox.Show(Loc.Get(StringKey.InstallPayloadMissing, language), "EzFPS",
                 MessageBoxButton.OK, MessageBoxImage.Error);
             // Tự cập nhật: bản cũ đã (đang) thoát; chờ nó thoát hẳn rồi mở lại bản đang cài.
             if (updateAfterPid is { } failedPid && await WaitForOldInstanceAsync(failedPid))
@@ -454,7 +454,7 @@ public partial class App : Application
             // Bản cũ còn chạy (quá 30 s) hay có bản cài khác đang chạy: exe trong thư mục cài đang bị khoá, không cài đè.
             if (!await WaitForOldInstanceAsync(pid) || Installer.IsInstalledCopyRunning())
             {
-                MessageBox.Show(Loc.Get(StringKey.InstalledCopyRunning, language), "FPS Overlay",
+                MessageBox.Show(Loc.Get(StringKey.InstalledCopyRunning, language), "EzFPS",
                     MessageBoxButton.OK, MessageBoxImage.Information);
                 Shutdown();
                 return;
@@ -569,12 +569,12 @@ public partial class App : Application
     static void RunUninstall()
     {
         var language = SettingsStore.Load(SettingsStore.DefaultPath).Language;
-        if (MessageBox.Show(Loc.Get(StringKey.UninstallConfirm, language), "FPS Overlay",
+        if (MessageBox.Show(Loc.Get(StringKey.UninstallConfirm, language), "EzFPS",
                 MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes)
             return;
         if (Installer.IsInstalledCopyRunning())
         {
-            MessageBox.Show(Loc.Get(StringKey.InstalledCopyRunning, language), "FPS Overlay",
+            MessageBox.Show(Loc.Get(StringKey.InstalledCopyRunning, language), "EzFPS",
                 MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
@@ -584,7 +584,7 @@ public partial class App : Application
 
         // Thông báo trước: hộp thông báo giữ app sống (và khoá file trong thư mục cài).
         if (failure is null)
-            MessageBox.Show(Loc.Get(StringKey.UninstallDone, language), "FPS Overlay",
+            MessageBox.Show(Loc.Get(StringKey.UninstallDone, language), "EzFPS",
                 MessageBoxButton.OK, MessageBoxImage.Information);
         else
             ShowError(StringKey.UninstallFailed, failure, language);
@@ -600,7 +600,7 @@ public partial class App : Application
     }
 
     static void ShowError(StringKey key, Exception ex, AppLanguage language) =>
-        MessageBox.Show($"{Loc.Get(key, language)}\n\n{Loc.Get(StringKey.Details, language)}: {ex.Message}", "FPS Overlay",
+        MessageBox.Show($"{Loc.Get(key, language)}\n\n{Loc.Get(StringKey.Details, language)}: {ex.Message}", "EzFPS",
             MessageBoxButton.OK, MessageBoxImage.Error);
 
     // Chạy PresentMon mới (bộ tính FPS và lịch sử frametime làm mới theo). Trả về false nếu không chạy được (đã báo lỗi và thoát).
@@ -878,7 +878,7 @@ public partial class App : Application
                 return;
             var message = Loc.Get(StringKey.AutostartFailed, Language) +
                           (error.Length > 0 ? $"\n\n{Loc.Get(StringKey.Details, Language)}: {error}" : "");
-            MessageBox.Show(message, "FPS Overlay", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(message, "EzFPS", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         finally
         {
@@ -897,7 +897,7 @@ public partial class App : Application
         if (_overlay is { IsMoving: true }) _overlay.EndMove(save: true);
         _overlay?.Hide();   // không để con số cũ treo trên game
         // DefaultDesktopOnly: hộp thoại nổi lên trên cả game borderless
-        MessageBox.Show(message, "FPS Overlay", MessageBoxButton.OK, MessageBoxImage.Error,
+        MessageBox.Show(message, "EzFPS", MessageBoxButton.OK, MessageBoxImage.Error,
             MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly);
         Shutdown();
     }

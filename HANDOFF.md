@@ -1,4 +1,4 @@
-# FPS Overlay: tóm tắt để làm tiếp trên máy khác
+# EzFPS (tên kỹ thuật FpsOverlay): tóm tắt để làm tiếp trên máy khác
 
 > Dành cho cả người dùng lẫn Claude Code ở phiên mới. Claude: đọc hết file này, rồi đọc spec/plan được nhắc tới trước khi làm gì.
 > Người dùng nói tiếng Việt: luôn trả lời bằng tiếng Việt.
@@ -28,6 +28,7 @@
 | 6 | Phiên bản **1.2.0**: "Chỉ hiện khi chơi game" (mặc định bật; overlay hiện khi cửa sổ phía trước phủ kín màn hình, hoặc exe nằm trong `\steamapps\common\` hay `\XboxGames\`, hoặc nằm trong "Luôn hiện"; "Không bao giờ hiện" thắng; kiểm mỗi 250 ms); mục khay "Luôn hiện cho …"/"Không bao giờ hiện cho …"; cài đặt: danh sách thông số thu gọn sau nút "Chọn thông số hiển thị ▾" kèm "Đang hiện N/10", danh sách ứng dụng thu gọn có nút Xoá | merge vào master, chưa kiểm tay |
 | 7 | Phiên bản **1.3.0**: cài đặt có các mục màu/FPS/cảnh báo thu gọn được và nhãn phiên bản; kho GitHub công khai `ckhangg/FpsOverlay` (README song ngữ, giấy phép MIT); `scripts/release.ps1` phát hành lên GitHub Releases; cài bằng một dòng `curl` | merge vào master, đã phát hành v1.3.0 trên GitHub, chưa kiểm tay |
 | 8 | Phiên bản **1.4.0**: cửa sổ cài đặt/cài app/cập nhật theo 4 chủ đề overlay (Cổ điển, Cyberpunk, Neon tím, Terminal xanh) và đổi ngay khi chọn; cột nhãn rộng hơn, nhãn tự xuống dòng; thanh cuộn theo chủ đề; kiểm tra cập nhật từ GitHub Releases khi mở app (im lặng nếu lỗi), nút "Kiểm tra cập nhật" trong cài đặt và khay; hộp thoại CẬP NHẬT / BỎ QUA BẢN NÀY / ĐỂ SAU; `--autostart` chỉ hiện thông báo khay + một dòng đầu menu khay; tải về `<InstallDir>\Temp`, kiểm SHA-256, bàn giao `--update-after <PID>`, cập nhật tự động không hỏi; tác vụ khởi động nay truyền `--autostart` | merge vào master, phát hành v1.4.0 trên GitHub; người dùng đã kiểm tay OK (2026-11-05), kể cả cập nhật thật 1.4.0 → 1.4.1 qua nút cập nhật |
+| 9 | Phiên bản **1.5.0**: đổi tên hiển thị thành **EzFPS** và logo mới "màn hình 60" (`Assets/EzFPS.ico` sinh bằng `scripts/make-icon.ps1`, nhúng vào exe qua `ApplicationIcon` và vào assembly làm WPF Resource; khay và cửa sổ dùng cùng icon qua `AppIcon`); lối tắt Start Menu mới `EzFPS.lnk`, tự xoá lối tắt cũ `FPS Overlay.lnk` | **chưa merge**, nhánh `feat/ezfps-branding`; chờ người dùng kiểm tay mục "Đợt 9" ở mục 9 |
 
 Hoãn theo ý người dùng: **biểu đồ FPS/frametime** (làm sau).
 
@@ -68,7 +69,7 @@ Hoãn theo ý người dùng: **biểu đồ FPS/frametime** (làm sau).
 3. Phát hành bản mới: xem mục 5 (`.\scripts\release.ps1`).
    Đóng gói ra **một file**: `dotnet publish src/FpsOverlay -c Release -o publish` → `publish\FpsOverlay.exe` (~158 MB, có sẵn .NET; bản 1.1.0 đo được 158,4 MB).
 4. Chạy thử khi phát triển mà không cài: `FpsOverlay.exe --no-install` (chuột phải → Run as administrator). Chạy không tham số thì app đòi cài vào `C:\Program Files\FpsOverlay`.
-5. Gỡ: Settings → Apps → FPS Overlay (giữ lại `%AppData%\FpsOverlay\settings.json` và `Documents\FpsOverlay\Logs`).
+5. Gỡ: Settings → Apps → EzFPS (giữ lại `%AppData%\FpsOverlay\settings.json` và `Documents\FpsOverlay\Logs`).
 
 ## 7. Những quyết định đã đưa ra (người dùng có thể đổi)
 - **R1/R5** Cảnh báo PresentMon chỉ khi từ lúc (khởi động lại) PresentMon chưa có khung hình nào trong 10 s (desktop đứng yên có thể không vẽ gì).
@@ -102,6 +103,7 @@ Hoãn theo ý người dùng: **biểu đồ FPS/frametime** (làm sau).
 - **Đợt 8** Cập nhật tự động thất bại vẫn mở bản đã cài (nếu còn) để người dùng không mất overlay.
 - **Đợt 8** App chạy từ tác vụ khởi động (Task Scheduler) nằm trong Job Object của tác vụ: exe cập nhật (và bản cài nó mở lại) được chạy bằng `CreateProcess` + `CREATE_BREAKAWAY_FROM_JOB` để không bị tắt cùng tác vụ; job không cho tách thì chạy như cũ (ghi Trace) và có thể bị tắt, xem mục 84. Không trong job thì đường chạy không đổi.
 - **Đợt 8** Lúc mở app mà game đang ở phía trước (chỉ-hiện-khi-chơi bật, overlay đang hiện, không xem trước): không bật hộp thoại cập nhật, chỉ báo khay (balloon + dòng đầu menu). Ghi chú phát hành hiện chữ thường (bỏ Markdown đơn giản, `ReleaseNotes.ToPlainText`).
+- **Đợt 9** Chỉ đổi tên HIỂN THỊ (chuỗi UI, tiêu đề, caption, tooltip, tên lối tắt, DisplayName/Publisher, README, tiêu đề release). Giữ nguyên tên kỹ thuật: `FpsOverlay.exe`, repo, thư mục cài/AppData/log, tên tác vụ, khoá gỡ cài đặt trong registry, mutex, namespace, tên project. Lý do: đổi chúng làm hỏng đường cập nhật/gỡ của bản đã cài, tác vụ khởi động, và cài đặt người dùng, mà người dùng không nhìn thấy chúng. Test `No_old_display_name_in_ui_strings` giữ cho chuỗi UI không lẫn tên cũ.
 - **Đợt 8** Biến `DOTNET_BUNDLE_EXTRACT_BASE_DIR` được trỏ tới `<InstallDir>\Temp\extract` cho exe cập nhật, để thư viện native không bung ra `%TEMP%\.net` (nơi người dùng thường ghi được) khi chạy với quyền Admin.
 - **Rủi ro đã biết (đợt 8)** File `.sha256` chứng minh toàn vẹn, **không** chứng minh xuất xứ: exe chưa ký số, nên nếu tài khoản GitHub của chủ kho bị chiếm thì kẻ chiếm đăng được cả file lẫn mã băm. Chủ kho nên bật 2FA. Ghi trong README.
 - **Rủi ro đã biết (đợt 8, có từ trước)** Người dùng tự chạy file mang đi (single-file) bằng quyền Admin thì thư viện native bị bung ra `%TEMP%\.net\FpsOverlay\<id>`, thư mục người dùng ghi được và được tái sử dụng: có thể bị cài DLL giả. Đường cập nhật tự động đã tránh (xem trên); chạy tay thì chưa.
@@ -137,7 +139,7 @@ Hoãn theo ý người dùng: **biểu đồ FPS/frametime** (làm sau).
    - `Temp\` vẫn còn.
    - Exe giờ là apphost nhỏ, thư viện native nằm cạnh exe.
    - File thừa `FpsOverlay.exe.*.new` đã bị xoá.
-9. Cập nhật khi bản cài đang chạy: báo "thoát FPS Overlay đang chạy" như trước.
+9. Cập nhật khi bản cài đang chạy: báo "thoát EzFPS đang chạy" như trước.
 10. Chép `FpsOverlay.exe` của bản cài ra chỗ khác rồi chạy, hoặc chạy exe của `dotnet build` không có tham số: báo "không mang gói cài", không cài gì.
 11. Cài dở dang: cài xong thì xoá lối tắt và khoá `HKLM\...\Uninstall\FpsOverlay`, rồi mở `C:\Program Files\FpsOverlay\FpsOverlay.exe`. Cả hai được tạo lại.
 
@@ -251,3 +253,10 @@ Hoãn theo ý người dùng: **biểu đồ FPS/frametime** (làm sau).
 83. Thử cập nhật thật cần phát hành một bản thử (vd. 1.4.1): chỉ làm khi người dùng đồng ý, không tự phát hành.
 84. **(Đường dễ hỏng nhất)** Cập nhật từ bản chạy bởi tác vụ khởi động: bật "Khởi động cùng Windows", đăng xuất rồi đăng nhập, chờ dòng báo bản mới ở khay, bấm dòng đó rồi bấm CẬP NHẬT → bản mới được cài và đang chạy (biểu tượng khay còn, Settings → Apps đúng phiên bản). App này nằm trong Job Object của tác vụ; nếu bản mới hay bản cài không lên, xem Trace "Không tách được … khỏi job" (job không cho tách). Cần bản phát hành thử như mục 83.
 85. Mở app (không phải tự khởi động) khi có bản mới, rồi vào game toàn màn hình trong vòng 5 giây (bật chỉ-hiện-khi-chơi): không có hộp thoại cướp focus, chỉ balloon + dòng đầu menu khay; bấm vào thì mở hộp thoại. Ghi chú phát hành trong hộp thoại không còn `**` hay ```.
+
+**Đợt 9 (1.5.0)** (cần quyền Admin; nhánh `feat/ezfps-branding`, chưa merge; mục 86 cần một bản phát hành 1.5.0)
+86. Từ bản 1.4.1 đã cài, bấm "Kiểm tra cập nhật" để lên 1.5.0 bằng nút (cần phát hành 1.5.0 trước; chỉ làm khi người dùng đồng ý).
+87. Sau khi cập nhật: Start Menu chỉ còn lối tắt "EzFPS" (không còn "FPS Overlay"); Settings → Apps hiện "EzFPS", nhà phát hành "EzFPS".
+88. Tìm "EzFPS" hoặc "FPS" trong Start Menu: ra lối tắt có icon mới (có thể cần đăng xuất rồi đăng nhập hoặc xoá cache icon mới thấy icon mới).
+89. Icon khay (khay hệ thống) và icon trên thanh tiêu đề/thanh tác vụ của cửa sổ Cài đặt, Cài app, Cập nhật là logo mới, rõ nét ở màn hình 100% và 150%; tooltip khay và mọi hộp thoại ghi "EzFPS".
+90. Chạy file mang đi (`publish\FpsOverlay.exe`): icon file trong Explorer là logo mới.

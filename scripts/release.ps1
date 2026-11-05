@@ -104,7 +104,7 @@ SHA-256: ``$hash``
     $notesFile = Join-Path ([System.IO.Path]::GetTempPath()) "fpsoverlay-notes-$tag.md"
     [System.IO.File]::WriteAllText($notesFile, $notes, (New-Object System.Text.UTF8Encoding($false)))
     try {
-        gh release create $tag 'publish\FpsOverlay.exe' 'publish\FpsOverlay.exe.sha256' --title "FPS Overlay $version" --notes-file $notesFile
+        gh release create $tag 'publish\FpsOverlay.exe' 'publish\FpsOverlay.exe.sha256' --title "EzFPS $version" --notes-file $notesFile
         if ($LASTEXITCODE -ne 0) {
             Stop-Release "gh release create thất bại sau khi đã đẩy thẻ $tag. Gỡ thẻ rồi chạy lại: git tag -d $tag ; git push origin --delete $tag"
         }

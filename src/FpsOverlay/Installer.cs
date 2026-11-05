@@ -26,7 +26,9 @@ static class Installer
 
     const string DirectoryName = InstallPaths.DirectoryName;
     const string ExeName = "FpsOverlay.exe";
-    const string ShortcutName = "FPS Overlay.lnk";
+    const string ShortcutName = "EzFPS.lnk";
+    /// <summary>Tên lối tắt trước 1.5.0 (khi app còn tên FPS Overlay); xoá khi tạo/sửa lối tắt mới và khi gỡ.</summary>
+    const string LegacyShortcutName = "FPS Overlay.lnk";
     const string UninstallKeyPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\FpsOverlay";
 
     static readonly string ProgramFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
@@ -49,6 +51,7 @@ static class Installer
 
     static string RunningExePath { get; } = Environment.ProcessPath ?? Path.Combine(AppContext.BaseDirectory, ExeName);
 
+    static string LegacyShortcutPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonPrograms), LegacyShortcutName);
     static string ShortcutPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonPrograms), ShortcutName);
 
     /// <summary>Exe đang chạy chính là bản trong thư mục cài (so đường dẫn, không phân biệt hoa thường).</summary>
@@ -158,6 +161,7 @@ static class Installer
         {
             if (File.Exists(ShortcutPath)) File.Delete(ShortcutPath);
         });
+        DeleteLegacyShortcut();
         // Mục gỡ cài đặt xoá sau cùng, và chỉ khi đã xoá được thư mục: còn sót file thì vẫn gỡ lại được từ Settings → Apps.
         // Bản cài tự gỡ thì cả hai để cho cmd của FinishUninstall (xoá mục đăng ký sau khi rmdir xong).
         if (Step(DeleteInstallDirectory) && _pendingSelfDelete is null)
@@ -267,14 +271,22 @@ static class Installer
 
     // ---------- Lối tắt và mục gỡ cài đặt ----------
 
+    /// <summary>Xoá lối tắt tên cũ nếu còn; lỗi thì bỏ qua (chỉ ghi Trace).</summary>
+    static void DeleteLegacyShortcut()
+    {
+        try { if (File.Exists(LegacyShortcutPath)) File.Delete(LegacyShortcutPath); }
+        catch (Exception ex) { Trace.TraceWarning($"Không xoá được lối tắt cũ: {ex.Message}"); }
+    }
+
     static void CreateShortcut()
     {
+        DeleteLegacyShortcut();
         var link = (IShellLinkW)new ShellLink();
         try
         {
             link.SetPath(InstalledExePath);
             link.SetWorkingDirectory(InstallDirectory);
-            link.SetDescription("FPS Overlay");
+            link.SetDescription("EzFPS");
             link.SetIconLocation(InstalledExePath, 0);
             ((IPersistFile)link).Save(ShortcutPath, true);
         }
@@ -288,9 +300,9 @@ static class Installer
     {
         using var hklm = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
         using var key = hklm.CreateSubKey(UninstallKeyPath, writable: true);
-        key.SetValue("DisplayName", "FPS Overlay");
+        key.SetValue("DisplayName", "EzFPS");
         key.SetValue("DisplayVersion", $"{RunningVersion.Major}.{RunningVersion.Minor}.{Math.Max(RunningVersion.Build, 0)}");
-        key.SetValue("Publisher", "FPS Overlay");
+        key.SetValue("Publisher", "EzFPS");
         key.SetValue("DisplayIcon", InstalledExePath);
         key.SetValue("InstallLocation", InstallDirectory);
         key.SetValue("UninstallString", $"\"{InstalledExePath}\" --uninstall");

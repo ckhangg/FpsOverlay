@@ -73,7 +73,7 @@ public partial class SettingsWindow : Window
         if (!autostart.CanManage) AutostartSwitch.Opacity = AutostartLabel.Opacity = 0.45;
         ToolTipService.SetShowOnDisabled(AutostartSwitch, true);
         _hexBoxes = [LabelHex, ValueHex, FpsHex];
-        Icon = CreateWindowIcon();
+        Icon = AppIcon.WindowIcon;
         CommandBindings.Add(new CommandBinding(SystemCommands.CloseWindowCommand, (_, _) => Close()));
         BuildSwatches();
         VersionText.Text = AppVersion.Display(
@@ -664,12 +664,4 @@ public partial class SettingsWindow : Window
         1 => colors with { Value = hex },
         _ => colors with { Fps = hex },
     };
-
-    internal static BitmapSource CreateWindowIcon()
-    {
-        using var icon = TrayIconImage.Create();
-        var source = Imaging.CreateBitmapSourceFromHIcon(icon.Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
-        source.Freeze();
-        return source;
-    }
 }
