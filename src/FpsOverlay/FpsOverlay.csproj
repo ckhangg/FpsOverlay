@@ -10,6 +10,9 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\EzFPS.ico</ApplicationIcon>
     <Version>1.5.0</Version>
+    <!-- Mô tả file exe (Task Manager, Properties) và tên sản phẩm: hiện EzFPS. Không đổi AssemblyName/exe. -->
+    <AssemblyTitle>EzFPS</AssemblyTitle>
+    <Product>EzFPS</Product>
     <!-- App chạy quyền Admin (cả tác vụ khởi động cùng Windows): tắt DOTNET_STARTUP_HOOKS, không thì biến môi trường
          người dùng (HKCU\Environment, ghi được không cần Admin) nạp được dll lạ vào tiến trình Admin. Áp cả payload. -->
     <StartupHookSupport>false</StartupHookSupport>

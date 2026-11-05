@@ -61,7 +61,7 @@ static class Installer
     /// <summary>Phiên bản exe đang chạy (từ &lt;Version&gt; trong csproj).</summary>
     public static Version RunningVersion { get; } = typeof(Installer).Assembly.GetName().Version ?? new Version(0, 0, 0, 0);
 
-    /// <summary>Một bản FPS Overlay khác (thường là bản cài, ở khay) đang giữ mutex một bản chạy.</summary>
+    /// <summary>Một bản EzFPS khác (thường là bản cài, ở khay) đang giữ mutex một bản chạy.</summary>
     public static bool IsInstalledCopyRunning()
     {
         if (!Mutex.TryOpenExisting(SingleInstanceMutexName, out var mutex)) return false;

@@ -32,6 +32,8 @@ Từ bản 1.4.0, app tự kiểm tra bản mới trên GitHub Releases mỗi l�
 
 Nếu bạn đang dùng **1.3.0**, bản đó chưa có bộ cập nhật: hãy chạy lại lệnh cài một dòng ở trên một lần để lên bản mới; từ đó trở đi app tự cập nhật.
 
+Sau khi cập nhật, Windows Search/Start có thể còn giữ icon cũ (bộ nhớ đệm icon): hãy đăng xuất rồi đăng nhập lại để thấy icon mới.
+
 Ghi chú bảo mật: file tải về chỉ được lấy từ HTTPS của GitHub (github.com và các máy chủ file của GitHub), tối đa 400 MB, và phải khớp mã băm SHA-256 trong `FpsOverlay.exe.sha256`. Mã băm này chứng minh file không bị hỏng hay cắt cụt, **không** chứng minh người phát hành là chủ kho: file chưa được ký số, nên nếu tài khoản GitHub của chủ kho bị chiếm, kẻ chiếm có thể đăng cả file lẫn mã băm. Chủ kho nên bật xác thực hai lớp (2FA) cho tài khoản.
 
 ### Tải tay
@@ -90,6 +92,8 @@ The command uses `curl` and cmd syntax. In PowerShell, `curl` is an alias for a 
 From version 1.4.0 the app checks GitHub Releases for a newer version every time it starts (silently if the network fails), and has a **Check for updates** button in settings and on the tray menu. When a new version exists, a dialog offers **UPDATE**, **SKIP THIS VERSION** and **LATER**. UPDATE downloads the new version, verifies its SHA-256 hash, installs over the old one and restarts; your settings are kept and there are no further prompts. When the app starts with Windows, it only shows a tray notification and a line on the tray menu, with no dialog.
 
 If you are on **1.3.0**, that version has no updater: run the one-line install command above once more to get it; from then on the app updates itself.
+
+After updating, Windows Search/Start may keep the old icon until you sign out and back in (icon cache).
 
 Security note: the download is only accepted from GitHub over HTTPS (github.com and GitHub's file hosts), up to 400 MB, and must match the SHA-256 hash in `FpsOverlay.exe.sha256`. The hash proves the file is not corrupted or truncated, but it does **not** prove who published it: the exe is not code-signed, so if the repository owner's GitHub account were hijacked, the attacker could publish both the file and its hash. The owner should enable two-factor authentication (2FA) on the account.
 

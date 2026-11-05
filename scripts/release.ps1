@@ -99,6 +99,9 @@ curl -fL -o "%TEMP%\FpsOverlay.exe" https://github.com/ckhangg/FpsOverlay/releas
 Chạy lệnh trên trong Command Prompt (cmd). Chạy lại lệnh để cập nhật.
 Run it in Command Prompt (cmd). Run it again to update.
 
+Sau khi cập nhật, Windows Search/Start có thể còn giữ icon cũ (bộ nhớ đệm icon): hãy đăng xuất rồi đăng nhập lại để thấy icon mới.
+After updating, Windows Search/Start may keep the old icon until you sign out and back in (icon cache).
+
 SHA-256: ``$hash``
 "@
     $notesFile = Join-Path ([System.IO.Path]::GetTempPath()) "fpsoverlay-notes-$tag.md"
